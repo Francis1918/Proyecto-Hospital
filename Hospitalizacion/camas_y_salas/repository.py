@@ -49,51 +49,52 @@ class MemoryRepository:
 
         # Inicializar nombres clave para salas y relacionar habitaciones con salas por ubicacion
         try:
-            # Asignar nombre_clave a salas basado en su secuencia por piso
-            floor_groups: Dict[str, List[str]] = {}
-            for sid, sala in self.salas.items():
-                code = self._floor_code(sala.ubicacion)
-                floor_groups.setdefault(code, []).append(sid)
-            for code, sids in floor_groups.items():
-                # ordenar por código para consistencia
-                sids_sorted = sorted(sids)
-                for idx, sid in enumerate(sids_sorted, start=1):
-                    sala = self.salas.get(sid)
-                    if sala:
-                        sala.nombre_clave = GREEK_NAMES[(idx - 1) % len(GREEK_NAMES)]
-            # Vincular habitaciones a una sala del mismo piso (si existe) y crear nombre_clave
+            # 1) Asignar nombre_clave a salas de forma global (ALFA, BETA, GAMA, ...)
+            for idx, sid in enumerate(sorted(self.salas.keys()), start=1):
+                sala = self.salas.get(sid)
+                if sala:
+                    sala.nombre_clave = GREEK_NAMES[(idx - 1) % len(GREEK_NAMES)]
+
+            # 2) Vincular habitaciones a una sala del mismo piso y nombrarlas como "<SalaClave> <N>"
+            #    Recalcular índices por sala en orden estable
             for hid, hab in self.habitaciones.items():
                 sala_match = self._find_sala_by_floor(hab.ubicacion)
                 hab.sala_id = sala_match
-                if sala_match and sala_match in self.salas:
-                    sala_clave = self.salas[sala_match].nombre_clave or "Sala"
-                    # calcular índice dentro de la sala
-                    hab_index = 1 + len([h for h in self.habitaciones.values() if h.sala_id == sala_match and h.numero < hab.numero])
-                    hab.nombre_clave = f"{sala_clave} {hab_index}"
-            # Asignar nombre_clave a camas basándose en la habitación, respetando orden por número
+            # construir listas por sala
+            habs_por_sala: Dict[str, List[str]] = {}
+            for hid, hab in self.habitaciones.items():
+                if hab.sala_id:
+                    habs_por_sala.setdefault(hab.sala_id, []).append(hid)
+            for sala_id, hids in habs_por_sala.items():
+                # ordenar por ID de habitación para índice determinista
+                for idx, hid in enumerate(sorted(hids), start=1):
+                    hab = self.habitaciones.get(hid)
+                    sala_clave = self.salas[sala_id].nombre_clave if sala_id in self.salas else "Sala"
+                    if hab:
+                        hab.nombre_clave = f"{sala_clave} {idx}"
+
+            # 3) Asignar nombre_clave a camas como "<SalaClave> <N><Letra>" (p.ej., Alfa 1A, Alfa 1B)
+            camas_por_hab: Dict[str, List[str]] = {}
             for cid, cama in self.camas.items():
-                hab = self._resolve_habitacion(cama.num_habitacion)
-                if hab:
-                    # obtener todas las camas ligadas a la misma habitación
-                    same_room_camas = []
-                    for cid2, cama2 in self.camas.items():
-                        if self._resolve_habitacion(cama2.num_habitacion) == hab:
-                            same_room_camas.append(cid2)
-                    # ordenar por número secuencial al final del ID si existe
-                    def cama_seq(c_id: str) -> int:
-                        try:
-                            parts = c_id.split('-')
-                            return int(parts[-1])
-                        except Exception:
-                            return 0
-                    same_room_camas_sorted = sorted(same_room_camas, key=cama_seq)
-                    # posición de esta cama
+                camas_por_hab.setdefault(cama.num_habitacion, []).append(cid)
+            for hid, cids in camas_por_hab.items():
+                hab = self._resolve_habitacion(hid)
+                if not hab:
+                    continue
+                # ordenar por secuencia numérica del ID de cama
+                def cama_seq(c_id: str) -> int:
                     try:
-                        seq_index = same_room_camas_sorted.index(cid) + 1
-                    except ValueError:
-                        seq_index = 1
-                    letra = letter_sequence(seq_index)
-                    cama.nombre_clave = f"{hab.nombre_clave or hab.numero} {letra}"
+                        parts = c_id.split('-')
+                        return int(parts[-1])
+                    except Exception:
+                        return 0
+                for idx, cid in enumerate(sorted(cids, key=cama_seq), start=1):
+                    cama = self.camas.get(cid)
+                    letra = letter_sequence(idx)
+                    if cama:
+                        # sin espacio antes de la letra para formato "Alfa 1A"
+                        base = hab.nombre_clave or hab.numero
+                        cama.nombre_clave = f"{base}{letra}" if base.endswith(" ") else f"{base} {letra}" if " " not in base else f"{base}{letra}"
         except Exception:
             # No interrumpir si falla la inicialización opcional
             pass
@@ -150,6 +151,13 @@ class MemoryRepository:
                     return None
                 # Asignar a una sala (si se provee) y calcular nombre_clave
                 sala_id = infra.rel_sala_id or self._find_sala_by_floor(infra.ubicacion)
+                # Enforce sala capacity: default 5 habitaciones
+                if sala_id and sala_id in self.salas:
+                    current_count = len([h for h in self.habitaciones.values() if h.sala_id == sala_id])
+                    capacidad = getattr(self.salas[sala_id], "capacidad", 5)
+                    if current_count >= capacidad:
+                        # sin espacio en la sala
+                        return None
                 # índice de habitación dentro de la sala
                 hab_index = 1 + len([h for h in self.habitaciones.values() if h.sala_id == sala_id])
                 sala_clave = self.salas[sala_id].nombre_clave if sala_id and sala_id in self.salas else "Sala"
@@ -165,7 +173,9 @@ class MemoryRepository:
                     return None
                 # nombre_clave: griego por secuencia del piso
                 nombre_griego = GREEK_NAMES[(seq - 1) % len(GREEK_NAMES)]
-                self.salas[sid] = Sala(sid, True, infra.ubicacion, nombre_clave=nombre_griego)
+                # capacidad por defecto 5 si no se provee
+                cap = infra.capacidad if isinstance(infra.capacidad, int) and infra.capacidad > 0 else 5
+                self.salas[sid] = Sala(sid, True, infra.ubicacion, cap, nombre_clave=nombre_griego)
                 self.historial.registrar(f"Infraestructura registrada: Sala {sid} ({infra.ubicacion})")
                 return sid
             elif infra.tipo == "cama":
@@ -337,6 +347,21 @@ class MemoryRepository:
             if pac.estado == "hospitalizado" and pid in self.hospitalizaciones and not pac.cama_asignada:
                 res.append(pid)
         return res
+
+    def listar_para_autorizar(self) -> List[str]:
+        """Lista IDs de pacientes que requieren autorización de hospitalización.
+        Incluye:
+        - Pedidos de hospitalización en estado 'pendiente'.
+        - Pacientes con cama asignada cuyo estado aún no es 'hospitalización autorizada'.
+        """
+        ids = set()
+        for pid, ped in self.pedidos.items():
+            if ped.estado == "pendiente":
+                ids.add(pid)
+        for pid, pac in self.pacientes.items():
+            if pac.cama_asignada and pac.estado != "hospitalización autorizada":
+                ids.add(pid)
+        return sorted(ids)
 
     def get_sala_de_paciente(self, id_paciente: str) -> Optional[str]:
         info = self.hospitalizaciones.get(id_paciente)

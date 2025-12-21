@@ -80,7 +80,7 @@ class CamasSalasView(QMainWindow):
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Infraestructura")
         form = QFormLayout(dlg)
         tipo = QComboBox(); tipo.addItems(["habitacion","sala","cama"])  # orden habitual
-        capacidad = QLineEdit(); capacidad.setPlaceholderText("Capacidad (solo sala/habitación)")
+        capacidad = QLineEdit(); capacidad.setPlaceholderText("Capacidad (solo sala)"); capacidad.setText("5")
         ubicacion_combo = QComboBox(); ubicacion_combo.addItems(["Planta Baja","Piso 1","Piso 2","Piso 3"])  # para sala/habitación
         # Para cama: selección de habitación destino
         hab_search = QLineEdit(); hab_search.setPlaceholderText("Buscar habitación destino...")
@@ -88,6 +88,8 @@ class CamasSalasView(QMainWindow):
         # Para habitacion: selección de sala
         sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala (para la habitación)...")
         sala_list = QListWidget()
+        # Estado fijado de sala para habitacion
+        selected_sala_id = None
         def refresh_hab_list():
             hab_list.clear()
             for hab in repo.buscar_habitaciones(hab_search.text()):
@@ -98,11 +100,29 @@ class CamasSalasView(QMainWindow):
         def refresh_sala_list():
             sala_list.clear()
             # Mostrar salas disponibles
+            piso = ubicacion_combo.currentText()
+            q = (sala_search.text() or "").strip().lower()
             for sid, sala in repo.salas.items():
+                if (sala.ubicacion or "").strip().lower() != piso.strip().lower():
+                    continue
                 nombre = sala.nombre_clave or sid
-                sala_list.addItem(f"{sid} — {nombre} — {sala.ubicacion}")
+                text = f"{sid} — {nombre} — {sala.ubicacion}"
+                if not q or q in text.lower():
+                    sala_list.addItem(text)
         sala_search.textChanged.connect(refresh_sala_list)
         refresh_sala_list()
+
+        def fijar_sala_para_habitacion():
+            nonlocal selected_sala_id
+            item = sala_list.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione una sala del piso elegido"); return
+            selected_sala_id = item.text().split(" — ")[0]
+            # Bloquear selección de sala
+            sala_search.setEnabled(False); sala_list.setEnabled(False)
+            # Mostrar solo la seleccionada
+            sel_text = item.text()
+            sala_list.clear(); sala_list.addItem(sel_text)
 
         # Layout dinámico según tipo
         form.addRow("Tipo", tipo)
@@ -125,26 +145,34 @@ class CamasSalasView(QMainWindow):
             sala_search.setEnabled(is_hab)
             sala_list.setEnabled(is_hab)
         tipo.currentTextChanged.connect(lambda _: on_tipo_changed())
+        ubicacion_combo.currentTextChanged.connect(lambda _: refresh_sala_list())
         on_tipo_changed()
 
+        # Botón para fijar sala cuando se registra habitación
+        btn_fix_sala = QPushButton("Fijar Sala")
+        form.addRow(btn_fix_sala)
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
             from .models import Infraestructura
             t = tipo.currentText()
             # Validaciones
             if t in {"habitacion","sala"}:
-                try:
-                    _ = int(capacidad.text())
-                except Exception:
-                    QMessageBox.critical(dlg, "Error", "Error: Capacidad inválida"); return
                 ubic = ubicacion_combo.currentText()
                 rel_sala_id = None
                 if t == "habitacion":
-                    selected_sala = sala_list.currentItem().text() if sala_list.currentItem() else None
-                    if not selected_sala:
+                    # Usar sala fijada o item actual
+                    sel_text = sala_list.currentItem().text() if sala_list.currentItem() else None
+                    sala_id = selected_sala_id or (sel_text.split(" — ")[0] if sel_text else None)
+                    if not sala_id:
                         QMessageBox.critical(dlg, "Error", "Seleccione una sala para la habitación"); return
-                    rel_sala_id = selected_sala.split(" — ")[0]
-                infra = Infraestructura("", t, int(capacidad.text()), ubic, rel_sala_id=rel_sala_id)
+                    rel_sala_id = sala_id
+                # Para sala, capacidad con default 5 si vacío
+                cap_val = 5
+                try:
+                    cap_val = int(capacidad.text()) if capacidad.text() else 5
+                except Exception:
+                    cap_val = 5
+                infra = Infraestructura("", t, cap_val, ubic, rel_sala_id=rel_sala_id)
                 assigned_id = repo.registrar_infraestructura(infra)
                 if assigned_id:
                     QMessageBox.information(dlg, "Éxito", f"Infraestructura registrada con éxito. ID: {assigned_id}"); dlg.accept()
@@ -162,6 +190,7 @@ class CamasSalasView(QMainWindow):
                     QMessageBox.information(dlg, "Éxito", f"Cama registrada con éxito. ID: {assigned_id}"); dlg.accept()
                 else:
                     QMessageBox.critical(dlg, "Error", "No se pudo registrar la cama")
+        btn_fix_sala.clicked.connect(fijar_sala_para_habitacion)
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_pedido_hosp(self):
@@ -184,18 +213,94 @@ class CamasSalasView(QMainWindow):
     def autorizar_hospitalizacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import (
+            QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout,
+            QListWidget, QLabel, QListWidgetItem
+        )
         dlg = QDialog(self); dlg.setWindowTitle("Autorizar Hospitalización")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); form.addRow("ID Paciente", id_p)
+
+        # Búsqueda y listado de solicitudes pendientes con información de sala/habitación/cama si está disponible
+        search = QLineEdit(); search.setPlaceholderText("Buscar por nombre o ID...")
+        listw = QListWidget()
+        info = QLabel("Seleccione un paciente para ver detalles")
+        info.setWordWrap(True)
+
+        # Construir lista de pacientes a autorizar (pedidos pendientes o con cama asignada)
+        def build_items(q: str = ""):
+            listw.clear()
+            ql = (q or "").strip().lower()
+            for pid in repo.listar_para_autorizar():
+                pac = repo.pacientes.get(pid)
+                nombre = pac.nombre if pac else pid
+                display = f"{pid} — {nombre}"
+                if not ql or ql in nombre.lower() or ql in pid.lower():
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.ItemDataRole.UserRole, pid)
+                    listw.addItem(item)
+
+        def update_info():
+            item = listw.currentItem()
+            if not item:
+                info.setText("Seleccione un paciente para ver detalles")
+                return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            pac = repo.pacientes.get(pid)
+            ped = repo.pedidos.get(pid)
+            sala_id = repo.get_sala_de_paciente(pid)
+            sala = repo.salas.get(sala_id) if sala_id else None
+            cama_id = pac.cama_asignada if pac else None
+            cama = repo.camas.get(cama_id) if cama_id else None
+            hab = repo._resolve_habitacion(cama.num_habitacion) if cama else None
+            sala_txt = sala_id or "—"
+            sala_nombre = (sala.nombre_clave if sala and sala.nombre_clave else sala_txt)
+            hab_txt = (hab.nombre_clave if hab and hab.nombre_clave else (hab.numero if hab else "—"))
+            cama_txt = (cama.nombre_clave if cama and cama.nombre_clave else (cama_id or "—"))
+            estado_pac = pac.estado if pac else "—"
+            motivo = ped.motivo if ped else "—"
+            info.setText(
+                f"ID: {pid}\n"
+                f"Nombre: {pac.nombre if pac else '—'}\n"
+                f"Estado actual: {estado_pac}\n"
+                f"Motivo del pedido: {motivo}\n"
+                f"Sala: {sala_txt} — {sala_nombre}\n"
+                f"Habitación: {hab_txt}\n"
+                f"Cama: {cama_txt}"
+            )
+
+        search.textChanged.connect(lambda t: build_items(t))
+        listw.itemSelectionChanged.connect(update_info)
+        build_items()
+
+        # Formulario y acciones
+        form.addRow("Buscar", search)
+        form.addRow(listw)
+        form.addRow("Información", info)
         btns = QHBoxLayout(); ok = QPushButton("Autorizar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
-        def do():
-            res = repo.autorizar_hospitalizacion(id_p.text())
+
+        def do_autorizar():
+            item = listw.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione un paciente de la lista"); return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            # Confirmación sí/no
+            confirm = QMessageBox.question(
+                dlg,
+                "Confirmar autorización",
+                f"¿Está seguro de autorizar la hospitalización de {pid}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if confirm != QMessageBox.StandardButton.Yes:
+                return
+            res = repo.autorizar_hospitalizacion(pid)
             if res == "OK":
-                QMessageBox.information(dlg, "Éxito", "Hospitalización autorizada con éxito"); dlg.accept()
+                QMessageBox.information(dlg, "Éxito", "Hospitalización autorizada con éxito")
+                dlg.accept()
             else:
                 QMessageBox.critical(dlg, "Error", res)
-        ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
+
+        ok.clicked.connect(do_autorizar); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def consultar_estado_habitacion(self):
         if self.rol != "JEFE":

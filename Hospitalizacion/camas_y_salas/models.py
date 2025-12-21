@@ -22,6 +22,7 @@ class Sala:
     nombre: str
     activa: bool = True
     ubicacion: str = "Planta Baja"
+    capacidad: int = 5
     nombre_clave: Optional[str] = None
 
 @dataclass
