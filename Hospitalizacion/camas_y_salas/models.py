@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 class Habitacion:
     numero: str
     estado: str = "disponible"  # disponible | ocupada | mantenimiento
+    ubicacion: str = "Planta Baja"  # Planta Baja | Piso 1 | Piso 2 | ...
 
 @dataclass
 class Cama:
@@ -17,6 +18,7 @@ class Cama:
 class Sala:
     nombre: str
     activa: bool = True
+    ubicacion: str = "Planta Baja"
 
 @dataclass
 class Infraestructura:

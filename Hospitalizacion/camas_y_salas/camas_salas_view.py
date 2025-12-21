@@ -76,26 +76,68 @@ class CamasSalasView(QMainWindow):
     def registrar_infraestructura(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout, QListWidget
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Infraestructura")
         form = QFormLayout(dlg)
-        nombre = QLineEdit(); tipo = QComboBox(); tipo.addItems(["sala","habitacion","cama"])
-        capacidad = QLineEdit(); ubicacion = QLineEdit()
-        form.addRow("Nombre", nombre); form.addRow("Tipo", tipo); form.addRow("Capacidad", capacidad); form.addRow("Ubicación", ubicacion)
+        tipo = QComboBox(); tipo.addItems(["habitacion","sala","cama"])  # orden habitual
+        capacidad = QLineEdit(); capacidad.setPlaceholderText("Capacidad (solo sala/habitación)")
+        ubicacion_combo = QComboBox(); ubicacion_combo.addItems(["Planta Baja","Piso 1","Piso 2","Piso 3"])  # para sala/habitación
+        # Para cama: selección de habitación destino
+        hab_search = QLineEdit(); hab_search.setPlaceholderText("Buscar habitación destino...")
+        hab_list = QListWidget()
+        def refresh_hab_list():
+            hab_list.clear()
+            for hab in repo.buscar_habitaciones(hab_search.text()):
+                hab_list.addItem(f"{hab.numero} — {hab.ubicacion} (Estado: {hab.estado})")
+        hab_search.textChanged.connect(refresh_hab_list)
+        refresh_hab_list()
+
+        # Layout dinámico según tipo
+        form.addRow("Tipo", tipo)
+        form.addRow("Capacidad", capacidad)
+        form.addRow("Ubicación", ubicacion_combo)
+        # Sección cama destino (se muestra solo si tipo=cama)
+        form.addRow("Habitación destino (para cama)", hab_search)
+        form.addRow(hab_list)
+
+        def on_tipo_changed():
+            is_cama = tipo.currentText() == "cama"
+            capacidad.setEnabled(tipo.currentText() in {"habitacion","sala"})
+            ubicacion_combo.setEnabled(tipo.currentText() in {"habitacion","sala"})
+            hab_search.setEnabled(is_cama)
+            hab_list.setEnabled(is_cama)
+        tipo.currentTextChanged.connect(lambda _: on_tipo_changed())
+        on_tipo_changed()
+
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            if not nombre.text() or not capacidad.text() or not ubicacion.text():
-                QMessageBox.critical(dlg, "Error", "Error: Datos incompletos o inválidos"); return
-            try:
-                cap = int(capacidad.text())
-            except ValueError:
-                QMessageBox.critical(dlg, "Error", "Error: Datos incompletos o inválidos"); return
             from .models import Infraestructura
-            ok_reg = repo.registrar_infraestructura(Infraestructura(nombre.text(), tipo.currentText(), cap, ubicacion.text()))
-            if ok_reg:
-                QMessageBox.information(dlg, "Éxito", "Infraestructura registrada con éxito"); dlg.accept()
-            else:
-                QMessageBox.critical(dlg, "Error", "No se pudo registrar la infraestructura")
+            t = tipo.currentText()
+            # Validaciones
+            if t in {"habitacion","sala"}:
+                try:
+                    _ = int(capacidad.text())
+                except Exception:
+                    QMessageBox.critical(dlg, "Error", "Error: Capacidad inválida"); return
+                ubic = ubicacion_combo.currentText()
+                infra = Infraestructura("", t, int(capacidad.text()), ubic)
+                assigned_id = repo.registrar_infraestructura(infra)
+                if assigned_id:
+                    QMessageBox.information(dlg, "Éxito", f"Infraestructura registrada con éxito. ID: {assigned_id}"); dlg.accept()
+                else:
+                    QMessageBox.critical(dlg, "Error", "No se pudo registrar la infraestructura")
+            else:  # cama
+                # Obtener habitación seleccionada
+                selected = hab_list.currentItem().text() if hab_list.currentItem() else None
+                if not selected:
+                    QMessageBox.critical(dlg, "Error", "Seleccione una habitación destino"); return
+                hab_id = selected.split(" — ")[0]
+                infra = Infraestructura("", t, 0, hab_id)
+                assigned_id = repo.registrar_infraestructura(infra)
+                if assigned_id:
+                    QMessageBox.information(dlg, "Éxito", f"Cama registrada con éxito. ID: {assigned_id}"); dlg.accept()
+                else:
+                    QMessageBox.critical(dlg, "Error", "No se pudo registrar la cama")
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_pedido_hosp(self):
@@ -150,14 +192,28 @@ class CamasSalasView(QMainWindow):
     def actualizar_estado_habitacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout, QListWidget
         dlg = QDialog(self); dlg.setWindowTitle("Actualizar Estado de Habitación")
         form = QFormLayout(dlg)
-        num = QLineEdit(); estado = QComboBox(); estado.addItems(["disponible","ocupada","mantenimiento"]) 
-        form.addRow("Número de Habitación", num); form.addRow("Nuevo Estado", estado)
+        search = QLineEdit(); search.setPlaceholderText("Buscar habitación por ID o ubicación...")
+        listw = QListWidget()
+        def refresh():
+            listw.clear()
+            for hab in repo.buscar_habitaciones(search.text()):
+                listw.addItem(f"{hab.numero} — {hab.ubicacion} (Estado: {hab.estado})")
+        search.textChanged.connect(refresh)
+        refresh()
+        estado = QComboBox(); estado.addItems(["disponible","ocupada","mantenimiento"]) 
+        form.addRow("Buscar", search)
+        form.addRow(listw)
+        form.addRow("Nuevo Estado", estado)
         btns = QHBoxLayout(); ok = QPushButton("Actualizar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            if repo.actualizar_estado_habitacion(num.text(), estado.currentText()):
+            item = listw.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione una habitación de la lista"); return
+            hab_id = item.text().split(" — ")[0]
+            if repo.actualizar_estado_habitacion(hab_id, estado.currentText()):
                 QMessageBox.information(dlg, "Éxito", "Estado de habitación actualizado con éxito"); dlg.accept()
             else:
                 QMessageBox.critical(dlg, "Error", "No se pudo actualizar el estado de la habitación")

@@ -5,9 +5,9 @@ class MemoryRepository:
     def __init__(self):
         # Datos quemados de ejemplo
         self.habitaciones: Dict[str, Habitacion] = {
-            "101": Habitacion("101", "disponible"),
-            "102": Habitacion("102", "ocupada"),
-            "201": Habitacion("201", "mantenimiento"),
+            "H-PB-101": Habitacion("H-PB-101", "disponible", "Planta Baja"),
+            "H-P1-102": Habitacion("H-P1-102", "ocupada", "Piso 1"),
+            "H-P2-201": Habitacion("H-P2-201", "mantenimiento", "Piso 2"),
         }
         self.camas: Dict[str, Cama] = {
             "C-101-1": Cama("C-101-1", "101", "disponible", True),
@@ -15,9 +15,9 @@ class MemoryRepository:
             "C-102-1": Cama("C-102-1", "102", "ocupada", True),
         }
         self.salas: Dict[str, Sala] = {
-            "UCI": Sala("UCI", True),
-            "General": Sala("General", True),
-            "Pediatria": Sala("Pediatria", False),
+            "S-PB-01": Sala("S-PB-01", True, "Planta Baja"),
+            "S-P1-02": Sala("S-P1-02", True, "Piso 1"),
+            "S-P2-03": Sala("S-P2-03", False, "Piso 2"),
         }
         self.pacientes: Dict[str, Paciente] = {
             "P001": Paciente("P001", "Juan Perez", "en_observacion"),
@@ -27,27 +27,54 @@ class MemoryRepository:
         self.historial = Historial()
 
     # Infraestructura
-    def registrar_infraestructura(self, infra: Infraestructura) -> bool:
+    def registrar_infraestructura(self, infra: Infraestructura) -> Optional[str]:
+        """Registra infraestructura y retorna el ID asignado, o None si falla."""
         try:
+            def floor_code(ubic: str) -> str:
+                u = (ubic or "Planta Baja").lower()
+                if "planta" in u:
+                    return "PB"
+                if "piso 1" in u:
+                    return "P1"
+                if "piso 2" in u:
+                    return "P2"
+                if "piso 3" in u:
+                    return "P3"
+                return "PB"
+
             if infra.tipo == "habitacion":
-                if infra.nombre in self.habitaciones:
-                    return False
-                self.habitaciones[infra.nombre] = Habitacion(infra.nombre, "disponible")
+                code = floor_code(infra.ubicacion)
+                seq = 100 + len([h for h in self.habitaciones if h.startswith(f"H-{code}-")]) + 1
+                hid = f"H-{code}-{seq}"
+                if hid in self.habitaciones:
+                    return None
+                self.habitaciones[hid] = Habitacion(hid, "disponible", infra.ubicacion)
+                self.historial.registrar(f"Infraestructura registrada: Habitacion {hid} ({infra.ubicacion})")
+                return hid
             elif infra.tipo == "sala":
-                if infra.nombre in self.salas:
-                    return False
-                self.salas[infra.nombre] = Sala(infra.nombre, True)
+                code = floor_code(infra.ubicacion)
+                seq = 1 + len([s for s in self.salas if s.startswith(f"S-{code}-")])
+                sid = f"S-{code}-{seq:02d}"
+                if sid in self.salas:
+                    return None
+                self.salas[sid] = Sala(sid, True, infra.ubicacion)
+                self.historial.registrar(f"Infraestructura registrada: Sala {sid} ({infra.ubicacion})")
+                return sid
             elif infra.tipo == "cama":
-                if infra.nombre in self.camas:
-                    return False
-                # Se espera formato nombre: C-<hab>-<n>
-                self.camas[infra.nombre] = Cama(infra.nombre, infra.ubicacion, "disponible", True)
+                hab_id = infra.ubicacion  # Para cama, 'ubicacion' representa la habitación destino
+                if hab_id not in self.habitaciones:
+                    return None
+                seq = 1 + len([c for c in self.camas if c.startswith(f"C-{hab_id}-")])
+                cid = f"C-{hab_id}-{seq}"
+                if cid in self.camas:
+                    return None
+                self.camas[cid] = Cama(cid, hab_id, "disponible", True)
+                self.historial.registrar(f"Infraestructura registrada: Cama {cid} (hab {hab_id})")
+                return cid
             else:
-                return False
-            self.historial.registrar(f"Infraestructura registrada: {infra}")
-            return True
+                return None
         except Exception:
-            return False
+            return None
 
     # Habitaciones
     def consultar_estado_habitacion(self, numero: str) -> Optional[str]:
@@ -66,6 +93,15 @@ class MemoryRepository:
         hab.estado = estado
         self.historial.registrar(f"Habitación {numero} actualizada a {estado}")
         return True
+
+    def buscar_habitaciones(self, query: str) -> List[Habitacion]:
+        q = (query or "").strip().lower()
+        res: List[Habitacion] = []
+        for hab in self.habitaciones.values():
+            if q in hab.numero.lower() or q in (hab.ubicacion or "").lower():
+                res.append(hab)
+        # ordenar por ubicacion y numero
+        return sorted(res, key=lambda h: (h.ubicacion, h.numero))
 
     # Asignaciones
     def asignar_cama(self, id_paciente: str, sala: str, id_cama: str) -> str:
