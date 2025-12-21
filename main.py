@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from Pacientes import PacienteView, PacienteController
+from Hospitalizacion import HospitalizacionView
 
 
 class MenuPrincipal(QMainWindow):
@@ -245,10 +246,14 @@ class MenuPrincipal(QMainWindow):
 
     def abrir_hospitalizacion(self):
         """Abre el módulo de hospitalización."""
-        QMessageBox.information(
-            self, "Hospitalización",
-            "Módulo de Hospitalización en desarrollo.\n\nPróximamente disponible."
-        )
+        if "hospitalizacion" not in self.ventanas_abiertas or not self.ventanas_abiertas["hospitalizacion"].isVisible():
+            ventana = HospitalizacionView()
+            ventana.setWindowTitle("Gestión de Hospitalización - Submódulo")
+            self.ventanas_abiertas["hospitalizacion"] = ventana
+
+        self.ventanas_abiertas["hospitalizacion"].show()
+        self.ventanas_abiertas["hospitalizacion"].raise_()
+        self.ventanas_abiertas["hospitalizacion"].activateWindow()
 
     def abrir_medicos(self):
         """Abre el módulo de gestión de médicos."""
