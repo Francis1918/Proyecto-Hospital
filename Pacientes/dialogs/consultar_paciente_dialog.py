@@ -656,7 +656,7 @@ class DetallePacienteDialog(QDialog):
         btn_crear_hc.clicked.connect(self.crear_historia_clinica)
         buttons_layout.addWidget(btn_crear_hc)
 
-        btn_editar_obs = QPushButton("Editar Observaciones")
+        btn_editar_obs = QPushButton("Ver Historia Clínica Completa")
         btn_editar_obs.clicked.connect(self.editar_observaciones_hc)
         buttons_layout.addWidget(btn_editar_obs)
 
@@ -808,31 +808,18 @@ ALERGIAS:
                 QMessageBox.warning(self, "Error", mensaje)
 
     def editar_observaciones_hc(self):
-        """Permite editar las observaciones de la historia clínica."""
+        """Abre el diálogo de historia clínica para ver/editar."""
         historia = self.controller.consultar_historia_clinica(self.paciente.cc)
         if not historia:
             QMessageBox.warning(self, "Advertencia", "El paciente no tiene historia clínica. Debe crearla primero.")
             return
 
-        from PyQt6.QtWidgets import QInputDialog
-        texto_actual = historia.get('observaciones', '') or ''
-        nuevo_texto, ok = QInputDialog.getMultiLineText(
-            self,
-            "Editar Observaciones",
-            "Ingrese las observaciones:",
-            texto_actual
-        )
+        from .historia_clinica_dialog import HistoriaClinicaDialog
+        dialogo = HistoriaClinicaDialog(self.controller, self, paciente=self.paciente)
+        dialogo.exec()
 
-        if ok:
-            exito, mensaje = self.controller.actualizar_historia_clinica(
-                self.paciente.cc,
-                {'observaciones': nuevo_texto}
-            )
-            if exito:
-                QMessageBox.information(self, "Éxito", "Observaciones actualizadas correctamente")
-                self.cargar_historia_clinica()
-            else:
-                QMessageBox.warning(self, "Error", mensaje)
+        # Recargar datos después de cerrar
+        self.cargar_historia_clinica()
 
     def imprimir_informacion(self):
         """Imprime la información del paciente."""
