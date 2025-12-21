@@ -196,18 +196,75 @@ class CamasSalasView(QMainWindow):
     def registrar_pedido_hosp(self):
         if self.rol != "MEDICO":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import (
+            QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
+        )
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Pedido de Hospitalización")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); motivo = QLineEdit(); form.addRow("ID Paciente", id_p); form.addRow("Motivo", motivo)
+        # Buscar y seleccionar paciente desde módulo Pacientes
+        paciente_search = QLineEdit(); paciente_search.setPlaceholderText("Buscar paciente por nombre o cédula...")
+        paciente_list = QListWidget(); paciente_label = QLabel("Paciente: —")
+        motivo = QLineEdit(); motivo.setPlaceholderText("Motivo del pedido")
+
+        # Cargar pacientes del módulo Pacientes
+        pacientes_cache = []
+        try:
+            try:
+                from Pacientes.paciente_controller import PacienteController as _PC
+            except Exception:
+                import os, sys
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                from Pacientes.paciente_controller import PacienteController as _PC
+            pc = _PC(); pacientes_cache = pc.obtener_todos_pacientes()
+        except Exception:
+            pacientes_cache = []
+
+        def refresh_pacientes():
+            paciente_list.clear()
+            q = (paciente_search.text() or "").strip().lower()
+            for p in pacientes_cache:
+                nombre_comp = f"{p.nombre} {p.apellido}".strip()
+                cc = getattr(p, "cc", "")
+                display = f"{cc} — {nombre_comp}"
+                if not q or q in nombre_comp.lower() or q in str(cc).lower():
+                    paciente_list.addItem(display)
+        paciente_search.textChanged.connect(refresh_pacientes)
+        refresh_pacientes()
+
+        selected_pid = None
+        def fijar_paciente():
+            nonlocal selected_pid
+            item = paciente_list.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione un paciente"); return
+            try:
+                cc_sel, nombre_sel = item.text().split(" — ", 1)
+            except Exception:
+                cc_sel, nombre_sel = None, item.text()
+            # Asegurar paciente en repositorio hospitalario y obtener ID
+            selected_pid = repo.ensure_repo_patient(cc_sel, nombre_sel)
+            paciente_label.setText(f"Paciente: {nombre_sel} ({selected_pid})")
+            # Bloquear selección
+            paciente_search.setEnabled(False); paciente_list.setEnabled(False)
+            sel_text = item.text(); paciente_list.clear(); paciente_list.addItem(sel_text)
+
+        # Form UI
+        form.addRow("Buscar Paciente", paciente_search)
+        form.addRow(paciente_list)
+        btn_fix = QPushButton("Fijar Paciente"); form.addRow(btn_fix)
+        form.addRow(paciente_label)
+        form.addRow("Motivo", motivo)
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
+
         def do():
-            if not id_p.text() or not motivo.text():
-                QMessageBox.critical(dlg, "Error", "Error: Datos incompletos o inválidos"); return
-            if repo.registrar_pedido(id_p.text(), motivo.text()):
+            if not selected_pid or not motivo.text().strip():
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente y escriba el motivo"); return
+            if repo.registrar_pedido(selected_pid, motivo.text().strip()):
                 QMessageBox.information(dlg, "Éxito", "Pedido de hospitalización registrado con éxito"); dlg.accept()
             else:
                 QMessageBox.critical(dlg, "Error", "No se pudo registrar el pedido de hospitalización")
+
+        btn_fix.clicked.connect(fijar_paciente)
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_hospitalizacion(self):
@@ -226,11 +283,13 @@ class CamasSalasView(QMainWindow):
         info = QLabel("Seleccione un paciente para ver detalles")
         info.setWordWrap(True)
 
-        # Construir lista de pacientes a autorizar (pedidos pendientes o con cama asignada)
+        # Construir lista SOLO de pedidos pendientes
         def build_items(q: str = ""):
             listw.clear()
             ql = (q or "").strip().lower()
-            for pid in repo.listar_para_autorizar():
+            for pid, ped in repo.pedidos.items():
+                if ped.estado != "pendiente":
+                    continue
                 pac = repo.pacientes.get(pid)
                 nombre = pac.nombre if pac else pid
                 display = f"{pid} — {nombre}"

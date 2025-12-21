@@ -92,9 +92,9 @@ class MemoryRepository:
                     cama = self.camas.get(cid)
                     letra = letter_sequence(idx)
                     if cama:
-                        # sin espacio antes de la letra para formato "Alfa 1A"
+                        # Formato exacto: "Alfa 1A"
                         base = hab.nombre_clave or hab.numero
-                        cama.nombre_clave = f"{base}{letra}" if base.endswith(" ") else f"{base} {letra}" if " " not in base else f"{base}{letra}"
+                        cama.nombre_clave = f"{base}{letra}"
         except Exception:
             # No interrumpir si falla la inicialización opcional
             pass
@@ -269,6 +269,12 @@ class MemoryRepository:
         cama.estado = "ocupada"
         pac.cama_asignada = id_cama
         pac.estado = "hospitalizado"
+        # Registrar/actualizar la sala asociada a la hospitalización del paciente
+        info = self.hospitalizaciones.get(id_paciente)
+        if not info:
+            self.hospitalizaciones[id_paciente] = {"sala": sala, "fecha": "", "motivo": ""}
+        else:
+            info["sala"] = sala
         self.historial.registrar(f"Cama {id_cama} asignada a paciente {id_paciente} en sala {sala}")
         return "OK"
 
