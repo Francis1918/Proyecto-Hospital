@@ -765,31 +765,128 @@ class CamasSalasView(QMainWindow):
     def consultar_estado_paciente(self):
         if self.rol != "MEDICO":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import (
+            QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
+        )
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Paciente")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); form.addRow("ID Paciente", id_p)
-        btns = QHBoxLayout(); ok = QPushButton("Consultar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
+        search = QLineEdit(); search.setPlaceholderText("Buscar paciente autorizado por nombre o ID...")
+        listw = QListWidget(); info = QLabel("Seleccione un paciente")
+        info.setWordWrap(True)
+
+        def build_items(q: str = ""):
+            listw.clear()
+            ql = (q or "").strip().lower()
+            for pid, pac in repo.pacientes.items():
+                if pac.estado != "hospitalización autorizada":
+                    continue
+                nombre = pac.nombre or pid
+                display = f"{pid} — {nombre}"
+                if not ql or ql in nombre.lower() or ql in pid.lower():
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.ItemDataRole.UserRole, pid)
+                    listw.addItem(item)
+
+        def update_info():
+            item = listw.currentItem()
+            if not item:
+                info.setText("Seleccione un paciente")
+                return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            estado = repo.consultar_estado_paciente(pid)
+            if estado is None:
+                info.setText("Paciente no registrado")
+                return
+            info.setText(f"Estado actual: {estado}")
+
+        search.textChanged.connect(lambda t: build_items(t))
+        listw.itemSelectionChanged.connect(update_info)
+        build_items()
+
+        form.addRow("Buscar", search)
+        form.addRow(listw)
+        form.addRow("Información", info)
+        btns = QHBoxLayout(); ok = QPushButton("Consultar"); cancel = QPushButton("Cerrar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            estado = repo.consultar_estado_paciente(id_p.text())
+            item = listw.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione un paciente de la lista"); return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            estado = repo.consultar_estado_paciente(pid)
             if estado is None:
                 QMessageBox.critical(dlg, "Error", "Paciente no registrado")
             else:
-                QMessageBox.information(dlg, "Resultado", f"Estado: {estado}"); dlg.accept()
+                QMessageBox.information(dlg, "Resultado", f"Estado: {estado}\n\nConsulta realizada con éxito")
+                dlg.accept()
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_alta_paciente(self):
         if self.rol != "MEDICO":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import (
+            QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
+        )
         dlg = QDialog(self); dlg.setWindowTitle("Autorizar Alta de Paciente")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); form.addRow("ID Paciente", id_p)
-        btns = QHBoxLayout(); ok = QPushButton("Autorizar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
+        search = QLineEdit(); search.setPlaceholderText("Buscar paciente hospitalizado por nombre o ID...")
+        listw = QListWidget(); info = QLabel("Seleccione un paciente para revisar su historia clínica")
+        info.setWordWrap(True)
+
+        def build_items(q: str = ""):
+            listw.clear()
+            ql = (q or "").strip().lower()
+            for pid, pac in repo.pacientes.items():
+                if pac.estado not in {"hospitalizado", "hospitalización autorizada"}:
+                    continue
+                nombre = pac.nombre or pid
+                display = f"{pid} — {nombre}"
+                if not ql or ql in nombre.lower() or ql in pid.lower():
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.ItemDataRole.UserRole, pid)
+                    listw.addItem(item)
+
+        def update_info():
+            item = listw.currentItem()
+            if not item:
+                info.setText("Seleccione un paciente para revisar su historia clínica")
+                return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            # Buscar cédula en módulo Pacientes para historia clínica
+            cc = repo.get_cc_por_pid(pid)
+            historia_txt = "sin historia clínica disponible"
+            try:
+                try:
+                    from Pacientes.paciente_controller import PacienteController as _PC
+                except Exception:
+                    import os, sys
+                    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    from Pacientes.paciente_controller import PacienteController as _PC
+                pc2 = _PC()
+                hc = pc2.consultar_historia_clinica(cc) if cc else None
+                if hc:
+                    historia_txt = f"Historia clínica: {hc.get('numero_historia','')} (Estado: {hc.get('estado','')})"
+            except Exception:
+                pass
+            info.setText(historia_txt)
+
+        search.textChanged.connect(lambda t: build_items(t))
+        listw.itemSelectionChanged.connect(update_info)
+        build_items()
+
+        form.addRow("Buscar", search)
+        form.addRow(listw)
+        form.addRow("Historia Clínica", info)
+        btns = QHBoxLayout(); ok = QPushButton("Autorizar Alta"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            res = repo.autorizar_alta(id_p.text())
+            item = listw.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione un paciente de la lista"); return
+            pid = item.data(Qt.ItemDataRole.UserRole)
+            # Validación en repositorio y autorización
+            res = repo.autorizar_alta(pid)
             if res == "OK":
-                QMessageBox.information(dlg, "Éxito", "Alta del paciente autorizada con éxito"); dlg.accept()
+                QMessageBox.information(dlg, "Éxito", "Alta del paciente autorizada con éxito")
+                dlg.accept()
             else:
                 QMessageBox.critical(dlg, "Error", res)
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()

@@ -435,6 +435,9 @@ class MemoryRepository:
             return "Paciente no registrado"
         if pac.estado == "alta autorizada":
             return "Paciente ya tiene alta autorizada"
+        # Validar que esté hospitalizado o con hospitalización autorizada
+        if pac.estado not in {"hospitalizado", "hospitalización autorizada"}:
+            return "Paciente no está hospitalizado"
         pac.estado = "alta autorizada"
         # liberar cama si tenía
         if pac.cama_asignada and pac.cama_asignada in self.camas:
@@ -442,6 +445,16 @@ class MemoryRepository:
             pac.cama_asignada = None
         self.historial.registrar(f"Alta autorizada para paciente {id_paciente}")
         return "OK"
+
+    def get_cc_por_pid(self, id_paciente: str) -> Optional[str]:
+        """Obtiene la cédula asociada a un ID interno del repositorio, si está mapeada."""
+        try:
+            for cc, pid in self._pacientes_idx_por_cc.items():
+                if pid == id_paciente:
+                    return cc
+        except Exception:
+            pass
+        return None
 
     # Helpers internos
     def _floor_code(self, ubic: str) -> str:
