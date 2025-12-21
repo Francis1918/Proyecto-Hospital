@@ -112,7 +112,6 @@ class PacienteView(QMainWindow):
         botones = [
             ("Registrar Paciente", self.abrir_dialogo_registrar),
             ("Consultar Paciente", self.abrir_dialogo_consultar),
-            ("Historia Clínica", self.abrir_historia_clinica),
             ("Actualizar Datos del Paciente", self.abrir_submenu_actualizar),
             ("Salir", self.close),
         ]

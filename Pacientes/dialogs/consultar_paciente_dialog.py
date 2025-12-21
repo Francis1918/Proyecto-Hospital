@@ -487,11 +487,16 @@ class DetallePacienteDialog(QDialog):
         tab_anamnesis = self.crear_tab_anamnesis()
         self.tabs.addTab(tab_anamnesis, "Anamnesis")
 
+        # Pestaña 4: Historia Clínica
+        tab_historia = self.crear_tab_historia_clinica()
+        self.tabs.addTab(tab_historia, "Historia Clínica")
+
         layout.addWidget(self.tabs)
 
         # Botones de acción
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(15)
+
 
         btn_imprimir = QPushButton("Imprimir Información")
         btn_imprimir.clicked.connect(self.imprimir_informacion)
@@ -610,6 +615,56 @@ class DetallePacienteDialog(QDialog):
 
         return widget
 
+    def crear_tab_historia_clinica(self) -> QWidget:
+        """Crea la pestaña de historia clínica."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        # Grupo: Información de Historia Clínica
+        group_historia = QGroupBox("Historia Clínica")
+        form_historia = QFormLayout()
+
+        self.lbl_num_historia = QLabel("-")
+        self.lbl_num_historia.setStyleSheet("color: #3182ce; font-weight: bold;")
+        form_historia.addRow("N° Historia Clínica:", self.lbl_num_historia)
+
+        self.lbl_fecha_creacion_hc = QLabel("-")
+        form_historia.addRow("Fecha de Creación:", self.lbl_fecha_creacion_hc)
+
+        self.lbl_estado_hc = QLabel("-")
+        form_historia.addRow("Estado:", self.lbl_estado_hc)
+
+        group_historia.setLayout(form_historia)
+        layout.addWidget(group_historia)
+
+        # Grupo: Observaciones
+        group_obs = QGroupBox("Observaciones")
+        obs_layout = QVBoxLayout()
+
+        self.txt_observaciones_hc = QTextEdit()
+        self.txt_observaciones_hc.setReadOnly(True)
+        self.txt_observaciones_hc.setMaximumHeight(100)
+        obs_layout.addWidget(self.txt_observaciones_hc)
+
+        group_obs.setLayout(obs_layout)
+        layout.addWidget(group_obs)
+
+        # Botones de acción
+        buttons_layout = QHBoxLayout()
+
+        btn_crear_hc = QPushButton("Crear Historia Clínica")
+        btn_crear_hc.clicked.connect(self.crear_historia_clinica)
+        buttons_layout.addWidget(btn_crear_hc)
+
+        btn_editar_obs = QPushButton("Editar Observaciones")
+        btn_editar_obs.clicked.connect(self.editar_observaciones_hc)
+        buttons_layout.addWidget(btn_editar_obs)
+
+        layout.addLayout(buttons_layout)
+        layout.addStretch()
+
+        return widget
+
     def cargar_datos_paciente(self):
         """Carga todos los datos del paciente en la interfaz."""
         # Info superior
@@ -638,6 +693,9 @@ class DetallePacienteDialog(QDialog):
 
         # Anamnesis
         self.cargar_anamnesis()
+
+        # Historia Clínica
+        self.cargar_historia_clinica()
 
     def cargar_anamnesis(self):
         """Carga la anamnesis del paciente."""
@@ -705,6 +763,76 @@ ALERGIAS:
 
         if dialogo.exec():
             self.cargar_anamnesis()
+
+    def cargar_historia_clinica(self):
+        """Carga la historia clínica del paciente."""
+        historia = self.controller.consultar_historia_clinica(self.paciente.cc)
+
+        if historia:
+            self.lbl_num_historia.setText(historia.get('numero_historia', '-'))
+            fecha_creacion = historia.get('fecha_creacion', None)
+            if fecha_creacion:
+                self.lbl_fecha_creacion_hc.setText(fecha_creacion.strftime("%d/%m/%Y %H:%M"))
+            else:
+                self.lbl_fecha_creacion_hc.setText("-")
+            self.lbl_estado_hc.setText(historia.get('estado', '-'))
+            self.txt_observaciones_hc.setText(historia.get('observaciones', '') or "Sin observaciones")
+        else:
+            self.lbl_num_historia.setText("No registrada")
+            self.lbl_fecha_creacion_hc.setText("-")
+            self.lbl_estado_hc.setText("-")
+            self.txt_observaciones_hc.setText("El paciente no tiene historia clínica.\n\nUse el botón 'Crear Historia Clínica' para crear una.")
+
+    def crear_historia_clinica(self):
+        """Crea la historia clínica del paciente."""
+        # Verificar si ya existe
+        historia = self.controller.consultar_historia_clinica(self.paciente.cc)
+        if historia:
+            QMessageBox.information(self, "Información", "El paciente ya tiene una historia clínica registrada.")
+            return
+
+        respuesta = QMessageBox.question(
+            self,
+            "Crear Historia Clínica",
+            f"¿Desea crear la historia clínica para el paciente {self.paciente.nombre} {self.paciente.apellido}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+
+        if respuesta == QMessageBox.StandardButton.Yes:
+            exito, mensaje = self.controller.crear_historia_clinica(self.paciente.cc)
+            if exito:
+                QMessageBox.information(self, "Éxito", mensaje)
+                self.cargar_historia_clinica()
+            else:
+                QMessageBox.warning(self, "Error", mensaje)
+
+    def editar_observaciones_hc(self):
+        """Permite editar las observaciones de la historia clínica."""
+        historia = self.controller.consultar_historia_clinica(self.paciente.cc)
+        if not historia:
+            QMessageBox.warning(self, "Advertencia", "El paciente no tiene historia clínica. Debe crearla primero.")
+            return
+
+        from PyQt6.QtWidgets import QInputDialog
+        texto_actual = historia.get('observaciones', '') or ''
+        nuevo_texto, ok = QInputDialog.getMultiLineText(
+            self,
+            "Editar Observaciones",
+            "Ingrese las observaciones:",
+            texto_actual
+        )
+
+        if ok:
+            exito, mensaje = self.controller.actualizar_historia_clinica(
+                self.paciente.cc,
+                {'observaciones': nuevo_texto}
+            )
+            if exito:
+                QMessageBox.information(self, "Éxito", "Observaciones actualizadas correctamente")
+                self.cargar_historia_clinica()
+            else:
+                QMessageBox.warning(self, "Error", mensaje)
 
     def imprimir_informacion(self):
         """Imprime la información del paciente."""

@@ -13,12 +13,17 @@ class HistoriaClinicaDialog(QDialog):
     Permite buscar por cédula o código único.
     """
 
-    def __init__(self, controller: PacienteController, parent=None):
+    def __init__(self, controller: PacienteController, parent=None, paciente=None):
         super().__init__(parent)
         self.controller = controller
-        self.cc_paciente = None
-        self.paciente = None
+        self.paciente = paciente
+        self.cc_paciente = paciente.cc if paciente else None
+        self.paciente_precargado = paciente is not None
         self.init_ui()
+
+        # Si viene con paciente precargado, cargar datos automáticamente
+        if self.paciente_precargado:
+            self.cargar_historia_clinica()
 
     def get_styles(self):
         """Retorna los estilos CSS para el diálogo."""
@@ -127,8 +132,8 @@ class HistoriaClinicaDialog(QDialog):
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(titulo)
 
-        # Grupo: Buscar Paciente
-        group_buscar = QGroupBox("Buscar Paciente")
+        # Grupo: Buscar Paciente (oculto si viene precargado)
+        self.group_buscar = QGroupBox("Buscar Paciente")
         form_buscar = QHBoxLayout()
         form_buscar.setSpacing(10)
 
@@ -144,8 +149,12 @@ class HistoriaClinicaDialog(QDialog):
         btn_buscar.clicked.connect(self.buscar_paciente)
         form_buscar.addWidget(btn_buscar)
 
-        group_buscar.setLayout(form_buscar)
-        layout.addWidget(group_buscar)
+        self.group_buscar.setLayout(form_buscar)
+        layout.addWidget(self.group_buscar)
+
+        # Ocultar búsqueda si viene precargado
+        if self.paciente_precargado:
+            self.group_buscar.setVisible(False)
 
         # Scroll Area para el contenido de la historia clínica
         scroll = QScrollArea()
