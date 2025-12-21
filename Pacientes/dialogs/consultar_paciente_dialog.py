@@ -637,18 +637,6 @@ class DetallePacienteDialog(QDialog):
         group_historia.setLayout(form_historia)
         layout.addWidget(group_historia)
 
-        # Grupo: Observaciones
-        group_obs = QGroupBox("Observaciones")
-        obs_layout = QVBoxLayout()
-
-        self.txt_observaciones_hc = QTextEdit()
-        self.txt_observaciones_hc.setReadOnly(True)
-        self.txt_observaciones_hc.setMaximumHeight(100)
-        obs_layout.addWidget(self.txt_observaciones_hc)
-
-        group_obs.setLayout(obs_layout)
-        layout.addWidget(group_obs)
-
         # Botones de acción
         buttons_layout = QHBoxLayout()
 
@@ -656,9 +644,9 @@ class DetallePacienteDialog(QDialog):
         btn_crear_hc.clicked.connect(self.crear_historia_clinica)
         buttons_layout.addWidget(btn_crear_hc)
 
-        btn_editar_obs = QPushButton("Ver Historia Clínica Completa")
-        btn_editar_obs.clicked.connect(self.editar_observaciones_hc)
-        buttons_layout.addWidget(btn_editar_obs)
+        btn_ver_completa = QPushButton("Ver Historia Clínica Completa")
+        btn_ver_completa.clicked.connect(self.editar_observaciones_hc)
+        buttons_layout.addWidget(btn_ver_completa)
 
         layout.addLayout(buttons_layout)
         layout.addStretch()
@@ -776,12 +764,10 @@ ALERGIAS:
             else:
                 self.lbl_fecha_creacion_hc.setText("-")
             self.lbl_estado_hc.setText(historia.get('estado', '-'))
-            self.txt_observaciones_hc.setText(historia.get('observaciones', '') or "Sin observaciones")
         else:
             self.lbl_num_historia.setText("No registrada")
             self.lbl_fecha_creacion_hc.setText("-")
             self.lbl_estado_hc.setText("-")
-            self.txt_observaciones_hc.setText("El paciente no tiene historia clínica.\n\nUse el botón 'Crear Historia Clínica' para crear una.")
 
     def crear_historia_clinica(self):
         """Crea la historia clínica del paciente."""

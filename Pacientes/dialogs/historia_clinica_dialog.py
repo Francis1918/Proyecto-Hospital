@@ -261,6 +261,11 @@ class HistoriaClinicaDialog(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(15)
 
+        self.btn_editar_observaciones = QPushButton("Editar Observaciones")
+        self.btn_editar_observaciones.clicked.connect(self.editar_observaciones)
+        self.btn_editar_observaciones.setEnabled(False)
+        buttons_layout.addWidget(self.btn_editar_observaciones)
+
         self.btn_imprimir = QPushButton("Imprimir")
         self.btn_imprimir.clicked.connect(self.imprimir_historia)
         self.btn_imprimir.setEnabled(False)
@@ -289,6 +294,7 @@ class HistoriaClinicaDialog(QDialog):
             self.group_paciente.setVisible(True)
             self.group_anamnesis.setVisible(True)
             self.btn_imprimir.setEnabled(True)
+            self.btn_editar_observaciones.setEnabled(True)
         else:
             # El paciente existe pero no tiene historia clínica
             respuesta = QMessageBox.question(
@@ -306,6 +312,7 @@ class HistoriaClinicaDialog(QDialog):
                     self.group_paciente.setVisible(True)
                     self.group_anamnesis.setVisible(True)
                     self.btn_imprimir.setEnabled(True)
+                    self.btn_editar_observaciones.setEnabled(True)
                 else:
                     QMessageBox.warning(self, "Error", mensaje)
             else:
@@ -337,6 +344,7 @@ class HistoriaClinicaDialog(QDialog):
                 self.group_paciente.setVisible(True)
                 self.group_anamnesis.setVisible(True)
                 self.btn_imprimir.setEnabled(True)
+                self.btn_editar_observaciones.setEnabled(True)
             else:
                 # El paciente existe pero no tiene historia clínica
                 respuesta = QMessageBox.question(
@@ -354,6 +362,7 @@ class HistoriaClinicaDialog(QDialog):
                         self.group_paciente.setVisible(True)
                         self.group_anamnesis.setVisible(True)
                         self.btn_imprimir.setEnabled(True)
+                        self.btn_editar_observaciones.setEnabled(True)
                     else:
                         QMessageBox.warning(self, "Error", mensaje)
                 else:
@@ -428,6 +437,7 @@ class HistoriaClinicaDialog(QDialog):
         self.group_paciente.setVisible(False)
         self.group_anamnesis.setVisible(False)
         self.btn_imprimir.setEnabled(False)
+        self.btn_editar_observaciones.setEnabled(False)
         self.cc_paciente = None
         self.paciente = None
 
@@ -439,4 +449,30 @@ class HistoriaClinicaDialog(QDialog):
 
         QMessageBox.information(self, "Imprimir",
                               f"Preparando impresión de historia clínica de:\n{self.paciente.nombre} {self.paciente.apellido}\n\nFuncionalidad de impresión en desarrollo.")
+
+    def editar_observaciones(self):
+        """Abre el diálogo para editar las observaciones/anamnesis del paciente."""
+        if not self.paciente:
+            QMessageBox.warning(self, "Advertencia", "No hay paciente seleccionado")
+            return
+        
+        from .registrar_anamnesis_dialog import RegistrarAnamnesisDilaog
+        
+        dialogo = RegistrarAnamnesisDilaog(self.controller, self)
+        dialogo.setWindowTitle("Editar Observaciones")
+        dialogo.txt_cc.setText(self.paciente.cc)
+        dialogo.buscar_paciente()  # Auto-buscar el paciente
+        
+        # Cargar datos existentes en el formulario
+        anamnesis = self.controller.consultar_anamnesis(self.cc_paciente)
+        if anamnesis:
+            dialogo.txt_motivo_consulta.setText(anamnesis.get('motivo_consulta', ''))
+            dialogo.txt_enfermedad_actual.setText(anamnesis.get('enfermedad_actual', ''))
+            dialogo.txt_antecedentes_personales.setText(anamnesis.get('antecedentes_personales', ''))
+            dialogo.txt_antecedentes_familiares.setText(anamnesis.get('antecedentes_familiares', ''))
+            dialogo.txt_alergias.setText(anamnesis.get('alergias', ''))
+        
+        if dialogo.exec():
+            # Recargar los datos después de editar
+            self.cargar_anamnesis()
 
