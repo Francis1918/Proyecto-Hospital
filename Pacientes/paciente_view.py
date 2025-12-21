@@ -113,10 +113,7 @@ class PacienteView(QMainWindow):
             ("Registrar Paciente", self.abrir_dialogo_registrar),
             ("Consultar Paciente", self.abrir_dialogo_consultar),
             ("Historia Clínica", self.abrir_historia_clinica),
-            ("Actualizar Dirección", self.abrir_actualizar_direccion),
-            ("Actualizar Teléfono", self.abrir_actualizar_telefono),
-            ("Actualizar E-mail", self.abrir_actualizar_email),
-            ("Actualizar Tel. Referencia", self.abrir_actualizar_telefono_referencia),
+            ("Actualizar Datos del Paciente", self.abrir_submenu_actualizar),
             ("Salir", self.close),
         ]
 
@@ -139,6 +136,12 @@ class PacienteView(QMainWindow):
         """Abre el diálogo para consultar un paciente."""
         from .dialogs import ConsultarPacienteDialog
         dialogo = ConsultarPacienteDialog(self.controller, None, self)
+        dialogo.exec()
+
+    def abrir_submenu_actualizar(self):
+        """Abre el submenú para actualizar datos del paciente."""
+        from .dialogs import SubmenuActualizarDialog
+        dialogo = SubmenuActualizarDialog(self.controller, self)
         dialogo.exec()
 
     def abrir_actualizar_direccion(self):

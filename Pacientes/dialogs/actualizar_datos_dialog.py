@@ -19,12 +19,13 @@ class ActualizarDatosDialog(QDialog):
 
     datos_actualizados = pyqtSignal(str)
 
-    def __init__(self, controller: PacienteController, tipo_campo: str = "", parent=None):
+    def __init__(self, controller: PacienteController, tipo_campo: str = "", parent=None, paciente=None):
         super().__init__(parent)
         self.controller = controller
         self.tipo_campo = tipo_campo  # "direccion", "telefono", "email" o None para todos
-        self.cc_paciente = None
-        self.paciente = None
+        self.cc_paciente = paciente.cc if paciente else None
+        self.paciente = paciente
+        self.paciente_precargado = paciente is not None  # Indica si viene del submenú
         self.init_ui()
 
     def get_styles(self):
@@ -113,7 +114,7 @@ class ActualizarDatosDialog(QDialog):
 
         self.setWindowTitle(titulo)
         self.setModal(True)
-        self.setMinimumSize(500, 600)
+        self.setMinimumSize(500, 450 if self.paciente_precargado else 600)
         self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
@@ -132,8 +133,8 @@ class ActualizarDatosDialog(QDialog):
         container_layout = QVBoxLayout(container)
         container_layout.setSpacing(15)
 
-        # Sección de búsqueda de paciente
-        group_buscar = QGroupBox("Buscar Paciente")
+        # Sección de búsqueda de paciente (oculta si viene precargado)
+        self.group_buscar = QGroupBox("Buscar Paciente")
         buscar_layout = QVBoxLayout()
         buscar_layout.setSpacing(10)
         buscar_layout.setContentsMargins(10, 25, 10, 10)
@@ -155,8 +156,12 @@ class ActualizarDatosDialog(QDialog):
         btn_buscar.setMinimumHeight(40)
         buscar_layout.addWidget(btn_buscar)
 
-        group_buscar.setLayout(buscar_layout)
-        container_layout.addWidget(group_buscar)
+        self.group_buscar.setLayout(buscar_layout)
+        container_layout.addWidget(self.group_buscar)
+
+        # Ocultar sección de búsqueda si el paciente viene precargado
+        if self.paciente_precargado:
+            self.group_buscar.setVisible(False)
 
         # Sección de datos del paciente (oculta inicialmente)
         self.group_datos = QGroupBox("Datos del Paciente")
@@ -235,6 +240,10 @@ class ActualizarDatosDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
+        # Si el paciente viene precargado, mostrar sus datos automáticamente
+        if self.paciente_precargado and self.paciente:
+            self.mostrar_datos_paciente()
+
     def buscar_paciente(self):
         """Busca el paciente por cédula."""
         cc = self.txt_cc.text().strip()
@@ -246,24 +255,31 @@ class ActualizarDatosDialog(QDialog):
 
         if self.paciente:
             self.cc_paciente = cc
-            self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
-
-            # Mostrar el dato actual según el tipo
-            dato_actual = {
-                "direccion": self.paciente.direccion,
-                "telefono": self.paciente.telefono,
-                "email": self.paciente.email,
-                "telefono_referencia": self.paciente.telefono_referencia
-            }.get(self.tipo_campo, "-")
-            self.lbl_dato_actual.setText(dato_actual or "No registrado")
-
-            self.group_datos.setVisible(True)
-            self.btn_actualizar.setEnabled(True)
+            self.mostrar_datos_paciente()
         else:
             QMessageBox.warning(self, "No encontrado",
                               f"No se encontró un paciente con cédula {cc}")
             self.group_datos.setVisible(False)
             self.btn_actualizar.setEnabled(False)
+
+    def mostrar_datos_paciente(self):
+        """Muestra los datos del paciente en el formulario."""
+        if not self.paciente:
+            return
+
+        self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
+
+        # Mostrar el dato actual según el tipo
+        dato_actual = {
+            "direccion": self.paciente.direccion,
+            "telefono": self.paciente.telefono,
+            "email": self.paciente.email,
+            "telefono_referencia": self.paciente.telefono_referencia
+        }.get(self.tipo_campo, "-")
+        self.lbl_dato_actual.setText(dato_actual or "No registrado")
+
+        self.group_datos.setVisible(True)
+        self.btn_actualizar.setEnabled(True)
 
     def cargar_datos_paciente(self):
         """Carga los datos del paciente en los campos del formulario."""
@@ -318,8 +334,8 @@ class ActualizarDatosDialog(QDialog):
         if exito:
             QMessageBox.information(self, "Éxito", mensaje)
             self.datos_actualizados.emit(self.cc_paciente)
-            # Limpiar todos los campos después de actualizar
-            self.limpiar_campos()
+            # Cerrar la ventana después de actualizar
+            self.accept()
         else:
             QMessageBox.warning(self, "Error", mensaje)
 

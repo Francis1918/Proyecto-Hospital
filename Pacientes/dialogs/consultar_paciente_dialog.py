@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox, QTextEdit, QTabWidget, QWidget
+    QGroupBox, QTextEdit, QTabWidget, QWidget,
+    QTableWidget, QTableWidgetItem, QHeaderView, QComboBox
 )
 from PyQt6.QtCore import Qt
 from ..paciente_controller import PacienteController
@@ -9,25 +10,20 @@ from ..paciente_controller import PacienteController
 
 class ConsultarPacienteDialog(QDialog):
     """
-    Diálogo para consultar información del paciente.
-    Implementa los casos de uso:
-    - consultarPaciente
-    - consultarTeléfonoDeReferencia (extend)
-    - consultarDirecciónDePaciente (extend)
-    - consultarTeléfonoDePaciente (extend)
-    - consultarAnamnesis (extend)
+    Diálogo para consultar pacientes con tabla y búsqueda.
     """
 
     def __init__(self, controller: PacienteController, cc_paciente: str = None, parent=None):
         super().__init__(parent)
         self.controller = controller
         self.cc_paciente = cc_paciente
-        self.paciente = None
+        self.pacientes_lista = []
         self.init_ui()
+        self.cargar_pacientes()
 
         if self.cc_paciente:
-            self.txt_buscar_cc.setText(self.cc_paciente)
-            self.consultar_paciente()
+            self.txt_buscar.setText(self.cc_paciente)
+            self.filtrar_pacientes()
 
     def get_styles(self):
         """Retorna los estilos CSS para el diálogo."""
@@ -40,6 +36,345 @@ class ConsultarPacienteDialog(QDialog):
                 font-size: 24px;
                 font-weight: bold;
                 padding: 15px;
+            }
+            QLabel {
+                color: #1a365d;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                font-size: 14px;
+                background-color: white;
+                color: #2d3748;
+            }
+            QLineEdit:focus {
+                border-color: #2c5282;
+            }
+            QComboBox {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                font-size: 14px;
+                background-color: white;
+                color: #2d3748;
+                min-width: 150px;
+            }
+            QComboBox:focus {
+                border-color: #2c5282;
+            }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 10px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: #2d3748;
+                selection-background-color: #3182ce;
+                selection-color: white;
+            }
+            QPushButton {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2c5282;
+            }
+            QPushButton:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_cerrar {
+                background-color: #718096;
+            }
+            QPushButton#btn_cerrar:hover {
+                background-color: #4a5568;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                color: #1a365d;
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 15px;
+                top: 5px;
+                padding: 0 8px;
+                background-color: white;
+                font-size: 14px;
+            }
+            QTableWidget {
+                background-color: white;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                gridline-color: #e2e8f0;
+                font-size: 13px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                color: #2d3748;
+            }
+            QTableWidget::item:selected {
+                background-color: #3182ce;
+                color: white;
+            }
+            QHeaderView::section {
+                background-color: #3182ce;
+                color: white;
+                padding: 10px;
+                border: none;
+                font-weight: bold;
+                font-size: 13px;
+            }
+        """
+
+    def init_ui(self):
+        """Inicializa la interfaz del diálogo."""
+        self.setWindowTitle("Consultar Pacientes")
+        self.setModal(True)
+        self.setMinimumSize(900, 600)
+        self.setStyleSheet(self.get_styles())
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(25, 20, 25, 20)
+
+        # Título
+        titulo = QLabel("Consultar Pacientes")
+        titulo.setObjectName("titulo")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titulo)
+
+        # Sección de búsqueda
+        group_busqueda = QGroupBox("Buscar Paciente")
+        busqueda_layout = QHBoxLayout()
+        busqueda_layout.setSpacing(15)
+
+        # Combo para tipo de búsqueda
+        busqueda_layout.addWidget(QLabel("Buscar por:"))
+        self.cmb_tipo_busqueda = QComboBox()
+        self.cmb_tipo_busqueda.addItems(["Todo", "Cédula", "Nombre", "Apellido"])
+        busqueda_layout.addWidget(self.cmb_tipo_busqueda)
+
+        # Campo de búsqueda
+        self.txt_buscar = QLineEdit()
+        self.txt_buscar.setPlaceholderText("Ingrese el término de búsqueda...")
+        self.txt_buscar.textChanged.connect(self.filtrar_pacientes)
+        busqueda_layout.addWidget(self.txt_buscar)
+
+        # Botón limpiar
+        btn_limpiar = QPushButton("Limpiar")
+        btn_limpiar.clicked.connect(self.limpiar_busqueda)
+        busqueda_layout.addWidget(btn_limpiar)
+
+        group_busqueda.setLayout(busqueda_layout)
+        layout.addWidget(group_busqueda)
+
+        # Tabla de pacientes
+        group_tabla = QGroupBox("Pacientes Registrados")
+        tabla_layout = QVBoxLayout()
+
+        self.tabla_pacientes = QTableWidget()
+        self.tabla_pacientes.setColumnCount(5)
+        self.tabla_pacientes.setHorizontalHeaderLabels([
+            "Cédula", "Nombre", "Apellido", "Teléfono", "Email"
+        ])
+        self.tabla_pacientes.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabla_pacientes.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabla_pacientes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_pacientes.doubleClicked.connect(self.abrir_detalle_paciente)
+
+        # Ajustar columnas
+        header = self.tabla_pacientes.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+
+        tabla_layout.addWidget(self.tabla_pacientes)
+
+        # Botones de acción de la tabla
+        botones_tabla_layout = QHBoxLayout()
+
+        btn_ver_detalle = QPushButton("Ver Detalles del Paciente Seleccionado")
+        btn_ver_detalle.clicked.connect(self.abrir_detalle_paciente)
+        botones_tabla_layout.addWidget(btn_ver_detalle)
+
+        btn_eliminar = QPushButton("Eliminar Paciente Seleccionado")
+        btn_eliminar.setStyleSheet("""
+            QPushButton {
+                background-color: #e53e3e;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #c53030;
+            }
+        """)
+        btn_eliminar.clicked.connect(self.eliminar_paciente)
+        botones_tabla_layout.addWidget(btn_eliminar)
+
+        tabla_layout.addLayout(botones_tabla_layout)
+
+        group_tabla.setLayout(tabla_layout)
+        layout.addWidget(group_tabla)
+
+        # Botón cerrar
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setObjectName("btn_cerrar")
+        btn_cerrar.clicked.connect(self.accept)
+        buttons_layout.addWidget(btn_cerrar)
+        layout.addLayout(buttons_layout)
+
+    def cargar_pacientes(self):
+        """Carga todos los pacientes en la tabla."""
+        self.pacientes_lista = self.controller.obtener_todos_pacientes()
+        self.mostrar_pacientes(self.pacientes_lista)
+
+    def mostrar_pacientes(self, pacientes):
+        """Muestra la lista de pacientes en la tabla."""
+        self.tabla_pacientes.setRowCount(0)
+
+        for paciente in pacientes:
+            row = self.tabla_pacientes.rowCount()
+            self.tabla_pacientes.insertRow(row)
+
+            self.tabla_pacientes.setItem(row, 0, QTableWidgetItem(paciente.cc))
+            self.tabla_pacientes.setItem(row, 1, QTableWidgetItem(paciente.nombre))
+            self.tabla_pacientes.setItem(row, 2, QTableWidgetItem(paciente.apellido))
+            self.tabla_pacientes.setItem(row, 3, QTableWidgetItem(paciente.telefono or ""))
+            self.tabla_pacientes.setItem(row, 4, QTableWidgetItem(paciente.email or ""))
+
+    def filtrar_pacientes(self):
+        """Filtra los pacientes según el criterio de búsqueda."""
+        texto = self.txt_buscar.text().strip().lower()
+        tipo = self.cmb_tipo_busqueda.currentText()
+
+        if not texto:
+            self.mostrar_pacientes(self.pacientes_lista)
+            return
+
+        pacientes_filtrados = []
+        for paciente in self.pacientes_lista:
+            if tipo == "Cédula":
+                if texto in paciente.cc.lower():
+                    pacientes_filtrados.append(paciente)
+            elif tipo == "Nombre":
+                if texto in paciente.nombre.lower():
+                    pacientes_filtrados.append(paciente)
+            elif tipo == "Apellido":
+                if texto in paciente.apellido.lower():
+                    pacientes_filtrados.append(paciente)
+            else:  # Todo
+                if (texto in paciente.cc.lower() or
+                    texto in paciente.nombre.lower() or
+                    texto in paciente.apellido.lower()):
+                    pacientes_filtrados.append(paciente)
+
+        self.mostrar_pacientes(pacientes_filtrados)
+
+    def limpiar_busqueda(self):
+        """Limpia el campo de búsqueda y muestra todos los pacientes."""
+        self.txt_buscar.clear()
+        self.cmb_tipo_busqueda.setCurrentIndex(0)
+        self.mostrar_pacientes(self.pacientes_lista)
+
+    def eliminar_paciente(self):
+        """Elimina el paciente seleccionado de la tabla."""
+        row = self.tabla_pacientes.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
+            return
+
+        cc = self.tabla_pacientes.item(row, 0).text()
+        nombre = self.tabla_pacientes.item(row, 1).text()
+        apellido = self.tabla_pacientes.item(row, 2).text()
+
+        # Confirmar eliminación
+        respuesta = QMessageBox.question(
+            self,
+            "Confirmar Eliminación",
+            f"¿Está seguro que desea eliminar al paciente?\n\n"
+            f"Nombre: {nombre} {apellido}\n"
+            f"Cédula: {cc}\n\n"
+            f"Esta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if respuesta == QMessageBox.StandardButton.Yes:
+            exito, mensaje = self.controller.eliminar_paciente(cc)
+            if exito:
+                QMessageBox.information(self, "Éxito", mensaje)
+                self.cargar_pacientes()
+                self.filtrar_pacientes()
+            else:
+                QMessageBox.warning(self, "Error", mensaje)
+
+    def abrir_detalle_paciente(self):
+        """Abre la ventana de detalle del paciente seleccionado."""
+        row = self.tabla_pacientes.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
+            return
+
+        cc = self.tabla_pacientes.item(row, 0).text()
+        paciente = self.controller.consultar_paciente(cc)
+
+        if paciente:
+            dialogo = DetallePacienteDialog(self.controller, paciente, self)
+            dialogo.exec()
+            # Refrescar la tabla por si hubo cambios
+            self.cargar_pacientes()
+            self.filtrar_pacientes()
+
+
+class DetallePacienteDialog(QDialog):
+    """
+    Diálogo para mostrar el detalle completo de un paciente.
+    """
+
+    def __init__(self, controller: PacienteController, paciente, parent=None):
+        super().__init__(parent)
+        self.controller = controller
+        self.paciente = paciente
+        self.init_ui()
+        self.cargar_datos_paciente()
+
+    def get_styles(self):
+        """Retorna los estilos CSS para el diálogo."""
+        return """
+            QDialog {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QLabel#info_paciente {
+                color: #1a365d;
+                font-size: 18px;
+                font-weight: bold;
+                padding: 15px;
+                background-color: white;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
             }
             QLabel {
                 color: #1a365d;
@@ -122,7 +457,7 @@ class ConsultarPacienteDialog(QDialog):
 
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
-        self.setWindowTitle("Consultar Paciente")
+        self.setWindowTitle("Detalle del Paciente")
         self.setModal(True)
         self.setMinimumSize(700, 600)
         self.setStyleSheet(self.get_styles())
@@ -131,31 +466,14 @@ class ConsultarPacienteDialog(QDialog):
         layout.setSpacing(15)
         layout.setContentsMargins(25, 20, 25, 20)
 
-        # Título
-        titulo = QLabel("Consultar Paciente")
-        titulo.setObjectName("titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(titulo)
-
-        # Sección de búsqueda
-        group_busqueda = QGroupBox("Buscar Paciente")
-        hbox_busqueda = QHBoxLayout()
-
-        hbox_busqueda.addWidget(QLabel("Cédula:"))
-        self.txt_buscar_cc = QLineEdit()
-        self.txt_buscar_cc.setPlaceholderText("Ingrese la cédula del paciente")
-        hbox_busqueda.addWidget(self.txt_buscar_cc)
-
-        btn_buscar = QPushButton("Buscar")
-        btn_buscar.clicked.connect(self.consultar_paciente)
-        hbox_busqueda.addWidget(btn_buscar)
-
-        group_busqueda.setLayout(hbox_busqueda)
-        layout.addWidget(group_busqueda)
+        # Información del paciente en la parte superior
+        self.lbl_info_paciente = QLabel("")
+        self.lbl_info_paciente.setObjectName("info_paciente")
+        self.lbl_info_paciente.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.lbl_info_paciente)
 
         # Pestañas de información
         self.tabs = QTabWidget()
-        self.tabs.setEnabled(False)
 
         # Pestaña 1: Datos Personales
         tab_datos = self.crear_tab_datos_personales()
@@ -203,11 +521,6 @@ class ConsultarPacienteDialog(QDialog):
         self.lbl_cc = QLabel("-")
         form.addRow("Cédula:", self.lbl_cc)
 
-        '''
-        self.lbl_num_unic = QLabel("-")
-        form.addRow("Número Único:", self.lbl_num_unic)
-        '''
-        
         self.lbl_nombre = QLabel("-")
         form.addRow("Nombre:", self.lbl_nombre)
 
@@ -219,11 +532,6 @@ class ConsultarPacienteDialog(QDialog):
 
         self.lbl_fecha_registro = QLabel("-")
         form.addRow("Fecha de Registro:", self.lbl_fecha_registro)
-
-        '''
-        self.lbl_id_fac = QLabel("-")
-        form.addRow("ID Facultad:", self.lbl_id_fac)
-        '''
 
         group.setLayout(form)
         layout.addWidget(group)
@@ -302,32 +610,18 @@ class ConsultarPacienteDialog(QDialog):
 
         return widget
 
-    def consultar_paciente(self):
-        """Consulta y muestra la información completa del paciente."""
-        cc = self.txt_buscar_cc.text().strip()
+    def cargar_datos_paciente(self):
+        """Carga todos los datos del paciente en la interfaz."""
+        # Info superior
+        self.lbl_info_paciente.setText(
+            f"Paciente: {self.paciente.nombre} {self.paciente.apellido} - CC: {self.paciente.cc}"
+        )
 
-        if not cc:
-            QMessageBox.warning(self, "Advertencia", "Ingrese una cédula para buscar")
-            return
-
-        self.paciente = self.controller.consultar_paciente(cc)
-
-        if not self.paciente:
-            QMessageBox.information(self, "No encontrado",
-                                    f"No se encontró un paciente con cédula {cc}")
-            self.tabs.setEnabled(False)
-            return
-
-        # Habilitar pestañas
-        self.tabs.setEnabled(True)
-
-        # Llenar datos personales
+        # Datos personales
         self.lbl_cc.setText(self.paciente.cc)
-        #self.lbl_num_unic.setText(self.paciente.num_unic)
         self.lbl_nombre.setText(self.paciente.nombre)
         self.lbl_apellido.setText(self.paciente.apellido)
 
-        # Mostrar fecha de nacimiento
         if self.paciente.fecha_nacimiento:
             fecha_nac = self.paciente.fecha_nacimiento.strftime("%d/%m/%Y")
             self.lbl_fecha_nacimiento.setText(fecha_nac)
@@ -335,57 +629,18 @@ class ConsultarPacienteDialog(QDialog):
             self.lbl_fecha_nacimiento.setText("No registrada")
 
         self.lbl_fecha_registro.setText(str(self.paciente.fecha_registro))
-        #self.lbl_id_fac.setText(str(self.paciente.id_fac) if self.paciente.id_fac else "No asignado")
 
-        # Llenar información de contacto
-        self.lbl_direccion.setText(self.paciente.direccion)
-        self.lbl_telefono.setText(self.paciente.telefono)
-        self.lbl_email.setText(self.paciente.email)
-        self.lbl_telefono_ref.setText(
-            self.paciente.telefono_referencia or "No registrado"
-        )
+        # Contacto
+        self.lbl_direccion.setText(self.paciente.direccion or "No registrada")
+        self.lbl_telefono.setText(self.paciente.telefono or "No registrado")
+        self.lbl_email.setText(self.paciente.email or "No registrado")
+        self.lbl_telefono_ref.setText(self.paciente.telefono_referencia or "No registrado")
 
-        # Consultar anamnesis
-        self.consultar_anamnesis()
+        # Anamnesis
+        self.cargar_anamnesis()
 
-        QMessageBox.information(self, "Éxito",
-                                f"Paciente {self.paciente.nombre} {self.paciente.apellido} encontrado")
-
-    def consultar_direccion(self):
-        """Consulta solo la dirección del paciente."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
-            return
-
-        direccion = self.controller.consultar_direccion_paciente(self.paciente.cc)
-        QMessageBox.information(self, "Dirección del Paciente",
-                                f"Dirección: {direccion}")
-
-    def consultar_telefono(self):
-        """Consulta solo el teléfono del paciente."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
-            return
-
-        telefono = self.controller.consultar_telefono_paciente(self.paciente.cc)
-        QMessageBox.information(self, "Teléfono del Paciente",
-                                f"Teléfono: {telefono}")
-
-    def consultar_telefono_referencia(self):
-        """Consulta solo el teléfono de referencia del paciente."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
-            return
-
-        telefono_ref = self.controller.consultar_telefono_referencia(self.paciente.cc)
-        QMessageBox.information(self, "Teléfono de Referencia",
-                                f"Teléfono de Referencia: {telefono_ref or 'No registrado'}")
-
-    def consultar_anamnesis(self):
-        """Consulta la anamnesis del paciente."""
-        if not self.paciente:
-            return
-
+    def cargar_anamnesis(self):
+        """Carga la anamnesis del paciente."""
         anamnesis = self.controller.consultar_anamnesis(self.paciente.cc)
 
         if anamnesis:
@@ -407,14 +662,31 @@ ALERGIAS:
             """
             self.txt_anamnesis.setText(texto.strip())
         else:
-            self.txt_anamnesis.setText("No hay información de anamnesis registrada para este paciente.\n\nUse el botón 'Registrar/Actualizar Anamnesis' para agregar la información.")
+            self.txt_anamnesis.setText(
+                "No hay información de anamnesis registrada para este paciente.\n\n"
+                "Use el botón 'Registrar/Actualizar Anamnesis' para agregar la información."
+            )
+
+    def consultar_direccion(self):
+        """Consulta solo la dirección del paciente."""
+        direccion = self.controller.consultar_direccion_paciente(self.paciente.cc)
+        QMessageBox.information(self, "Dirección del Paciente", f"Dirección: {direccion}")
+
+    def consultar_telefono(self):
+        """Consulta solo el teléfono del paciente."""
+        telefono = self.controller.consultar_telefono_paciente(self.paciente.cc)
+        QMessageBox.information(self, "Teléfono del Paciente", f"Teléfono: {telefono}")
+
+    def consultar_telefono_referencia(self):
+        """Consulta solo el teléfono de referencia del paciente."""
+        telefono_ref = self.controller.consultar_telefono_referencia(self.paciente.cc)
+        QMessageBox.information(
+            self, "Teléfono de Referencia",
+            f"Teléfono de Referencia: {telefono_ref or 'No registrado'}"
+        )
 
     def abrir_dialogo_anamnesis(self):
-        """Abre el diálogo para registrar o actualizar la anamnesis del paciente."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
-            return
-
+        """Abre el diálogo para registrar o actualizar la anamnesis."""
         from .registrar_anamnesis_dialog import RegistrarAnamnesisDilaog
         dialogo = RegistrarAnamnesisDilaog(self.controller, self)
 
@@ -422,7 +694,7 @@ ALERGIAS:
         dialogo.txt_cc.setText(self.paciente.cc)
         dialogo.buscar_paciente()
 
-        # Si ya existe anamnesis, cargar los datos en el formulario
+        # Si ya existe anamnesis, cargar los datos
         anamnesis_existente = self.controller.consultar_anamnesis(self.paciente.cc)
         if anamnesis_existente:
             dialogo.txt_motivo_consulta.setText(anamnesis_existente.get('motivo_consulta', ''))
@@ -431,40 +703,13 @@ ALERGIAS:
             dialogo.txt_antecedentes_familiares.setText(anamnesis_existente.get('antecedentes_familiares', ''))
             dialogo.txt_alergias.setText(anamnesis_existente.get('alergias', ''))
 
-        # Ejecutar el diálogo y actualizar la vista si se guardó
         if dialogo.exec():
-            self.consultar_anamnesis()  # Refrescar los datos mostrados
+            self.cargar_anamnesis()
 
     def imprimir_informacion(self):
         """Imprime la información del paciente."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "No hay información para imprimir")
-            return
-
-        QMessageBox.information(self, "Imprimir",
-                                "Función de impresión en desarrollo")
+        QMessageBox.information(self, "Imprimir", "Función de impresión en desarrollo")
 
     def exportar_pdf(self):
         """Exporta la información del paciente a PDF."""
-        if not self.paciente:
-            QMessageBox.warning(self, "Advertencia", "No hay información para exportar")
-            return
-
-        QMessageBox.information(self, "Exportar PDF",
-                                "Función de exportación a PDF en desarrollo")
-
-    def mostrar_informacion_paciente(self, paciente):
-        """Muestra la información del paciente en un formato legible."""
-        # Agregar teléfono de referencia en la información mostrada
-        telefono_ref = paciente.get('telefono_referencia', 'No especificado')
-        
-        info_html = f"""
-        <h3>Información del Paciente</h3>
-        <p><b>Nombre:</b> {paciente.get('nombre')} {paciente.get('apellido')}</p>
-        <p><b>Dirección:</b> {paciente.get('direccion')}</p>
-        <p><b>Teléfono:</b> {paciente.get('telefono')}</p>
-        <p><b>Teléfono de Referencia:</b> {telefono_ref}</p>
-        <p><b>Email:</b> {paciente.get('email')}</p>
-        """
-        # Aquí se podría mostrar la información en un QMessageBox, QLabel, o donde sea necesario
-        QMessageBox.information(self, "Información del Paciente", info_html)
+        QMessageBox.information(self, "Exportar PDF", "Función de exportación a PDF en desarrollo")

@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import date
 from .paciente import Paciente
 
 
@@ -18,6 +19,57 @@ class PacienteController:
         self._pacientes_memoria: dict[str, Paciente] = {}  # cc -> Paciente
         self._anamnesis_memoria: dict[str, dict] = {}  # cc -> datos_anamnesis
         self._historias_clinicas: dict[str, dict] = {}  # cc -> historia_clinica
+
+        # Cargar datos de ejemplo
+        self._cargar_datos_ejemplo()
+
+    def _cargar_datos_ejemplo(self):
+        """Carga pacientes de ejemplo para pruebas."""
+        pacientes_ejemplo = [
+            Paciente(
+                cc="1234567890",
+                nombre="Juan Carlos",
+                apellido="Pérez García",
+                direccion="Av. Principal #123, Quito",
+                telefono="0991234567",
+                email="juan.perez@email.com",
+                fecha_nacimiento=date(1985, 5, 15),
+                telefono_referencia="0987654321"
+            ),
+            Paciente(
+                cc="0987654321",
+                nombre="María Elena",
+                apellido="González López",
+                direccion="Calle Secundaria #456, Guayaquil",
+                telefono="0998765432",
+                email="maria.gonzalez@email.com",
+                fecha_nacimiento=date(1990, 8, 22),
+                telefono_referencia="0991122334"
+            ),
+            Paciente(
+                cc="1122334455",
+                nombre="Carlos Alberto",
+                apellido="Rodríguez Martínez",
+                direccion="Urbanización Los Pinos, Casa 10, Cuenca",
+                telefono="0976543210",
+                email="carlos.rodriguez@email.com",
+                fecha_nacimiento=date(1978, 12, 3),
+                telefono_referencia="0965432109"
+            ),
+        ]
+
+        # Registrar cada paciente
+        for paciente in pacientes_ejemplo:
+            self._pacientes_memoria[paciente.cc] = paciente
+
+        # Agregar anamnesis de ejemplo para el primer paciente
+        self._anamnesis_memoria["1234567890"] = {
+            'motivo_consulta': 'Dolor de cabeza frecuente',
+            'enfermedad_actual': 'Cefalea tensional de 2 semanas de evolución',
+            'antecedentes_personales': 'Hipertensión arterial controlada',
+            'antecedentes_familiares': 'Padre con diabetes tipo 2',
+            'alergias': 'Penicilina'
+        }
 
     def registrar_paciente(self, paciente: Paciente) -> tuple[bool, str]:
         """
@@ -231,6 +283,34 @@ class PacienteController:
         except Exception as e:
             return False, f"Error al actualizar teléfono de referencia: {str(e)}"
 
+    def eliminar_paciente(self, cc_paciente: str) -> tuple[bool, str]:
+        """
+        Elimina un paciente del sistema.
+        """
+        try:
+            # Verificar que el paciente existe
+            if cc_paciente not in self._pacientes_memoria:
+                return False, "El paciente no existe"
+
+            # Eliminar paciente de memoria
+            del self._pacientes_memoria[cc_paciente]
+
+            # Eliminar anamnesis si existe
+            if cc_paciente in self._anamnesis_memoria:
+                del self._anamnesis_memoria[cc_paciente]
+
+            # Eliminar historia clínica si existe
+            if cc_paciente in self._historias_clinicas:
+                del self._historias_clinicas[cc_paciente]
+
+            # Aquí iría la lógica para eliminar de la base de datos
+            # if self.db:
+            #     self.db.delete('pacientes', {'cc': cc_paciente})
+
+            return True, "Paciente eliminado exitosamente"
+        except Exception as e:
+            return False, f"Error al eliminar paciente: {str(e)}"
+
     def consultar_paciente(self, cc_paciente: str) -> Optional[Paciente]:
         """
         Caso de uso: consultarPaciente
@@ -272,6 +352,22 @@ class PacienteController:
         except Exception as e:
             print(f"Error al consultar paciente por código: {str(e)}")
             return None
+
+    def obtener_todos_pacientes(self) -> List[Paciente]:
+        """
+        Obtiene la lista de todos los pacientes registrados.
+        """
+        try:
+            # Retornar todos los pacientes en memoria
+            return list(self._pacientes_memoria.values())
+
+            # Aquí iría la lógica para consultar en la base de datos
+            # if self.db:
+            #     resultados = self.db.query_all('pacientes')
+            #     return [Paciente.from_dict(r) for r in resultados]
+        except Exception as e:
+            print(f"Error al obtener pacientes: {str(e)}")
+            return []
 
     def consultar_telefono_referencia(self, cc_paciente: str) -> Optional[str]:
         """
