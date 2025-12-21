@@ -26,6 +26,9 @@ class HistoriaClinicaDialog(QDialog):
             QDialog {
                 background-color: #e8f4fc;
             }
+            QWidget#fondo_principal {
+                background-color: #e8f4fc; 
+            }
             QLabel#titulo {
                 color: #1a365d;
                 font-size: 24px;
@@ -148,6 +151,7 @@ class HistoriaClinicaDialog(QDialog):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
+        scroll_content.setObjectName("fondo_principal")
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setSpacing(15)
 
