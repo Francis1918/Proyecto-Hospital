@@ -132,11 +132,24 @@ class HospitalizacionView(QMainWindow):
 
     # Handlers provisionales
     def abrir_camas_salas(self):
-        # Reusar y mantener referencia de la ventana
-        if "camas_salas" not in self.ventanas_abiertas or not self.ventanas_abiertas["camas_salas"].isVisible():
-            self.ventanas_abiertas["camas_salas"] = CamasSalasView()
-            self.ventanas_abiertas["camas_salas"].setWindowTitle("Camas y Salas - Submódulo")
-        w = self.ventanas_abiertas["camas_salas"]
+        # Solicitar login y abrir vista con rol
+        try:
+            from .camas_y_salas.auth import authenticate_role
+        except ImportError:
+            import os, sys
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from Hospitalizacion.camas_y_salas.auth import authenticate_role
+
+        rol = authenticate_role(self)
+        if not rol:
+            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas")
+            return
+
+        key = f"camas_salas_{rol.lower()}"
+        if key not in self.ventanas_abiertas or not self.ventanas_abiertas[key].isVisible():
+            self.ventanas_abiertas[key] = CamasSalasView(rol)
+            self.ventanas_abiertas[key].setWindowTitle(f"Camas y Salas - {rol}")
+        w = self.ventanas_abiertas[key]
         w.show()
         w.raise_()
         w.activateWindow()

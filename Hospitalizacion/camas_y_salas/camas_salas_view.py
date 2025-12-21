@@ -2,12 +2,12 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QGridLayout, QFrame, QPushButton, QMessageBox
 )
 from PyQt6.QtCore import Qt
-from .auth import require_login
 from .repository import repo
 
 class CamasSalasView(QMainWindow):
-    def __init__(self):
+    def __init__(self, rol: str):
         super().__init__()
+        self.rol = rol  # 'JEFE' o 'MEDICO'
         self.init_ui()
 
     def get_styles(self):
@@ -37,17 +37,20 @@ class CamasSalasView(QMainWindow):
         container = QFrame(); container.setObjectName("menu_container")
         grid = QGridLayout(container); grid.setSpacing(16); grid.setContentsMargins(16,16,16,16)
 
-        acciones = [
-            ("Registrar Infraestructura (JEFE)", self.registrar_infraestructura),
-            ("Consultar Estado Habitación (JEFE)", self.consultar_estado_habitacion),
-            ("Actualizar Estado Habitación (JEFE)", self.actualizar_estado_habitacion),
-            ("Asignar Habitación (JEFE)", self.asignar_habitacion),
-            ("Registrar Hospitalización Paciente (JEFE)", self.registrar_hospitalizacion_paciente),
-            ("Registrar Pedido Hospitalización (MEDICO)", self.registrar_pedido_hosp),
-            ("Autorizar Hospitalización (JEFE)", self.autorizar_hospitalizacion),
-            ("Consultar Estado Paciente (MEDICO)", self.consultar_estado_paciente),
-            ("Autorizar Alta Paciente (MEDICO)", self.autorizar_alta_paciente),
+        acciones_jefe = [
+            ("Registrar Infraestructura", self.registrar_infraestructura),
+            ("Consultar Estado Habitación", self.consultar_estado_habitacion),
+            ("Actualizar Estado Habitación", self.actualizar_estado_habitacion),
+            ("Asignar Habitación", self.asignar_habitacion),
+            ("Registrar Hospitalización de Paciente", self.registrar_hospitalizacion_paciente),
+            ("Autorizar Hospitalización", self.autorizar_hospitalizacion),
         ]
+        acciones_medico = [
+            ("Registrar Pedido de Hospitalización", self.registrar_pedido_hosp),
+            ("Consultar Estado de Paciente", self.consultar_estado_paciente),
+            ("Autorizar Alta de Paciente", self.autorizar_alta_paciente),
+        ]
+        acciones = acciones_jefe if self.rol == "JEFE" else acciones_medico
         for i, (texto, fn) in enumerate(acciones):
             btn = QPushButton(texto); btn.setProperty("class","menu_btn")
             btn.setCursor(Qt.CursorShape.PointingHandCursor); btn.clicked.connect(fn)
@@ -57,8 +60,8 @@ class CamasSalasView(QMainWindow):
 
     # Handlers con login y formularios rápidos via QMessageBox + inputs simples
     def registrar_infraestructura(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Infraestructura")
         form = QFormLayout(dlg)
@@ -82,8 +85,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_pedido_hosp(self):
-        if not require_login("MEDICO", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "MEDICO":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Pedido de Hospitalización")
         form = QFormLayout(dlg)
@@ -99,8 +102,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_hospitalizacion(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Autorizar Hospitalización")
         form = QFormLayout(dlg)
@@ -115,8 +118,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def consultar_estado_habitacion(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Habitación")
         form = QFormLayout(dlg)
@@ -131,8 +134,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def actualizar_estado_habitacion(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Actualizar Estado de Habitación")
         form = QFormLayout(dlg)
@@ -147,8 +150,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def asignar_habitacion(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Asignar Habitación (Cama)")
         form = QFormLayout(dlg)
@@ -164,8 +167,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_hospitalizacion_paciente(self):
-        if not require_login("JEFE", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "JEFE":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Hospitalización de Paciente")
         form = QFormLayout(dlg)
@@ -183,8 +186,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def consultar_estado_paciente(self):
-        if not require_login("MEDICO", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "MEDICO":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Paciente")
         form = QFormLayout(dlg)
@@ -199,8 +202,8 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_alta_paciente(self):
-        if not require_login("MEDICO", self):
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas"); return
+        if self.rol != "MEDICO":
+            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
         dlg = QDialog(self); dlg.setWindowTitle("Autorizar Alta de Paciente")
         form = QFormLayout(dlg)
