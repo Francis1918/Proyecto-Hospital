@@ -8,7 +8,7 @@ from Pacientes import PacienteView, PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion import HospitalizacionView
-
+from Medicos.medicos import VentanaPrincipal
 
 class MenuPrincipal(QMainWindow):
     """
@@ -272,10 +272,20 @@ class MenuPrincipal(QMainWindow):
 
     def abrir_medicos(self):
         """Abre el módulo de gestión de médicos."""
-        QMessageBox.information(
-            self, "Médicos",
-            "Módulo de Médicos en desarrollo.\n\nPróximamente disponible."
-        )
+        # Verificar si la ventana ya está creada y visible para no abrirla dos veces
+        if "medicos" not in self.ventanas_abiertas or not self.ventanas_abiertas["medicos"].isVisible():
+            
+            # Instanciar la clase que importamos. 
+            # NOTA: Si tu clase requiere un controlador o argumentos, agrégalos aquí.
+            ventana = VentanaPrincipal() 
+            
+            ventana.setWindowTitle("Gestión de Médicos")
+            self.ventanas_abiertas["medicos"] = ventana
+
+        # Mostrar la ventana y traerla al frente
+        self.ventanas_abiertas["medicos"].show()
+        self.ventanas_abiertas["medicos"].raise_()
+        self.ventanas_abiertas["medicos"].activateWindow()
 
     def salir_sistema(self):
         """Confirma y cierra la aplicación."""
