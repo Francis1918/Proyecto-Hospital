@@ -292,7 +292,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         if exito:
             QMessageBox.information(self, "Éxito", mensaje)
             self.anamnesis_registrada.emit(self.cc_paciente)
-            self.limpiar_formulario()
+            self.accept()  # Cerrar la ventana después de guardar
         else:
             QMessageBox.warning(self, "Error", mensaje)
 
