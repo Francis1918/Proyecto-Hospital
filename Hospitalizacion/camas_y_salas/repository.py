@@ -318,6 +318,18 @@ class MemoryRepository:
         self.historial.registrar(f"Hospitalización (solo sala) registrada: {id_paciente} sala {sala} motivo {motivo} fecha {fecha}")
         return "OK"
 
+    def registrar_hospitalizacion_sin_sala(self, id_paciente: str, fecha: str, motivo: str) -> str:
+        """Registra una hospitalización sin sala ni cama (se asignarán después)."""
+        pac = self.pacientes.get(id_paciente)
+        if not pac:
+            return "Paciente no registrado"
+        # Registrar hospitalización sin sala
+        self.hospitalizaciones[id_paciente] = {"sala": None, "fecha": fecha, "motivo": motivo}
+        pac.estado = "hospitalizado"
+        pac.cama_asignada = None
+        self.historial.registrar(f"Hospitalización (sin sala) registrada: {id_paciente} motivo {motivo} fecha {fecha}")
+        return "OK"
+
     def listar_pacientes_hospitalizados_con_sala(self) -> List[str]:
         """Lista IDs de pacientes hospitalizados que tienen una sala registrada y ninguna cama asignada."""
         res: List[str] = []
