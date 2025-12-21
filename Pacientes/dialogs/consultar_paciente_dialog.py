@@ -828,3 +828,4 @@ ALERGIAS:
     def exportar_pdf(self):
         """Exporta la información del paciente a PDF."""
         QMessageBox.information(self, "Exportar PDF", "Función de exportación a PDF en desarrollo")
+#fin  
