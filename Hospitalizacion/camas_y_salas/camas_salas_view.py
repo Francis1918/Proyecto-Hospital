@@ -273,10 +273,12 @@ class CamasSalasView(QMainWindow):
     def asignar_habitacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QListWidget
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QListWidget, QLabel
         dlg = QDialog(self); dlg.setWindowTitle("Asignar Habitación (Cama)")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); id_p.setPlaceholderText("ID del paciente (ej. P001)")
+        # Selección de paciente hospitalizado con sala registrada
+        paciente_search = QLineEdit(); paciente_search.setPlaceholderText("Buscar paciente hospitalizado...")
+        paciente_list = QListWidget(); paciente_label = QLabel("Paciente: —")
         sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala por ID, ubicación o clave...")
         sala_list = QListWidget()
         cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama por ID o nombre clave...")
@@ -284,8 +286,11 @@ class CamasSalasView(QMainWindow):
         # Deshabilitar búsqueda/selección de cama hasta elegir sala
         cama_search.setEnabled(False)
         cama_list.setEnabled(False)
+        # La sala se autoselecciona según el paciente y se bloquea
+        sala_search.setEnabled(False)
+        sala_list.setEnabled(False)
 
-        def refresh_salas():
+        def refresh_salas(force_select=None):
             sala_list.clear()
             for sid, sala in repo.salas.items():
                 if not sala.activa:
@@ -295,6 +300,13 @@ class CamasSalasView(QMainWindow):
                 q = (sala_search.text() or "").lower()
                 if q in text.lower():
                     sala_list.addItem(text)
+            # Seleccionar una sala específica si se indica
+            if force_select:
+                for i in range(sala_list.count()):
+                    item = sala_list.item(i)
+                    if item and item.text().startswith(force_select):
+                        sala_list.setCurrentRow(i)
+                        break
 
         def refresh_camas():
             cama_list.clear()
@@ -313,12 +325,42 @@ class CamasSalasView(QMainWindow):
                 if q in text.lower():
                     cama_list.addItem(text)
 
-        sala_search.textChanged.connect(refresh_salas)
+        sala_search.textChanged.connect(lambda: refresh_salas(None))
         cama_search.textChanged.connect(refresh_camas)
         sala_list.itemSelectionChanged.connect(refresh_camas)
-        refresh_salas(); refresh_camas()
+        refresh_salas(None); refresh_camas()
 
-        form.addRow("ID Paciente", id_p)
+        # Cargar pacientes hospitalizados con sala registrada
+        pacientes_ids = repo.listar_pacientes_hospitalizados_con_sala()
+        def refresh_pacientes():
+            paciente_list.clear()
+            q = (paciente_search.text() or "").strip().lower()
+            for pid in pacientes_ids:
+                pac_nombre = repo.pacientes.get(pid).nombre if repo.pacientes.get(pid) else pid
+                sala_id = repo.get_sala_de_paciente(pid)
+                display = f"{pid} — {pac_nombre} (Sala: {sala_id})"
+                if not q or q in pac_nombre.lower() or q in pid.lower():
+                    paciente_list.addItem(display)
+        paciente_search.textChanged.connect(refresh_pacientes)
+        refresh_pacientes()
+
+        def on_paciente_selected():
+            item = paciente_list.currentItem()
+            if not item:
+                paciente_label.setText("Paciente: —")
+                return
+            pid = item.text().split(" — ")[0]
+            nombre = repo.pacientes.get(pid).nombre if repo.pacientes.get(pid) else pid
+            paciente_label.setText(f"Paciente: {nombre} ({pid})")
+            sala_id = repo.get_sala_de_paciente(pid)
+            # Bloquear selección de sala y autoseleccionar la sala del paciente
+            refresh_salas(sala_id)
+            refresh_camas()
+        paciente_list.itemSelectionChanged.connect(on_paciente_selected)
+
+        form.addRow("Buscar Paciente", paciente_search)
+        form.addRow(paciente_list)
+        form.addRow(paciente_label)
         form.addRow("Buscar Sala", sala_search)
         form.addRow(sala_list)
         form.addRow("Buscar Cama", cama_search)
@@ -326,12 +368,13 @@ class CamasSalasView(QMainWindow):
         btns = QHBoxLayout(); ok = QPushButton("Asignar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
             # Validar selección
-            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem()
-            if not id_p.text() or not sala_item or not cama_item:
-                QMessageBox.critical(dlg, "Error", "Complete ID paciente y seleccione sala y cama disponibles"); return
+            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem(); pac_item = paciente_list.currentItem()
+            if not pac_item or not sala_item or not cama_item:
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala y una cama disponible"); return
             sala_id = sala_item.text().split(" — ")[0]
             cama_id = cama_item.text().split(" — ")[0]
-            res = repo.asignar_cama(id_p.text(), sala_id, cama_id)
+            pid = pac_item.text().split(" — ")[0]
+            res = repo.asignar_cama(pid, sala_id, cama_id)
             if res == "OK":
                 QMessageBox.information(dlg, "Éxito", "Cama asignada con éxito"); dlg.accept()
             else:
@@ -354,20 +397,7 @@ class CamasSalasView(QMainWindow):
         hora_edit = QTimeEdit(); hora_edit.setTime(QTime.currentTime())
         sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala por ID, ubicación o clave...")
         sala_list = QListWidget()
-        hab_search = QLineEdit(); hab_search.setPlaceholderText("Buscar habitación en la sala seleccionada...")
-        hab_list = QListWidget()
-        cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama en la habitación seleccionada...")
-        cama_list = QListWidget()
-        # Deshabilitar hasta seleccionar sala y habitación
-        hab_search.setEnabled(False)
-        hab_list.setEnabled(False)
-        cama_search.setEnabled(False)
-        cama_list.setEnabled(False)
-        # Ocultar habitación y cama hasta que corresponda
-        hab_search.setVisible(False)
-        hab_list.setVisible(False)
-        cama_search.setVisible(False)
-        cama_list.setVisible(False)
+        # Registrar solo sala: remover UI de habitación y cama
 
         # Cargar pacientes desde el módulo Pacientes
         pacientes_cache = []
@@ -413,93 +443,32 @@ class CamasSalasView(QMainWindow):
                 if q in text.lower():
                     sala_list.addItem(text)
 
-        def refresh_habitaciones():
-            hab_list.clear()
-            selected_sala_id = sala_list.currentItem().text().split(" — ")[0] if sala_list.currentItem() else None
-            q = (hab_search.text() or "").strip().lower()
-            for hid, hab in repo.habitaciones.items():
-                if selected_sala_id and hab.sala_id != selected_sala_id:
-                    continue
-                nombre = hab.nombre_clave or hid
-                text = f"{hid} — {nombre} — {hab.ubicacion}"
-                if not q or q in text.lower():
-                    hab_list.addItem(text)
-
-        def refresh_camas():
-            cama_list.clear()
-            selected_hab_id = hab_list.currentItem().text().split(" — ")[0] if hab_list.currentItem() else None
-            q = (cama_search.text() or "").lower()
-            for cid, cama in repo.camas.items():
-                if cama.estado != "disponible":
-                    continue
-                hab = repo._resolve_habitacion(cama.num_habitacion)
-                if selected_hab_id:
-                    try:
-                        if not hab or hab.numero != selected_hab_id:
-                            continue
-                    except Exception:
-                        continue
-                nombre_base = hab.nombre_clave if hab and hab.nombre_clave else cama.num_habitacion
-                nombre = cama.nombre_clave or f"{nombre_base}"
-                text = f"{cid} — {nombre}"
-                if q in text.lower():
-                    cama_list.addItem(text)
+        # No se requieren habitaciones ni camas en este flujo
 
         sala_search.textChanged.connect(refresh_salas)
-        def on_sala_selection_changed():
-            has_sel = sala_list.currentItem() is not None
-            # habilitar habitaciones al elegir sala
-            hab_search.setEnabled(has_sel)
-            hab_list.setEnabled(has_sel)
-            hab_search.setVisible(has_sel)
-            hab_list.setVisible(has_sel)
-            refresh_habitaciones()
-            # hasta elegir habitación, deshabilitar camas
-            cama_search.setEnabled(False)
-            cama_list.setEnabled(False)
-            cama_search.setVisible(False)
-            cama_list.setVisible(False)
-            cama_list.clear()
-        sala_list.itemSelectionChanged.connect(on_sala_selection_changed)
-        hab_search.textChanged.connect(refresh_habitaciones)
-        def on_hab_selection_changed():
-            has_sel = hab_list.currentItem() is not None
-            cama_search.setEnabled(has_sel)
-            cama_list.setEnabled(has_sel)
-            cama_search.setVisible(has_sel)
-            cama_list.setVisible(has_sel)
-            refresh_camas()
-        hab_list.itemSelectionChanged.connect(on_hab_selection_changed)
-        cama_search.textChanged.connect(refresh_camas)
         refresh_salas()
 
-        # Ensamblar formulario en el orden solicitado: paciente → sala → habitación → cama
+        # Ensamblar formulario en el orden solicitado: paciente → sala (solo)
         form.addRow("Buscar Paciente", paciente_search)
         form.addRow(paciente_list)
         form.addRow("Buscar Sala", sala_search)
         form.addRow(sala_list)
-        form.addRow("Buscar Habitación", hab_search)
-        form.addRow(hab_list)
-        form.addRow("Buscar Cama", cama_search)
-        form.addRow(cama_list)
         # Fecha, hora y motivo al final
         form.addRow("Fecha", fecha_edit)
         form.addRow("Hora", hora_edit)
         form.addRow("Motivo", motivo)
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem(); hab_item = hab_list.currentItem()
+            sala_item = sala_list.currentItem();
             pac_item = paciente_list.currentItem()
-            if not pac_item or not motivo.text() or not sala_item or not hab_item or not cama_item:
-                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala, habitación y cama, y motive la hospitalización"); return
+            if not pac_item or not motivo.text() or not sala_item:
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala y motive la hospitalización"); return
             # Resolver paciente: extraer cc y nombre, asegurar ID interno
             try:
                 cc_sel, nombre_sel = pac_item.text().split(" — ", 1)
             except Exception:
                 cc_sel, nombre_sel = None, pac_item.text()
             sala_id = sala_item.text().split(" — ")[0]
-            hab_id = hab_item.text().split(" — ")[0]
-            cama_id = cama_item.text().split(" — ")[0]
             # Construir fecha/hora en formato ISO simple
             try:
                 from datetime import datetime
@@ -515,7 +484,7 @@ class CamasSalasView(QMainWindow):
                 fecha_str = f"{fecha_edit.date().toString('yyyy-MM-dd')} {hora_edit.time().toString('HH:mm')}"
             # Asegurar paciente en el repositorio y registrar
             id_repo_pac = repo.ensure_repo_patient(cc_sel, nombre_sel)
-            res = repo.registrar_hospitalizacion(id_repo_pac, fecha_str, sala_id, cama_id, motivo.text())
+            res = repo.registrar_hospitalizacion_solo_sala(id_repo_pac, fecha_str, sala_id, motivo.text())
             if res == "OK":
                 QMessageBox.information(dlg, "Éxito", "Hospitalización registrada con éxito"); dlg.accept()
             else:

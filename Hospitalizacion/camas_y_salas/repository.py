@@ -44,6 +44,8 @@ class MemoryRepository:
         self._pacientes_idx_por_cc: Dict[str, str] = {}
         self.pedidos: Dict[str, PedidoHospitalizacion] = {}
         self.historial = Historial()
+        # Mapa de hospitalizaciones registradas sin cama asignada: id_paciente -> {sala, fecha, motivo}
+        self.hospitalizaciones: Dict[str, Dict[str, str]] = {}
 
         # Inicializar nombres clave para salas y relacionar habitaciones con salas por ubicacion
         try:
@@ -298,6 +300,35 @@ class MemoryRepository:
         pac.estado = "hospitalizado"
         self.historial.registrar(f"Hospitalización registrada: {id_paciente} cama {id_cama} sala {sala} motivo {motivo} fecha {fecha}")
         return "OK"
+
+    def registrar_hospitalizacion_solo_sala(self, id_paciente: str, fecha: str, sala: str, motivo: str) -> str:
+        """Registra una hospitalización con solo sala (sin cama asignada aún)."""
+        pac = self.pacientes.get(id_paciente)
+        if not pac:
+            return "Paciente no registrado"
+        sl = self.salas.get(sala)
+        if not sl:
+            return "Sala no registrada"
+        if not sl.activa:
+            return "Sala inactiva: no se puede registrar hospitalización"
+        # Registrar hospitalización sin cama
+        self.hospitalizaciones[id_paciente] = {"sala": sala, "fecha": fecha, "motivo": motivo}
+        pac.estado = "hospitalizado"
+        pac.cama_asignada = None
+        self.historial.registrar(f"Hospitalización (solo sala) registrada: {id_paciente} sala {sala} motivo {motivo} fecha {fecha}")
+        return "OK"
+
+    def listar_pacientes_hospitalizados_con_sala(self) -> List[str]:
+        """Lista IDs de pacientes hospitalizados que tienen una sala registrada y ninguna cama asignada."""
+        res: List[str] = []
+        for pid, pac in self.pacientes.items():
+            if pac.estado == "hospitalizado" and pid in self.hospitalizaciones and not pac.cama_asignada:
+                res.append(pid)
+        return res
+
+    def get_sala_de_paciente(self, id_paciente: str) -> Optional[str]:
+        info = self.hospitalizaciones.get(id_paciente)
+        return info.get("sala") if info else None
 
     # Paciente
     def consultar_estado_paciente(self, id_paciente: str) -> Optional[str]:
