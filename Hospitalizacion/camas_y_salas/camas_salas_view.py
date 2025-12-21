@@ -5,9 +5,10 @@ from PyQt6.QtCore import Qt
 from .repository import repo
 
 class CamasSalasView(QMainWindow):
-    def __init__(self, rol: str):
-        super().__init__()
+    def __init__(self, rol: str, parent=None):
+        super().__init__(parent)
         self.rol = rol  # 'JEFE' o 'MEDICO'
+        self.padre = parent
         self.init_ui()
 
     def get_styles(self):
@@ -57,6 +58,19 @@ class CamasSalasView(QMainWindow):
             grid.addWidget(btn, i//2, i%2)
 
         layout.addWidget(container)
+
+        # Botón de regreso
+        btn_back = QPushButton("Regresar")
+        btn_back.setProperty("class", "menu_btn")
+        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_back.clicked.connect(self.go_back)
+        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Abrir maximizado
+        try:
+            self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
+        except Exception:
+            pass
 
     # Handlers con login y formularios rápidos via QMessageBox + inputs simples
     def registrar_infraestructura(self):
@@ -216,3 +230,18 @@ class CamasSalasView(QMainWindow):
             else:
                 QMessageBox.critical(dlg, "Error", res)
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
+
+    def go_back(self):
+        # Reabrir Hospitalización (padre) y cerrar esta vista
+        try:
+            if self.padre is not None:
+                self.padre.show()
+                try:
+                    self.padre.showMaximized()
+                except Exception:
+                    pass
+                self.padre.raise_()
+                self.padre.activateWindow()
+        except Exception:
+            pass
+        self.close()

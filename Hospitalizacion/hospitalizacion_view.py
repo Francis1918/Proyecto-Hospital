@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QGridLayout,
-    QFrame, QPushButton, QLabel, QMessageBox
+    QFrame, QPushButton, QLabel, QMessageBox, QApplication
 )
 from PyQt6.QtCore import Qt
 try:
@@ -22,8 +22,9 @@ class HospitalizacionView(QMainWindow):
     - Gestión de orden, evolución y cuidados
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.padre = parent
         # Mantener referencias a subventanas para evitar GC y cierre inmediato
         self.ventanas_abiertas = {}
         self.init_ui()
@@ -145,14 +146,28 @@ class HospitalizacionView(QMainWindow):
             QMessageBox.warning(self, "Acceso", "Credenciales incorrectas")
             return
 
+        # Cerrar cualquier otra ventana del módulo (solo una a la vez)
+        for k, v in list(self.ventanas_abiertas.items()):
+            try:
+                if v.isVisible():
+                    v.close()
+            except Exception:
+                pass
+            self.ventanas_abiertas.pop(k, None)
+
         key = f"camas_salas_{rol.lower()}"
-        if key not in self.ventanas_abiertas or not self.ventanas_abiertas[key].isVisible():
-            self.ventanas_abiertas[key] = CamasSalasView(rol)
-            self.ventanas_abiertas[key].setWindowTitle(f"Camas y Salas - {rol}")
+        self.ventanas_abiertas[key] = CamasSalasView(rol, parent=self)
+        self.ventanas_abiertas[key].setWindowTitle(f"Camas y Salas - {rol}")
         w = self.ventanas_abiertas[key]
         w.show()
+        try:
+            w.showMaximized()
+        except Exception:
+            pass
         w.raise_()
         w.activateWindow()
+        # Ocultar Hospitalización mientras la subvista está abierta
+        self.hide()
 
     def abrir_visitas_restricciones(self):
         QMessageBox.information(self, "Hospitalización", "Visitas y restricciones - En desarrollo.")
@@ -162,6 +177,17 @@ class HospitalizacionView(QMainWindow):
 
     def abrir_orden_evolucion_cuidados(self):
         QMessageBox.information(self, "Hospitalización", "Gestión de orden, evolución y cuidados - En desarrollo.")
+
+    def closeEvent(self, event):
+        """Al cerrar Hospitalización, volver al menú principal (padre)."""
+        try:
+            if self.padre is not None:
+                self.padre.show()
+                self.padre.raise_()
+                self.padre.activateWindow()
+        except Exception:
+            pass
+        event.accept()
 
 if __name__ == "__main__":
     # Runner opcional para pruebas rápidas de esta vista

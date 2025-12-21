@@ -247,13 +247,20 @@ class MenuPrincipal(QMainWindow):
     def abrir_hospitalizacion(self):
         """Abre el módulo de hospitalización."""
         if "hospitalizacion" not in self.ventanas_abiertas or not self.ventanas_abiertas["hospitalizacion"].isVisible():
-            ventana = HospitalizacionView()
+            ventana = HospitalizacionView(parent=self)
             ventana.setWindowTitle("Gestión de Hospitalización - Submódulo")
             self.ventanas_abiertas["hospitalizacion"] = ventana
 
-        self.ventanas_abiertas["hospitalizacion"].show()
-        self.ventanas_abiertas["hospitalizacion"].raise_()
-        self.ventanas_abiertas["hospitalizacion"].activateWindow()
+        w = self.ventanas_abiertas["hospitalizacion"]
+        w.show()
+        try:
+            w.showMaximized()
+        except Exception:
+            pass
+        w.raise_()
+        w.activateWindow()
+        # Ocultar el menú principal mientras Hospitalización está abierta
+        self.hide()
 
     def abrir_medicos(self):
         """Abre el módulo de gestión de médicos."""
