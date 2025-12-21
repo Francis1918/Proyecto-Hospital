@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox, QCheckBox, QTextEdit, QTabWidget, QWidget
+    QGroupBox, QCheckBox, QWidget
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 from ..paciente import Paciente
@@ -36,6 +36,12 @@ class RegistrarPacienteDialog(QDialog):
                 font-weight: bold;
                 padding: 15px;
             }
+            QLabel {
+                color: #1a365d;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 2px;
+            }
             QTabWidget::pane {
                 border: 2px solid #3182ce;
                 border-radius: 8px;
@@ -59,6 +65,7 @@ class RegistrarPacienteDialog(QDialog):
                 border-radius: 6px;
                 font-size: 13px;
                 background-color: white;
+                color: #2d3748;
             }
             QLineEdit:focus, QTextEdit:focus {
                 border-color: #2c5282;
@@ -88,23 +95,32 @@ class RegistrarPacienteDialog(QDialog):
                 font-weight: bold;
                 border: 2px solid #3182ce;
                 border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
                 background-color: white;
             }
             QGroupBox::title {
                 color: #1a365d;
                 subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
+                subcontrol-position: top left;
+                left: 15px;
+                top: 5px;
+                padding: 0 8px;
+                background-color: white;
+                font-size: 14px;
             }
             QCheckBox {
                 font-size: 14px;
                 color: #2d3748;
+                font-weight: normal;
             }
             QCheckBox::indicator {
                 width: 18px;
                 height: 18px;
+            }
+            QWidget#tab_widget {
+                background-color: white;
             }
         """
 
@@ -112,7 +128,7 @@ class RegistrarPacienteDialog(QDialog):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Nuevo Paciente")
         self.setModal(True)
-        self.setMinimumSize(600, 700)
+        self.setMinimumSize(550, 600)
         self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
@@ -125,18 +141,9 @@ class RegistrarPacienteDialog(QDialog):
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(titulo)
 
-        # Crear pestañas para organizar la información
-        tabs = QTabWidget()
-
-        # Pestaña 1: Datos Personales
-        tab_datos = self.crear_tab_datos_personales()
-        tabs.addTab(tab_datos, "Datos Personales")
-
-        # Pestaña 2: Anamnesis
-        tab_anamnesis = self.crear_tab_anamnesis()
-        tabs.addTab(tab_anamnesis, "Anamnesis")
-
-        layout.addWidget(tabs)
+        # Contenido del formulario de datos personales
+        contenido = self.crear_formulario_datos()
+        layout.addWidget(contenido)
 
         # Checkbox para crear historia clínica
         self.chk_crear_historia = QCheckBox("Crear Historia Clínica automáticamente")
@@ -162,22 +169,27 @@ class RegistrarPacienteDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
-    def crear_tab_datos_personales(self) -> QWidget:
-        """Crea la pestaña de datos personales."""
+    def crear_formulario_datos(self) -> QWidget:
+        """Crea el formulario de datos personales."""
         widget = QWidget()
+        widget.setObjectName("tab_widget")
         layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
 
         # Grupo: Identificación
         group_identificacion = QGroupBox("Identificación")
         form_id = QFormLayout()
+        form_id.setSpacing(10)
 
+        lbl_cc = QLabel("Cédula *:")
         self.txt_cc = QLineEdit()
         self.txt_cc.setPlaceholderText("Ej: 1234567890")
-        form_id.addRow("Cédula *:", self.txt_cc)
+        form_id.addRow(lbl_cc, self.txt_cc)
 
+        lbl_num_unic = QLabel("Número Único *:")
         self.txt_num_unic = QLineEdit()
         self.txt_num_unic.setPlaceholderText("Número único del sistema")
-        form_id.addRow("Número Único *:", self.txt_num_unic)
+        form_id.addRow(lbl_num_unic, self.txt_num_unic)
 
         group_identificacion.setLayout(form_id)
         layout.addWidget(group_identificacion)
@@ -185,14 +197,17 @@ class RegistrarPacienteDialog(QDialog):
         # Grupo: Datos Personales
         group_personales = QGroupBox("Datos Personales")
         form_personal = QFormLayout()
+        form_personal.setSpacing(10)
 
+        lbl_nombre = QLabel("Nombre *:")
         self.txt_nombre = QLineEdit()
         self.txt_nombre.setPlaceholderText("Nombre del paciente")
-        form_personal.addRow("Nombre *:", self.txt_nombre)
+        form_personal.addRow(lbl_nombre, self.txt_nombre)
 
+        lbl_apellido = QLabel("Apellido *:")
         self.txt_apellido = QLineEdit()
         self.txt_apellido.setPlaceholderText("Apellido del paciente")
-        form_personal.addRow("Apellido *:", self.txt_apellido)
+        form_personal.addRow(lbl_apellido, self.txt_apellido)
 
         group_personales.setLayout(form_personal)
         layout.addWidget(group_personales)
@@ -200,22 +215,27 @@ class RegistrarPacienteDialog(QDialog):
         # Grupo: Información de Contacto
         group_contacto = QGroupBox("Información de Contacto")
         form_contacto = QFormLayout()
+        form_contacto.setSpacing(10)
 
+        lbl_direccion = QLabel("Dirección *:")
         self.txt_direccion = QLineEdit()
         self.txt_direccion.setPlaceholderText("Dirección completa")
-        form_contacto.addRow("Dirección *:", self.txt_direccion)
+        form_contacto.addRow(lbl_direccion, self.txt_direccion)
 
+        lbl_telefono = QLabel("Teléfono *:")
         self.txt_telefono = QLineEdit()
         self.txt_telefono.setPlaceholderText("Ej: 3001234567")
-        form_contacto.addRow("Teléfono *:", self.txt_telefono)
+        form_contacto.addRow(lbl_telefono, self.txt_telefono)
 
+        lbl_email = QLabel("Email *:")
         self.txt_email = QLineEdit()
         self.txt_email.setPlaceholderText("correo@ejemplo.com")
-        form_contacto.addRow("Email *:", self.txt_email)
+        form_contacto.addRow(lbl_email, self.txt_email)
 
+        lbl_tel_ref = QLabel("Teléfono Referencia:")
         self.txt_telefono_ref = QLineEdit()
         self.txt_telefono_ref.setPlaceholderText("Teléfono de contacto de emergencia")
-        form_contacto.addRow("Teléfono Referencia:", self.txt_telefono_ref)
+        form_contacto.addRow(lbl_tel_ref, self.txt_telefono_ref)
 
         group_contacto.setLayout(form_contacto)
         layout.addWidget(group_contacto)
@@ -229,55 +249,8 @@ class RegistrarPacienteDialog(QDialog):
 
         return widget
 
-    def crear_tab_anamnesis(self) -> QWidget:
-        """Crea la pestaña de anamnesis."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-
-        lbl_info = QLabel("Registre la información de anamnesis del paciente:")
-        lbl_info.setStyleSheet("font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_info)
-
-        # Motivo de consulta
-        layout.addWidget(QLabel("Motivo de Consulta:"))
-        self.txt_motivo_consulta = QTextEdit()
-        self.txt_motivo_consulta.setPlaceholderText("Describa el motivo de la consulta...")
-        self.txt_motivo_consulta.setMaximumHeight(80)
-        layout.addWidget(self.txt_motivo_consulta)
-
-        # Enfermedad actual
-        layout.addWidget(QLabel("Enfermedad Actual:"))
-        self.txt_enfermedad_actual = QTextEdit()
-        self.txt_enfermedad_actual.setPlaceholderText("Describa la enfermedad actual...")
-        self.txt_enfermedad_actual.setMaximumHeight(80)
-        layout.addWidget(self.txt_enfermedad_actual)
-
-        # Antecedentes personales
-        layout.addWidget(QLabel("Antecedentes Personales:"))
-        self.txt_antecedentes_personales = QTextEdit()
-        self.txt_antecedentes_personales.setPlaceholderText("Antecedentes médicos personales...")
-        self.txt_antecedentes_personales.setMaximumHeight(80)
-        layout.addWidget(self.txt_antecedentes_personales)
-
-        # Antecedentes familiares
-        layout.addWidget(QLabel("Antecedentes Familiares:"))
-        self.txt_antecedentes_familiares = QTextEdit()
-        self.txt_antecedentes_familiares.setPlaceholderText("Antecedentes médicos familiares...")
-        self.txt_antecedentes_familiares.setMaximumHeight(80)
-        layout.addWidget(self.txt_antecedentes_familiares)
-
-        # Alergias
-        layout.addWidget(QLabel("Alergias:"))
-        self.txt_alergias = QLineEdit()
-        self.txt_alergias.setPlaceholderText("Alergias conocidas...")
-        layout.addWidget(self.txt_alergias)
-
-        layout.addStretch()
-
-        return widget
-
     def guardar_paciente(self):
-        """Guarda el nuevo paciente con su anamnesis e historia clínica."""
+        """Guarda el nuevo paciente con su historia clínica."""
         # Crear objeto Paciente
         paciente = Paciente(
             cc=self.txt_cc.text().strip(),
@@ -296,24 +269,6 @@ class RegistrarPacienteDialog(QDialog):
         if not exito:
             QMessageBox.warning(self, "Error", mensaje)
             return
-
-        # Registrar anamnesis si hay datos
-        datos_anamnesis = {
-            'cc_paciente': paciente.cc,
-            'motivo_consulta': self.txt_motivo_consulta.toPlainText().strip(),
-            'enfermedad_actual': self.txt_enfermedad_actual.toPlainText().strip(),
-            'antecedentes_personales': self.txt_antecedentes_personales.toPlainText().strip(),
-            'antecedentes_familiares': self.txt_antecedentes_familiares.toPlainText().strip(),
-            'alergias': self.txt_alergias.text().strip()
-        }
-
-        if any(datos_anamnesis.values()):
-            exito_anam, mensaje_anam = self.controller.registrar_anamnesis(
-                paciente.cc, datos_anamnesis
-            )
-            if not exito_anam:
-                QMessageBox.warning(self, "Advertencia",
-                                    f"Paciente registrado pero: {mensaje_anam}")
 
         # Crear historia clínica si está marcado
         if self.chk_crear_historia.isChecked():
@@ -347,11 +302,5 @@ class RegistrarPacienteDialog(QDialog):
             self.txt_email.clear()
             self.txt_telefono_ref.clear()
 
-            # Limpiar anamnesis
-            self.txt_motivo_consulta.clear()
-            self.txt_enfermedad_actual.clear()
-            self.txt_antecedentes_personales.clear()
-            self.txt_antecedentes_familiares.clear()
-            self.txt_alergias.clear()
 
             self.txt_cc.setFocus()
