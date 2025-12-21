@@ -1,0 +1,7 @@
+para ingresar puse que toque poner credenciales de los actores 
+son 
+ user: medico password: medico
+ user: jefe password : jefe
+ creo que lo mas facil es reutilizar eso para los que usen los
+ mismos actores y si usan otros la misma plantilla del nombre
+ como contra y user para no olvidarnos
