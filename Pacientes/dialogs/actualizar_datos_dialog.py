@@ -19,7 +19,7 @@ class ActualizarDatosDialog(QDialog):
 
     datos_actualizados = pyqtSignal(str)
 
-    def __init__(self, controller: PacienteController, tipo_campo: str = None, parent=None):
+    def __init__(self, controller: PacienteController, tipo_campo: str = "", parent=None):
         super().__init__(parent)
         self.controller = controller
         self.tipo_campo = tipo_campo  # "direccion", "telefono", "email" o None para todos
@@ -45,9 +45,8 @@ class ActualizarDatosDialog(QDialog):
                 font-weight: bold;
             }
             QFrame#container {
-                background-color: white;
-                border-radius: 10px;
-                padding: 20px;
+                background-color: transparent;
+                padding: 10px;
             }
             QLineEdit {
                 padding: 10px;
@@ -56,6 +55,7 @@ class ActualizarDatosDialog(QDialog):
                 font-size: 14px;
                 background-color: white;
                 color: #2d3748;
+                min-height: 20px;
             }
             QLineEdit:focus {
                 border-color: #2c5282;
@@ -84,22 +84,20 @@ class ActualizarDatosDialog(QDialog):
             }
             QGroupBox {
                 font-weight: bold;
+                font-size: 14px;
+                color: #1a365d;
                 border: 2px solid #3182ce;
                 border-radius: 8px;
-                margin-top: 15px;
-                padding: 15px;
-                padding-top: 25px;
+                margin-top: 10px;
+                padding: 10px;
                 background-color: white;
             }
             QGroupBox::title {
-                color: #1a365d;
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                left: 15px;
-                top: 5px;
-                padding: 0 8px;
+                left: 10px;
+                padding: 0 5px;
                 background-color: white;
-                font-size: 14px;
             }
         """
 
@@ -115,7 +113,7 @@ class ActualizarDatosDialog(QDialog):
 
         self.setWindowTitle(titulo)
         self.setModal(True)
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(500, 600)
         self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
@@ -136,37 +134,74 @@ class ActualizarDatosDialog(QDialog):
 
         # Sección de búsqueda de paciente
         group_buscar = QGroupBox("Buscar Paciente")
-        form_buscar = QFormLayout()
+        buscar_layout = QVBoxLayout()
+        buscar_layout.setSpacing(10)
+        buscar_layout.setContentsMargins(10, 25, 10, 10)
 
+        # Fila de cédula
+        cedula_layout = QHBoxLayout()
+        lbl_cedula = QLabel("Cédula:")
+        lbl_cedula.setMinimumWidth(80)
         self.txt_cc = QLineEdit()
         self.txt_cc.setPlaceholderText("Ingrese la cédula del paciente")
-        form_buscar.addRow("Cédula:", self.txt_cc)
+        self.txt_cc.setMinimumHeight(35)
+        cedula_layout.addWidget(lbl_cedula)
+        cedula_layout.addWidget(self.txt_cc)
+        buscar_layout.addLayout(cedula_layout)
 
-        btn_buscar = QPushButton("Buscar")
+        # Botón buscar
+        btn_buscar = QPushButton("Buscar Paciente")
         btn_buscar.clicked.connect(self.buscar_paciente)
-        form_buscar.addRow("", btn_buscar)
+        btn_buscar.setMinimumHeight(40)
+        buscar_layout.addWidget(btn_buscar)
 
-        group_buscar.setLayout(form_buscar)
+        group_buscar.setLayout(buscar_layout)
         container_layout.addWidget(group_buscar)
 
         # Sección de datos del paciente (oculta inicialmente)
         self.group_datos = QGroupBox("Datos del Paciente")
-        self.form_datos = QFormLayout()
+        datos_layout = QVBoxLayout()
+        datos_layout.setSpacing(10)
+        datos_layout.setContentsMargins(10, 25, 10, 10)
 
+        # Nombre del paciente
+        nombre_layout = QHBoxLayout()
+        lbl_nombre_titulo = QLabel("Nombre:")
+        lbl_nombre_titulo.setMinimumWidth(120)
         self.lbl_nombre = QLabel("-")
-        self.form_datos.addRow("Nombre:", self.lbl_nombre)
+        self.lbl_nombre.setStyleSheet("font-weight: normal; color: #2d3748;")
+        nombre_layout.addWidget(lbl_nombre_titulo)
+        nombre_layout.addWidget(self.lbl_nombre)
+        datos_layout.addLayout(nombre_layout)
 
-        self.lbl_dato_actual = QLabel("-")
+        # Dato actual
+        actual_layout = QHBoxLayout()
         label_actual = {
             "direccion": "Dirección actual:",
             "telefono": "Teléfono actual:",
             "email": "Email actual:",
-            "telefono_referencia": "Teléfono de referencia actual:"
+            "telefono_referencia": "Tel. Ref. actual:"
         }.get(self.tipo_campo, "Dato actual:")
-        self.form_datos.addRow(label_actual, self.lbl_dato_actual)
+        lbl_actual_titulo = QLabel(label_actual)
+        lbl_actual_titulo.setMinimumWidth(120)
+        self.lbl_dato_actual = QLabel("-")
+        self.lbl_dato_actual.setStyleSheet("font-weight: normal; color: #2d3748;")
+        actual_layout.addWidget(lbl_actual_titulo)
+        actual_layout.addWidget(self.lbl_dato_actual)
+        datos_layout.addLayout(actual_layout)
 
         # Campo para nuevo valor
+        nuevo_layout = QHBoxLayout()
+        label_nuevo = {
+            "direccion": "Nueva dirección:",
+            "telefono": "Nuevo teléfono:",
+            "email": "Nuevo email:",
+            "telefono_referencia": "Nuevo Tel. Ref.:"
+        }.get(self.tipo_campo, "Nuevo valor:")
+        lbl_nuevo_titulo = QLabel(label_nuevo)
+        lbl_nuevo_titulo.setMinimumWidth(120)
         self.txt_nuevo_valor = QLineEdit()
+        self.txt_nuevo_valor.setMinimumHeight(35)
         placeholder = {
             "direccion": "Ingrese la nueva dirección",
             "telefono": "Ingrese el nuevo teléfono",
@@ -174,16 +209,11 @@ class ActualizarDatosDialog(QDialog):
             "telefono_referencia": "Ingrese el nuevo teléfono de referencia"
         }.get(self.tipo_campo, "Ingrese el nuevo valor")
         self.txt_nuevo_valor.setPlaceholderText(placeholder)
+        nuevo_layout.addWidget(lbl_nuevo_titulo)
+        nuevo_layout.addWidget(self.txt_nuevo_valor)
+        datos_layout.addLayout(nuevo_layout)
 
-        label_nuevo = {
-            "direccion": "Nueva dirección:",
-            "telefono": "Nuevo teléfono:",
-            "email": "Nuevo email:",
-            "telefono_referencia": "Nuevo teléfono de referencia:"
-        }.get(self.tipo_campo, "Nuevo valor:")
-        self.form_datos.addRow(label_nuevo, self.txt_nuevo_valor)
-
-        self.group_datos.setLayout(self.form_datos)
+        self.group_datos.setLayout(datos_layout)
         self.group_datos.setVisible(False)
         container_layout.addWidget(self.group_datos)
 
