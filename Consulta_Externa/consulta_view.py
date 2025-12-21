@@ -12,17 +12,54 @@ class ConsultaExternaView(QWidget):
 
     def init_ui(self):
         self.layout_principal = QVBoxLayout(self)
-        
-        # Estilo coherente con main.py
         self.setStyleSheet("""
-            QWidget { background-color: #f8fafc; }
-            QGroupBox { font-weight: bold; border: 1px solid #cbd5e0; border-radius: 8px; margin-top: 10px; padding: 10px; }
-            QPushButton { 
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #667eea, stop:1 #764ba2);
-                color: white; border-radius: 8px; padding: 10px; font-weight: bold;
-            }
-            QTableWidget { border: 1px solid #e2e8f0; border-radius: 5px; background: white; }
-        """)
+                /* Regla General: Fondo claro y TEXTO OSCURO */
+                QWidget { 
+                    background-color: #f8fafc;
+                    color: #2d3748;  /* <--- ESTA ES LA LÍNEA CLAVE */
+                    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                }
+
+                /* Regla Específica para Botones: Fondo degradado y texto BLANCO */
+                QPushButton { 
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #667eea, stop:1 #764ba2);
+                    color: white; /* Esto sobrescribe el color oscuro general solo para botones */
+                    border-radius: 8px; 
+                    padding: 10px; 
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #5a67d8, stop:1 #6b46c1);
+                }
+
+                /* Estilos para otros elementos para mejorar la definición */
+                QGroupBox { 
+                    font-weight: bold; 
+                    border: 1px solid #cbd5e0; 
+                    border-radius: 8px; 
+                    margin-top: 10px; 
+                    padding: 15px; 
+                }
+                QTableWidget { 
+                    border: 1px solid #e2e8f0; 
+                    border-radius: 5px; 
+                    background: white;
+                    gridline-color: #e2e8f0;
+                }
+                QHeaderView::section {
+                    background-color: #edf2f7;
+                    padding: 5px;
+                    border: none;
+                    font-weight: bold;
+                    color: #4a5568;
+                }
+                QLineEdit, QTextEdit {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 4px;
+                    padding: 5px;
+                    background: white; /* Asegura fondo blanco para campos de entrada */
+                }
+            """)
 
         self.tabs = QTabWidget()
         self.setup_tab_enfermera()
