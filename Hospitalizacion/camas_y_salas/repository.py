@@ -373,6 +373,25 @@ class MemoryRepository:
         info = self.hospitalizaciones.get(id_paciente)
         return info.get("sala") if info else None
 
+    def get_pid_por_cc(self, cc: Optional[str]) -> Optional[str]:
+        """Obtiene el ID interno del repositorio mapeado para una cédula, sin crear registros."""
+        if not cc:
+            return None
+        return self._pacientes_idx_por_cc.get(cc)
+
+    def tiene_cama_por_cc(self, cc: Optional[str]) -> bool:
+        """Indica si el paciente mapeado por cédula tiene cama asignada."""
+        pid = self.get_pid_por_cc(cc)
+        if not pid:
+            return False
+        pac = self.pacientes.get(pid)
+        return bool(pac and pac.cama_asignada)
+
+    def get_motivo_hospitalizacion(self, id_paciente: str) -> Optional[str]:
+        """Devuelve el motivo registrado en la hospitalización del paciente, si existe."""
+        info = self.hospitalizaciones.get(id_paciente)
+        return info.get("motivo") if info else None
+
     # Paciente
     def consultar_estado_paciente(self, id_paciente: str) -> Optional[str]:
         pac = self.pacientes.get(id_paciente)

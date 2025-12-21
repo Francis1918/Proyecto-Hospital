@@ -204,6 +204,8 @@ class CamasSalasView(QMainWindow):
         # Buscar y seleccionar paciente desde módulo Pacientes
         paciente_search = QLineEdit(); paciente_search.setPlaceholderText("Buscar paciente por nombre o cédula...")
         paciente_list = QListWidget(); paciente_label = QLabel("Paciente: —")
+        info = QLabel("Seleccione un paciente con cama asignada")
+        info.setWordWrap(True)
         motivo = QLineEdit(); motivo.setPlaceholderText("Motivo del pedido")
 
         # Cargar pacientes del módulo Pacientes
@@ -226,12 +228,16 @@ class CamasSalasView(QMainWindow):
                 nombre_comp = f"{p.nombre} {p.apellido}".strip()
                 cc = getattr(p, "cc", "")
                 display = f"{cc} — {nombre_comp}"
+                # Mostrar solo pacientes que tienen cama asignada en repositorio
+                if not repo.tiene_cama_por_cc(cc):
+                    continue
                 if not q or q in nombre_comp.lower() or q in str(cc).lower():
                     paciente_list.addItem(display)
         paciente_search.textChanged.connect(refresh_pacientes)
         refresh_pacientes()
 
         selected_pid = None
+        selected_cc = None
         def fijar_paciente():
             nonlocal selected_pid
             item = paciente_list.currentItem()
@@ -241,19 +247,59 @@ class CamasSalasView(QMainWindow):
                 cc_sel, nombre_sel = item.text().split(" — ", 1)
             except Exception:
                 cc_sel, nombre_sel = None, item.text()
-            # Asegurar paciente en repositorio hospitalario y obtener ID
-            selected_pid = repo.ensure_repo_patient(cc_sel, nombre_sel)
+            selected_cc = cc_sel
+            # Obtener ID de repositorio ya mapeado; no crear si no existe
+            pid_mapped = repo.get_pid_por_cc(cc_sel)
+            if not pid_mapped:
+                QMessageBox.critical(dlg, "Error", "El paciente no está mapeado en hospitalización"); return
+            selected_pid = pid_mapped
             paciente_label.setText(f"Paciente: {nombre_sel} ({selected_pid})")
             # Bloquear selección
             paciente_search.setEnabled(False); paciente_list.setEnabled(False)
             sel_text = item.text(); paciente_list.clear(); paciente_list.addItem(sel_text)
+            # Mostrar información adicional: sala/hab/cama y motivo hospitalización + historia clínica
+            pac = repo.pacientes.get(selected_pid)
+            cama_id = pac.cama_asignada if pac else None
+            cama = repo.camas.get(cama_id) if cama_id else None
+            hab = repo._resolve_habitacion(cama.num_habitacion) if cama else None
+            sala_id = repo.get_sala_de_paciente(selected_pid)
+            sala = repo.salas.get(sala_id) if sala_id else None
+            sala_txt = sala_id or "—"
+            sala_nombre = (sala.nombre_clave if sala and sala.nombre_clave else sala_txt)
+            hab_txt = (hab.nombre_clave if hab and hab.nombre_clave else (hab.numero if hab else "—"))
+            cama_txt = (cama.nombre_clave if cama and cama.nombre_clave else (cama_id or "—"))
+            motivo_h = repo.get_motivo_hospitalizacion(selected_pid) or "—"
+            # Historia clínica desde módulo Pacientes por cédula
+            historia_txt = "sin historia clínica disponible"
+            try:
+                try:
+                    from Pacientes.paciente_controller import PacienteController as _PC
+                except Exception:
+                    import os, sys
+                    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    from Pacientes.paciente_controller import PacienteController as _PC
+                pc2 = _PC()
+                hc = pc2.consultar_historia_clinica(selected_cc)
+                if hc:
+                    historia_txt = f"Historia clínica: {hc.get('numero_historia','')} (Estado: {hc.get('estado','')})"
+            except Exception:
+                pass
+            info.setText(
+                f"Cédula: {selected_cc}\n"
+                f"Sala: {sala_txt} — {sala_nombre}\n"
+                f"Habitación: {hab_txt}\n"
+                f"Cama: {cama_txt}\n"
+                f"Motivo hospitalización: {motivo_h}\n"
+                f"{historia_txt}"
+            )
 
         # Form UI
         form.addRow("Buscar Paciente", paciente_search)
         form.addRow(paciente_list)
         btn_fix = QPushButton("Fijar Paciente"); form.addRow(btn_fix)
         form.addRow(paciente_label)
-        form.addRow("Motivo", motivo)
+        form.addRow("Información", info)
+        form.addRow("Motivo del pedido", motivo)
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
 
         def do():
