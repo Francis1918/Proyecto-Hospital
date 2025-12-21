@@ -328,8 +328,20 @@ class CamasSalasView(QMainWindow):
         hora_edit = QTimeEdit(); hora_edit.setTime(QTime.currentTime())
         sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala por ID, ubicación o clave...")
         sala_list = QListWidget()
-        cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama por ID o nombre clave...")
+        hab_search = QLineEdit(); hab_search.setPlaceholderText("Buscar habitación en la sala seleccionada...")
+        hab_list = QListWidget()
+        cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama en la habitación seleccionada...")
         cama_list = QListWidget()
+        # Deshabilitar hasta seleccionar sala y habitación
+        hab_search.setEnabled(False)
+        hab_list.setEnabled(False)
+        cama_search.setEnabled(False)
+        cama_list.setEnabled(False)
+        # Ocultar habitación y cama hasta que corresponda
+        hab_search.setVisible(False)
+        hab_list.setVisible(False)
+        cama_search.setVisible(False)
+        cama_list.setVisible(False)
 
         # Cargar pacientes desde el módulo Pacientes
         pacientes_cache = []
@@ -368,16 +380,32 @@ class CamasSalasView(QMainWindow):
                 if q in text.lower():
                     sala_list.addItem(text)
 
+        def refresh_habitaciones():
+            hab_list.clear()
+            selected_sala_id = sala_list.currentItem().text().split(" — ")[0] if sala_list.currentItem() else None
+            q = (hab_search.text() or "").strip().lower()
+            for hid, hab in repo.habitaciones.items():
+                if selected_sala_id and hab.sala_id != selected_sala_id:
+                    continue
+                nombre = hab.nombre_clave or hid
+                text = f"{hid} — {nombre} — {hab.ubicacion}"
+                if not q or q in text.lower():
+                    hab_list.addItem(text)
+
         def refresh_camas():
             cama_list.clear()
-            selected_sala_id = sala_list.currentItem().text().split(" — ")[0] if sala_list.currentItem() else None
+            selected_hab_id = hab_list.currentItem().text().split(" — ")[0] if hab_list.currentItem() else None
             q = (cama_search.text() or "").lower()
             for cid, cama in repo.camas.items():
                 if cama.estado != "disponible":
                     continue
                 hab = repo._resolve_habitacion(cama.num_habitacion)
-                if selected_sala_id and (not hab or hab.sala_id != selected_sala_id):
-                    continue
+                if selected_hab_id:
+                    try:
+                        if not hab or hab.numero != selected_hab_id:
+                            continue
+                    except Exception:
+                        continue
                 nombre_base = hab.nombre_clave if hab and hab.nombre_clave else cama.num_habitacion
                 nombre = cama.nombre_clave or f"{nombre_base}"
                 text = f"{cid} — {nombre}"
@@ -387,35 +415,57 @@ class CamasSalasView(QMainWindow):
         sala_search.textChanged.connect(refresh_salas)
         def on_sala_selection_changed():
             has_sel = sala_list.currentItem() is not None
+            # habilitar habitaciones al elegir sala
+            hab_search.setEnabled(has_sel)
+            hab_list.setEnabled(has_sel)
+            hab_search.setVisible(has_sel)
+            hab_list.setVisible(has_sel)
+            refresh_habitaciones()
+            # hasta elegir habitación, deshabilitar camas
+            cama_search.setEnabled(False)
+            cama_list.setEnabled(False)
+            cama_search.setVisible(False)
+            cama_list.setVisible(False)
+            cama_list.clear()
+        sala_list.itemSelectionChanged.connect(on_sala_selection_changed)
+        hab_search.textChanged.connect(refresh_habitaciones)
+        def on_hab_selection_changed():
+            has_sel = hab_list.currentItem() is not None
             cama_search.setEnabled(has_sel)
             cama_list.setEnabled(has_sel)
+            cama_search.setVisible(has_sel)
+            cama_list.setVisible(has_sel)
             refresh_camas()
-        sala_list.itemSelectionChanged.connect(on_sala_selection_changed)
+        hab_list.itemSelectionChanged.connect(on_hab_selection_changed)
         cama_search.textChanged.connect(refresh_camas)
-        refresh_salas(); refresh_camas()
+        refresh_salas()
 
-        # Ensamblar formulario en el orden solicitado: paciente -> sala -> cama
+        # Ensamblar formulario en el orden solicitado: paciente → sala → habitación → cama
         form.addRow("Buscar Paciente", paciente_search)
         form.addRow(paciente_list)
+        form.addRow("Buscar Sala", sala_search)
+        form.addRow(sala_list)
+        form.addRow("Buscar Habitación", hab_search)
+        form.addRow(hab_list)
+        form.addRow("Buscar Cama", cama_search)
+        form.addRow(cama_list)
+        # Fecha, hora y motivo al final
         form.addRow("Fecha", fecha_edit)
         form.addRow("Hora", hora_edit)
         form.addRow("Motivo", motivo)
-        form.addRow("Buscar Sala", sala_search)
-        form.addRow(sala_list)
-        form.addRow("Buscar Cama", cama_search)
-        form.addRow(cama_list)
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem()
+            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem(); hab_item = hab_list.currentItem()
             pac_item = paciente_list.currentItem()
-            if not pac_item or not motivo.text() or not sala_item or not cama_item:
-                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala, cama y motive la hospitalización"); return
+            if not pac_item or not motivo.text() or not sala_item or not hab_item or not cama_item:
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala, habitación y cama, y motive la hospitalización"); return
             # Resolver paciente: extraer cc y nombre, asegurar ID interno
             try:
                 cc_sel, nombre_sel = pac_item.text().split(" — ", 1)
             except Exception:
                 cc_sel, nombre_sel = None, pac_item.text()
             sala_id = sala_item.text().split(" — ")[0]
+            hab_id = hab_item.text().split(" — ")[0]
             cama_id = cama_item.text().split(" — ")[0]
             # Construir fecha/hora en formato ISO simple
             try:
