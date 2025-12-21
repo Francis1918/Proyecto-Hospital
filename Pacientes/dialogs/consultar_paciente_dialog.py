@@ -203,9 +203,11 @@ class ConsultarPacienteDialog(QDialog):
         self.lbl_cc = QLabel("-")
         form.addRow("Cédula:", self.lbl_cc)
 
+        '''
         self.lbl_num_unic = QLabel("-")
         form.addRow("Número Único:", self.lbl_num_unic)
-
+        '''
+        
         self.lbl_nombre = QLabel("-")
         form.addRow("Nombre:", self.lbl_nombre)
 
@@ -215,8 +217,10 @@ class ConsultarPacienteDialog(QDialog):
         self.lbl_fecha_registro = QLabel("-")
         form.addRow("Fecha de Registro:", self.lbl_fecha_registro)
 
+        '''
         self.lbl_id_fac = QLabel("-")
         form.addRow("ID Facultad:", self.lbl_id_fac)
+        '''
 
         group.setLayout(form)
         layout.addWidget(group)
@@ -316,11 +320,11 @@ class ConsultarPacienteDialog(QDialog):
 
         # Llenar datos personales
         self.lbl_cc.setText(self.paciente.cc)
-        self.lbl_num_unic.setText(self.paciente.num_unic)
+        #self.lbl_num_unic.setText(self.paciente.num_unic)
         self.lbl_nombre.setText(self.paciente.nombre)
         self.lbl_apellido.setText(self.paciente.apellido)
         self.lbl_fecha_registro.setText(str(self.paciente.fecha_registro))
-        self.lbl_id_fac.setText(str(self.paciente.id_fac) if self.paciente.id_fac else "No asignado")
+        #self.lbl_id_fac.setText(str(self.paciente.id_fac) if self.paciente.id_fac else "No asignado")
 
         # Llenar información de contacto
         self.lbl_direccion.setText(self.paciente.direccion)

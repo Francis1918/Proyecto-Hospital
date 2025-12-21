@@ -128,7 +128,7 @@ class RegistrarPacienteDialog(QDialog):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Nuevo Paciente")
         self.setModal(True)
-        self.setMinimumSize(550, 600)
+        self.setMinimumSize(550, 800)
         self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
@@ -186,14 +186,16 @@ class RegistrarPacienteDialog(QDialog):
         self.txt_cc.setPlaceholderText("Ej: 1234567890")
         form_id.addRow(lbl_cc, self.txt_cc)
 
+        '''
         lbl_num_unic = QLabel("Número Único *:")
         self.txt_num_unic = QLineEdit()
         self.txt_num_unic.setPlaceholderText("Número único del sistema")
         form_id.addRow(lbl_num_unic, self.txt_num_unic)
+        '''
 
         group_identificacion.setLayout(form_id)
         layout.addWidget(group_identificacion)
-
+        
         # Grupo: Datos Personales
         group_personales = QGroupBox("Datos Personales")
         form_personal = QFormLayout()
@@ -254,7 +256,7 @@ class RegistrarPacienteDialog(QDialog):
         # Crear objeto Paciente
         paciente = Paciente(
             cc=self.txt_cc.text().strip(),
-            num_unic=self.txt_num_unic.text().strip(),
+            #num_unic=self.txt_num_unic.text().strip(),
             nombre=self.txt_nombre.text().strip(),
             apellido=self.txt_apellido.text().strip(),
             direccion=self.txt_direccion.text().strip(),
@@ -294,7 +296,7 @@ class RegistrarPacienteDialog(QDialog):
         if respuesta == QMessageBox.StandardButton.Yes:
             # Limpiar datos personales
             self.txt_cc.clear()
-            self.txt_num_unic.clear()
+            #self.txt_num_unic.clear()
             self.txt_nombre.clear()
             self.txt_apellido.clear()
             self.txt_direccion.clear()
