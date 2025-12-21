@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from Pacientes import PacienteView, PacienteController
+from Consulta_Externa.consulta_controller import ConsultaExternaController
+from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion import HospitalizacionView
 
 
@@ -232,10 +234,16 @@ class MenuPrincipal(QMainWindow):
 
     def abrir_consulta_externa(self):
         """Abre el módulo de consulta externa."""
-        QMessageBox.information(
-            self, "Consulta Externa",
-            "Módulo de Consulta Externa en desarrollo.\n\nPróximamente disponible."
-        )
+        if "consulta_externa" not in self.ventanas_abiertas or not self.ventanas_abiertas["consulta_externa"].isVisible():
+            controller = ConsultaExternaController()
+            ventana = ConsultaExternaView(controller)
+            ventana.setWindowTitle("Atención de Consultas Externas")
+            ventana.resize(800, 700) # Tamaño cómodo para formularios
+            self.ventanas_abiertas["consulta_externa"] = ventana
+
+        self.ventanas_abiertas["consulta_externa"].show()
+        self.ventanas_abiertas["consulta_externa"].raise_()
+        self.ventanas_abiertas["consulta_externa"].activateWindow()
 
     def abrir_farmacia(self):
         """Abre el módulo de farmacia."""
