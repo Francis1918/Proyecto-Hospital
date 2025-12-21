@@ -200,13 +200,39 @@ class CamasSalasView(QMainWindow):
     def consultar_estado_habitacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Habitación")
         form = QFormLayout(dlg)
-        num = QLineEdit(); form.addRow("Número de Habitación", num)
-        btns = QHBoxLayout(); ok = QPushButton("Consultar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
+        # Búsqueda y listado (igual estructura que Actualizar Estado)
+        search = QLineEdit(); search.setPlaceholderText("Buscar habitación por ID o ubicación...")
+        listw = QListWidget()
+        estado_label = QLabel("Estado: —")
+        def refresh():
+            listw.clear()
+            for hab in repo.buscar_habitaciones(search.text()):
+                nombre = hab.nombre_clave or hab.numero
+                listw.addItem(f"{hab.numero} — {nombre} — {hab.ubicacion} (Estado: {hab.estado})")
+        search.textChanged.connect(refresh)
+        refresh()
+        def update_estado_preview():
+            item = listw.currentItem()
+            if not item:
+                estado_label.setText("Estado: —"); return
+            hab_id = item.text().split(" — ")[0]
+            estado = repo.consultar_estado_habitacion(hab_id)
+            estado_label.setText(f"Estado: {estado if estado is not None else 'no registrada'}")
+        listw.itemSelectionChanged.connect(update_estado_preview)
+        # Orden del formulario
+        form.addRow("Buscar", search)
+        form.addRow(listw)
+        form.addRow("Estado", estado_label)
+        btns = QHBoxLayout(); ok = QPushButton("Consultar"); cancel = QPushButton("Cerrar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
-            estado = repo.consultar_estado_habitacion(num.text())
+            item = listw.currentItem()
+            if not item:
+                QMessageBox.critical(dlg, "Error", "Seleccione una habitación de la lista"); return
+            hab_id = item.text().split(" — ")[0]
+            estado = repo.consultar_estado_habitacion(hab_id)
             if estado is None:
                 QMessageBox.critical(dlg, "Error", "Habitación no registrada")
             else:
@@ -364,6 +390,13 @@ class CamasSalasView(QMainWindow):
             for p in pacientes_cache:
                 nombre_comp = f"{p.nombre} {p.apellido}".strip()
                 display = f"{p.cc} — {nombre_comp}"
+                # Excluir si ya está hospitalizado (según repositorio de hospitalización)
+                try:
+                    ya_hosp = repo.esta_hospitalizado_por_cc(getattr(p, "cc", None)) or repo.esta_hospitalizado_por_nombre(nombre_comp)
+                except Exception:
+                    ya_hosp = False
+                if ya_hosp:
+                    continue
                 if not q or q in nombre_comp.lower() or q in (p.cc or "").lower():
                     paciente_list.addItem(display)
         paciente_search.textChanged.connect(refresh_pacientes)

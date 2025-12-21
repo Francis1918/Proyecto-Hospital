@@ -307,6 +307,35 @@ class MemoryRepository:
         self.historial.registrar(f"Consulta estado paciente {id_paciente}: {pac.estado}")
         return pac.estado
 
+    def find_paciente_id_por_nombre(self, nombre: str) -> Optional[str]:
+        """Devuelve el ID interno del repositorio para un nombre exacto (case-insensitive), si existe."""
+        try:
+            target = (nombre or "").strip().lower()
+            for pid, pac in self.pacientes.items():
+                if (pac.nombre or "").strip().lower() == target:
+                    return pid
+        except Exception:
+            pass
+        return None
+
+    def esta_hospitalizado_por_cc(self, cc: Optional[str]) -> bool:
+        """Indica si el paciente mapeado por cédula está hospitalizado. No crea registros nuevos."""
+        if not cc:
+            return False
+        pid = self._pacientes_idx_por_cc.get(cc)
+        if not pid:
+            return False
+        pac = self.pacientes.get(pid)
+        return bool(pac and (pac.estado == "hospitalizado" or pac.cama_asignada))
+
+    def esta_hospitalizado_por_nombre(self, nombre: str) -> bool:
+        """Indica si un paciente identificado por nombre ya está hospitalizado (si existe)."""
+        pid = self.find_paciente_id_por_nombre(nombre)
+        if not pid:
+            return False
+        pac = self.pacientes.get(pid)
+        return bool(pac and (pac.estado == "hospitalizado" or pac.cama_asignada))
+
     def autorizar_alta(self, id_paciente: str) -> str:
         pac = self.pacientes.get(id_paciente)
         if not pac:
