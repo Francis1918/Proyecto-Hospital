@@ -6,12 +6,14 @@ from .registrar_paciente_dialog import RegistrarPacienteDialog
 from .consultar_paciente_dialog import ConsultarPacienteDialog
 from .actualizar_datos_dialog import ActualizarDatosDialog
 from .registrar_anamnesis_dialog import RegistrarAnamnesisDilaog
+from .historia_clinica_dialog import HistoriaClinicaDialog
 
 __all__ = [
     'RegistrarPacienteDialog',
     'ConsultarPacienteDialog',
     'ActualizarDatosDialog',
-    'RegistrarAnamnesisDilaog'
+    'RegistrarAnamnesisDilaog',
+    'HistoriaClinicaDialog'
 ]
 
 __version__ = '1.0.0'

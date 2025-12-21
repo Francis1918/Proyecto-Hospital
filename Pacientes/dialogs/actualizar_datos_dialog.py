@@ -39,6 +39,11 @@ class ActualizarDatosDialog(QDialog):
                 font-weight: bold;
                 padding: 15px;
             }
+            QLabel {
+                color: #1a365d;
+                font-size: 14px;
+                font-weight: bold;
+            }
             QFrame#container {
                 background-color: white;
                 border-radius: 10px;
@@ -50,6 +55,7 @@ class ActualizarDatosDialog(QDialog):
                 border-radius: 8px;
                 font-size: 14px;
                 background-color: white;
+                color: #2d3748;
             }
             QLineEdit:focus {
                 border-color: #2c5282;
@@ -76,23 +82,24 @@ class ActualizarDatosDialog(QDialog):
             QPushButton#btn_cancelar:hover {
                 background-color: #4a5568;
             }
-            QLabel {
-                color: #2d3748;
-                font-size: 14px;
-            }
             QGroupBox {
                 font-weight: bold;
                 border: 2px solid #3182ce;
                 border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
                 background-color: white;
             }
             QGroupBox::title {
                 color: #1a365d;
                 subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
+                subcontrol-position: top left;
+                left: 15px;
+                top: 5px;
+                padding: 0 8px;
+                background-color: white;
+                font-size: 14px;
             }
         """
 

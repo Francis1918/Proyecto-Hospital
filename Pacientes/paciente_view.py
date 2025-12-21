@@ -166,9 +166,10 @@ class PacienteView(QMainWindow):
         dialogo.exec()
 
     def abrir_historia_clinica(self):
-        """Abre la historia clínica del paciente."""
-        QMessageBox.information(self, "Historia Clínica",
-                                "Módulo de Historia Clínica.\n\nSeleccione un paciente para ver su historia.")
+        """Abre el diálogo de historia clínica del paciente."""
+        from .dialogs import HistoriaClinicaDialog
+        dialogo = HistoriaClinicaDialog(self.controller, self)
+        dialogo.exec()
 
     def abrir_anamnesis(self):
         """Abre el diálogo para registrar anamnesis del paciente."""

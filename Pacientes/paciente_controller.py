@@ -196,6 +196,27 @@ class PacienteController:
             print(f"Error al consultar paciente: {str(e)}")
             return None
 
+    def consultar_paciente_por_codigo(self, codigo_unico: str) -> Optional[Paciente]:
+        """
+        Consulta un paciente por su código único.
+        """
+        try:
+            # Buscar en memoria por código único
+            for paciente in self._pacientes_memoria.values():
+                if paciente.num_unic == codigo_unico:
+                    return paciente
+
+            # Aquí iría la lógica para consultar en la base de datos
+            # if self.db:
+            #     resultado = self.db.query('pacientes', {'num_unic': codigo_unico})
+            #     if resultado:
+            #         return Paciente.from_dict(resultado)
+
+            return None
+        except Exception as e:
+            print(f"Error al consultar paciente por código: {str(e)}")
+            return None
+
     def consultar_telefono_referencia(self, cc_paciente: str) -> Optional[str]:
         """
         Caso de uso: consultarTeléfonoDeReferencia (extend de consultarPaciente)

@@ -41,6 +41,11 @@ class ConsultarPacienteDialog(QDialog):
                 font-weight: bold;
                 padding: 15px;
             }
+            QLabel {
+                color: #1a365d;
+                font-size: 13px;
+                font-weight: bold;
+            }
             QTabWidget::pane {
                 border: 2px solid #3182ce;
                 border-radius: 8px;
@@ -64,12 +69,14 @@ class ConsultarPacienteDialog(QDialog):
                 border-radius: 6px;
                 font-size: 13px;
                 background-color: white;
+                color: #2d3748;
             }
             QLineEdit:focus, QTextEdit:focus {
                 border-color: #2c5282;
             }
-            QLineEdit:read-only {
+            QLineEdit:read-only, QTextEdit:read-only {
                 background-color: #f7fafc;
+                color: #2d3748;
             }
             QPushButton {
                 background-color: #3182ce;
@@ -96,18 +103,20 @@ class ConsultarPacienteDialog(QDialog):
                 font-weight: bold;
                 border: 2px solid #3182ce;
                 border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
                 background-color: white;
             }
             QGroupBox::title {
                 color: #1a365d;
                 subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-            }
-            QLabel {
-                color: #2d3748;
+                subcontrol-position: top left;
+                left: 15px;
+                top: 5px;
+                padding: 0 8px;
+                background-color: white;
+                font-size: 14px;
             }
         """
 
