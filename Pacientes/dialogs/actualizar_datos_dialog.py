@@ -317,8 +317,18 @@ class ActualizarDatosDialog(QDialog):
 
         if exito:
             QMessageBox.information(self, "Éxito", mensaje)
-            self.lbl_dato_actual.setText(nuevo_valor)
-            self.txt_nuevo_valor.clear()
             self.datos_actualizados.emit(self.cc_paciente)
+            # Limpiar todos los campos después de actualizar
+            self.limpiar_campos()
         else:
             QMessageBox.warning(self, "Error", mensaje)
+
+    def limpiar_campos(self):
+        """Limpia todos los campos del formulario."""
+        self.txt_cc.clear()
+        self.txt_nuevo_valor.clear()
+        self.lbl_nombre.setText("-")
+        self.lbl_dato_actual.setText("-")
+        self.cc_paciente = None
+        self.btn_actualizar.setEnabled(False)
+

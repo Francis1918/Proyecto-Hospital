@@ -76,7 +76,7 @@ class PacienteView(QMainWindow):
     def init_ui(self):
         """Inicializa la interfaz de usuario."""
         self.setWindowTitle("Sistema de Gestión Clínica - Pacientes")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 600)
         self.setStyleSheet(self.get_styles())
 
         central_widget = QWidget()

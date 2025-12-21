@@ -132,11 +132,11 @@ class HistoriaClinicaDialog(QDialog):
         form_buscar = QHBoxLayout()
         form_buscar.setSpacing(10)
 
-        lbl_cc = QLabel("Cédula o Código Único:")
+        lbl_cc = QLabel("Cédula:")
         form_buscar.addWidget(lbl_cc)
 
         self.txt_buscar = QLineEdit()
-        self.txt_buscar.setPlaceholderText("Ingrese cédula o código único del paciente")
+        self.txt_buscar.setPlaceholderText("Ingrese cédula")
         self.txt_buscar.returnPressed.connect(self.buscar_paciente)
         form_buscar.addWidget(self.txt_buscar)
 
@@ -160,6 +160,11 @@ class HistoriaClinicaDialog(QDialog):
         form_paciente = QFormLayout()
         form_paciente.setSpacing(10)
 
+        self.lbl_num_historia = QLabel("-")
+        self.lbl_num_historia.setObjectName("info_label")
+        self.lbl_num_historia.setStyleSheet("color: #3182ce; font-weight: bold;")
+        form_paciente.addRow(QLabel("N° Historia Clínica:"), self.lbl_num_historia)
+
         self.lbl_cc = QLabel("-")
         self.lbl_cc.setObjectName("info_label")
         form_paciente.addRow(QLabel("Cédula:"), self.lbl_cc)
@@ -167,6 +172,10 @@ class HistoriaClinicaDialog(QDialog):
         self.lbl_nombre = QLabel("-")
         self.lbl_nombre.setObjectName("info_label")
         form_paciente.addRow(QLabel("Nombre Completo:"), self.lbl_nombre)
+
+        self.lbl_fecha_nacimiento = QLabel("-")
+        self.lbl_fecha_nacimiento.setObjectName("info_label")
+        form_paciente.addRow(QLabel("Fecha de Nacimiento:"), self.lbl_fecha_nacimiento)
 
         self.lbl_telefono = QLabel("-")
         self.lbl_telefono.setObjectName("info_label")
@@ -183,6 +192,10 @@ class HistoriaClinicaDialog(QDialog):
         self.lbl_fecha_registro = QLabel("-")
         self.lbl_fecha_registro.setObjectName("info_label")
         form_paciente.addRow(QLabel("Fecha de Registro:"), self.lbl_fecha_registro)
+
+        self.lbl_estado_historia = QLabel("-")
+        self.lbl_estado_historia.setObjectName("info_label")
+        form_paciente.addRow(QLabel("Estado:"), self.lbl_estado_historia)
 
         self.group_paciente.setLayout(form_paciente)
         self.group_paciente.setVisible(False)
@@ -269,21 +282,63 @@ class HistoriaClinicaDialog(QDialog):
 
         if self.paciente:
             self.cc_paciente = self.paciente.cc
-            self.mostrar_datos_paciente()
-            self.cargar_anamnesis()
-            self.group_paciente.setVisible(True)
-            self.group_anamnesis.setVisible(True)
-            self.btn_imprimir.setEnabled(True)
+
+            # Verificar si tiene historia clínica
+            historia = self.controller.consultar_historia_clinica(self.cc_paciente)
+
+            if historia:
+                self.mostrar_datos_paciente(historia)
+                self.cargar_anamnesis()
+                self.group_paciente.setVisible(True)
+                self.group_anamnesis.setVisible(True)
+                self.btn_imprimir.setEnabled(True)
+            else:
+                # El paciente existe pero no tiene historia clínica
+                respuesta = QMessageBox.question(
+                    self, "Sin Historia Clínica",
+                    f"El paciente {self.paciente.nombre} {self.paciente.apellido} no tiene historia clínica.\n¿Desea crearla ahora?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if respuesta == QMessageBox.StandardButton.Yes:
+                    exito, mensaje = self.controller.crear_historia_clinica(self.cc_paciente)
+                    if exito:
+                        QMessageBox.information(self, "Éxito", mensaje)
+                        historia = self.controller.consultar_historia_clinica(self.cc_paciente)
+                        self.mostrar_datos_paciente(historia)
+                        self.cargar_anamnesis()
+                        self.group_paciente.setVisible(True)
+                        self.group_anamnesis.setVisible(True)
+                        self.btn_imprimir.setEnabled(True)
+                    else:
+                        QMessageBox.warning(self, "Error", mensaje)
+                else:
+                    self.limpiar_datos()
         else:
             QMessageBox.warning(self, "No encontrado",
                               f"No se encontró un paciente con cédula o código: {busqueda}")
             self.limpiar_datos()
 
-    def mostrar_datos_paciente(self):
+    def mostrar_datos_paciente(self, historia=None):
         """Muestra los datos del paciente en el formulario."""
         if self.paciente:
+            # Mostrar número de historia clínica
+            if historia:
+                self.lbl_num_historia.setText(historia.get('numero_historia', 'No asignado'))
+                self.lbl_estado_historia.setText(historia.get('estado', 'Desconocido'))
+            else:
+                self.lbl_num_historia.setText("No tiene historia clínica")
+                self.lbl_estado_historia.setText("-")
+
             self.lbl_cc.setText(self.paciente.cc)
             self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
+
+            # Mostrar fecha de nacimiento
+            if self.paciente.fecha_nacimiento:
+                fecha_nac = self.paciente.fecha_nacimiento.strftime("%d/%m/%Y")
+                self.lbl_fecha_nacimiento.setText(fecha_nac)
+            else:
+                self.lbl_fecha_nacimiento.setText("No registrada")
+
             self.lbl_telefono.setText(self.paciente.telefono or "-")
             self.lbl_email.setText(self.paciente.email or "-")
             self.lbl_direccion.setText(self.paciente.direccion or "-")
@@ -311,12 +366,15 @@ class HistoriaClinicaDialog(QDialog):
 
     def limpiar_datos(self):
         """Limpia todos los datos mostrados."""
+        self.lbl_num_historia.setText("-")
         self.lbl_cc.setText("-")
         self.lbl_nombre.setText("-")
+        self.lbl_fecha_nacimiento.setText("-")
         self.lbl_telefono.setText("-")
         self.lbl_email.setText("-")
         self.lbl_direccion.setText("-")
         self.lbl_fecha_registro.setText("-")
+        self.lbl_estado_historia.setText("-")
         self.txt_motivo.clear()
         self.txt_enfermedad.clear()
         self.txt_ant_personales.clear()

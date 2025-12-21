@@ -214,6 +214,9 @@ class ConsultarPacienteDialog(QDialog):
         self.lbl_apellido = QLabel("-")
         form.addRow("Apellido:", self.lbl_apellido)
 
+        self.lbl_fecha_nacimiento = QLabel("-")
+        form.addRow("Fecha de Nacimiento:", self.lbl_fecha_nacimiento)
+
         self.lbl_fecha_registro = QLabel("-")
         form.addRow("Fecha de Registro:", self.lbl_fecha_registro)
 
@@ -323,6 +326,14 @@ class ConsultarPacienteDialog(QDialog):
         #self.lbl_num_unic.setText(self.paciente.num_unic)
         self.lbl_nombre.setText(self.paciente.nombre)
         self.lbl_apellido.setText(self.paciente.apellido)
+
+        # Mostrar fecha de nacimiento
+        if self.paciente.fecha_nacimiento:
+            fecha_nac = self.paciente.fecha_nacimiento.strftime("%d/%m/%Y")
+            self.lbl_fecha_nacimiento.setText(fecha_nac)
+        else:
+            self.lbl_fecha_nacimiento.setText("No registrada")
+
         self.lbl_fecha_registro.setText(str(self.paciente.fecha_registro))
         #self.lbl_id_fac.setText(str(self.paciente.id_fac) if self.paciente.id_fac else "No asignado")
 

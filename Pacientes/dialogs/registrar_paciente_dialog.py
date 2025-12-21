@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox, QCheckBox, QWidget
+    QGroupBox, QCheckBox, QWidget, QDateEdit, QCalendarWidget
 )
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QDate
 from ..paciente import Paciente
 from ..paciente_controller import PacienteController
 
@@ -70,6 +70,32 @@ class RegistrarPacienteDialog(QDialog):
             QLineEdit:focus, QTextEdit:focus {
                 border-color: #2c5282;
             }
+            QDateEdit {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+                color: #2d3748;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: right center;
+                width: 30px;
+                border-left: 1px solid #3182ce;
+            }
+            QCalendarWidget {
+                background-color: white;
+            }
+            QCalendarWidget QToolButton {
+                color: #1a365d;
+                background-color: #e8f4fc;
+                border-radius: 4px;
+                padding: 5px;
+            }
+            QCalendarWidget QMenu {
+                background-color: white;
+            }
             QPushButton {
                 background-color: #3182ce;
                 color: white;
@@ -128,7 +154,7 @@ class RegistrarPacienteDialog(QDialog):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Nuevo Paciente")
         self.setModal(True)
-        self.setMinimumSize(550, 800)
+        self.setMinimumSize(550, 900)
         self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
@@ -211,6 +237,17 @@ class RegistrarPacienteDialog(QDialog):
         self.txt_apellido.setPlaceholderText("Apellido del paciente")
         form_personal.addRow(lbl_apellido, self.txt_apellido)
 
+        lbl_fecha_nac = QLabel("Fecha de Nacimiento *:")
+        self.date_nacimiento = QDateEdit()
+        self.date_nacimiento.setCalendarPopup(True)  # Habilitar popup de calendario
+        self.date_nacimiento.setDisplayFormat("dd/MM/yyyy")
+        self.date_nacimiento.setDate(QDate.currentDate())
+        # Configurar el calendario
+        calendario = QCalendarWidget()
+        calendario.setGridVisible(True)
+        self.date_nacimiento.setCalendarWidget(calendario)
+        form_personal.addRow(lbl_fecha_nac, self.date_nacimiento)
+
         group_personales.setLayout(form_personal)
         layout.addWidget(group_personales)
 
@@ -251,81 +288,11 @@ class RegistrarPacienteDialog(QDialog):
 
         return widget
 
-    def crear_campos_formulario(self):
-        """Crea los campos del formulario."""
-        form_widget = QWidget()
-        form_layout = QGridLayout(form_widget)
-        form_layout.setSpacing(15)
-        form_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Nombre
-        lbl_nombre = QLabel("Nombre *:")
-        lbl_nombre.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_nombre = QLineEdit()
-        self.txt_nombre.setPlaceholderText("Nombre del paciente")
-        self.txt_nombre.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_nombre, 0, 0)
-        form_layout.addWidget(self.txt_nombre, 0, 1)
-
-        # Apellido
-        lbl_apellido = QLabel("Apellido *:")
-        lbl_apellido.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_apellido = QLineEdit()
-        self.txt_apellido.setPlaceholderText("Apellido del paciente")
-        self.txt_apellido.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_apellido, 1, 0)
-        form_layout.addWidget(self.txt_apellido, 1, 1)
-
-        # Cédula
-        lbl_cc = QLabel("Cédula *:")
-        lbl_cc.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_cc = QLineEdit()
-        self.txt_cc.setPlaceholderText("Ej: 1234567890")
-        self.txt_cc.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_cc, 2, 0)
-        form_layout.addWidget(self.txt_cc, 2, 1)
-
-        # Teléfono
-        lbl_telefono = QLabel("Teléfono:")
-        lbl_telefono.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_telefono = QLineEdit()
-        self.txt_telefono.setPlaceholderText("Ej: 0999999999")
-        self.txt_telefono.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_telefono, 5, 0)  # Ajustar fila según tu layout
-        form_layout.addWidget(self.txt_telefono, 5, 1)
-
-        # Teléfono de Referencia (NUEVO CAMPO)
-        lbl_telefono_ref = QLabel("Teléfono de Referencia:")
-        lbl_telefono_ref.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_telefono_referencia = QLineEdit()
-        self.txt_telefono_referencia.setPlaceholderText("Ej: 0999999999 (contacto de emergencia)")
-        self.txt_telefono_referencia.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_telefono_ref, 6, 0)  # Nueva fila
-        form_layout.addWidget(self.txt_telefono_referencia, 6, 1)
-
-        # Email
-        lbl_email = QLabel("Email *:")
-        lbl_email.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_email = QLineEdit()
-        self.txt_email.setPlaceholderText("correo@ejemplo.com")
-        self.txt_email.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_email, 7, 0)
-        form_layout.addWidget(self.txt_email, 7, 1)
-
-        # Dirección
-        lbl_direccion = QLabel("Dirección *:")
-        lbl_direccion.setStyleSheet("font-weight: bold; color: #4a5568;")
-        self.txt_direccion = QLineEdit()
-        self.txt_direccion.setPlaceholderText("Dirección completa")
-        self.txt_direccion.setStyleSheet(self.get_input_style())
-        form_layout.addWidget(lbl_direccion, 8, 0)
-        form_layout.addWidget(self.txt_direccion, 8, 1)
-
-        form_widget.setLayout(form_layout)
-        return form_widget
-
     def guardar_paciente(self):
         """Guarda el nuevo paciente con su historia clínica."""
+        # Obtener fecha de nacimiento del calendario
+        fecha_nac = self.date_nacimiento.date().toPyDate()
+
         # Crear objeto Paciente
         paciente = Paciente(
             cc=self.txt_cc.text().strip(),
@@ -335,6 +302,7 @@ class RegistrarPacienteDialog(QDialog):
             direccion=self.txt_direccion.text().strip(),
             telefono=self.txt_telefono.text().strip(),
             email=self.txt_email.text().strip(),
+            fecha_nacimiento=fecha_nac,
             telefono_referencia=self.txt_telefono_ref.text().strip() or None
         )
 
@@ -346,17 +314,20 @@ class RegistrarPacienteDialog(QDialog):
             return
 
         # Crear historia clínica si está marcado (include: crearHistoriaClinica)
+        mensaje_historia = ""
         if self.chk_crear_historia.isChecked():
             exito_hist, mensaje_hist = self.controller.crear_historia_clinica(paciente.cc)
-            if not exito_hist:
+            if exito_hist:
+                mensaje_historia = f"\n{mensaje_hist}"
+            else:
                 QMessageBox.warning(self, "Advertencia",
                                     f"Paciente registrado pero: {mensaje_hist}")
 
         # Emitir señal
         self.paciente_registrado.emit(paciente)
         QMessageBox.information(self, "Éxito",
-                                f"Paciente {paciente.nombre} {paciente.apellido} registrado exitosamente")
-        
+                                f"Paciente {paciente.nombre} {paciente.apellido} registrado exitosamente{mensaje_historia}")
+
         # Abrir diálogo de anamnesis (include: registrarAnamnesis)
         respuesta = QMessageBox.question(
             self, "Registrar Anamnesis",
@@ -392,6 +363,7 @@ class RegistrarPacienteDialog(QDialog):
             self.txt_telefono.clear()
             self.txt_email.clear()
             self.txt_telefono_ref.clear()
+            self.date_nacimiento.setDate(QDate.currentDate())
 
 
             self.txt_cc.setFocus()
@@ -405,5 +377,6 @@ class RegistrarPacienteDialog(QDialog):
             'direccion': self.txt_direccion.text().strip(),
             'telefono': self.txt_telefono.text().strip(),
             'email': self.txt_email.text().strip(),
-            'telefono_referencia': self.txt_telefono_referencia.text().strip(),  # NUEVO
+            'fecha_nacimiento': self.date_nacimiento.date().toPyDate(),
+            'telefono_referencia': self.txt_telefono_ref.text().strip(),
         }

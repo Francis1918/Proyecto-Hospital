@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 
 @dataclass
@@ -15,6 +15,7 @@ class Paciente:
     direccion: str
     telefono: str
     email: str
+    fecha_nacimiento: Optional[date] = None
     telefono_referencia: Optional[str] = None
     #id_fac: Optional[int] = None
     fecha_registro: Optional[datetime] = None
@@ -55,6 +56,7 @@ class Paciente:
             'direccion': self.direccion,
             'telefono': self.telefono,
             'email': self.email,
+            'fecha_nacimiento': self.fecha_nacimiento,
             'telefono_referencia': self.telefono_referencia,
             #'id_fac': self.id_fac,
             'fecha_registro': self.fecha_registro

@@ -17,6 +17,7 @@ class PacienteController:
         # Almacenamiento en memoria (temporal, hasta que se implemente BD)
         self._pacientes_memoria: dict[str, Paciente] = {}  # cc -> Paciente
         self._anamnesis_memoria: dict[str, dict] = {}  # cc -> datos_anamnesis
+        self._historias_clinicas: dict[str, dict] = {}  # cc -> historia_clinica
 
     def registrar_paciente(self, paciente: Paciente) -> tuple[bool, str]:
         """
@@ -82,12 +83,60 @@ class PacienteController:
             if not paciente:
                 return False, "El paciente no existe"
 
-            # Aquí iría la lógica para crear la historia clínica
-            # self.db.insert('historia_clinica', {...})
+            # Verificar si ya tiene historia clínica
+            if cc_paciente in self._historias_clinicas:
+                return False, "El paciente ya tiene historia clínica"
 
-            return True, "Historia clínica creada exitosamente"
+            # Crear historia clínica con datos iniciales
+            from datetime import datetime
+            numero_historia = f"HC-{cc_paciente}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+            historia = {
+                'numero_historia': numero_historia,
+                'cc_paciente': cc_paciente,
+                'fecha_creacion': datetime.now(),
+                'estado': 'Activa',
+                'observaciones': '',
+                'consultas': [],
+                'diagnosticos': [],
+                'tratamientos': []
+            }
+
+            # Guardar en memoria
+            self._historias_clinicas[cc_paciente] = historia
+
+            return True, f"Historia clínica {numero_historia} creada exitosamente"
         except Exception as e:
             return False, f"Error al crear historia clínica: {str(e)}"
+
+    def consultar_historia_clinica(self, cc_paciente: str) -> Optional[dict]:
+        """
+        Consulta la historia clínica del paciente.
+        """
+        try:
+            if cc_paciente in self._historias_clinicas:
+                return self._historias_clinicas[cc_paciente]
+            return None
+        except Exception as e:
+            print(f"Error al consultar historia clínica: {str(e)}")
+            return None
+
+    def actualizar_historia_clinica(self, cc_paciente: str, datos: dict) -> tuple[bool, str]:
+        """
+        Actualiza la historia clínica del paciente.
+        """
+        try:
+            if cc_paciente not in self._historias_clinicas:
+                return False, "El paciente no tiene historia clínica"
+
+            # Actualizar los campos proporcionados
+            for key, value in datos.items():
+                if key in self._historias_clinicas[cc_paciente]:
+                    self._historias_clinicas[cc_paciente][key] = value
+
+            return True, "Historia clínica actualizada exitosamente"
+        except Exception as e:
+            return False, f"Error al actualizar historia clínica: {str(e)}"
 
     def actualizar_direccion(self, cc_paciente: str, nueva_direccion: str) -> tuple[bool, str]:
         """
