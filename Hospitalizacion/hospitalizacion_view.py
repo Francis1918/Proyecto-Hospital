@@ -3,6 +3,13 @@ from PyQt6.QtWidgets import (
     QFrame, QPushButton, QLabel, QMessageBox
 )
 from PyQt6.QtCore import Qt
+try:
+    from .camas_y_salas import CamasSalasView
+except ImportError:
+    # Permitir ejecutar este archivo directamente agregando el directorio padre al sys.path
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from Hospitalizacion.camas_y_salas import CamasSalasView
 
 
 class HospitalizacionView(QMainWindow):
@@ -17,6 +24,8 @@ class HospitalizacionView(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        # Mantener referencias a subventanas para evitar GC y cierre inmediato
+        self.ventanas_abiertas = {}
         self.init_ui()
 
     def get_styles(self):
@@ -123,7 +132,14 @@ class HospitalizacionView(QMainWindow):
 
     # Handlers provisionales
     def abrir_camas_salas(self):
-        QMessageBox.information(self, "Hospitalización", "Gestión de camas y salas - En desarrollo.")
+        # Reusar y mantener referencia de la ventana
+        if "camas_salas" not in self.ventanas_abiertas or not self.ventanas_abiertas["camas_salas"].isVisible():
+            self.ventanas_abiertas["camas_salas"] = CamasSalasView()
+            self.ventanas_abiertas["camas_salas"].setWindowTitle("Camas y Salas - Submódulo")
+        w = self.ventanas_abiertas["camas_salas"]
+        w.show()
+        w.raise_()
+        w.activateWindow()
 
     def abrir_visitas_restricciones(self):
         QMessageBox.information(self, "Hospitalización", "Visitas y restricciones - En desarrollo.")
@@ -133,3 +149,12 @@ class HospitalizacionView(QMainWindow):
 
     def abrir_orden_evolucion_cuidados(self):
         QMessageBox.information(self, "Hospitalización", "Gestión de orden, evolución y cuidados - En desarrollo.")
+
+if __name__ == "__main__":
+    # Runner opcional para pruebas rápidas de esta vista
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    w = HospitalizacionView()
+    w.show()
+    sys.exit(app.exec())
