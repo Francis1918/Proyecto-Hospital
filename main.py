@@ -21,7 +21,7 @@ class MenuPrincipal(QMainWindow):
     def init_ui(self):
         """Inicializa la interfaz de usuario del menú principal."""
         self.setWindowTitle("Sistema de Gestión Hospitalaria")
-        self.setMinimumSize(900, 700)
+        self.setMinimumSize(900, 900)
         self.setStyleSheet(self.get_styles())
 
         # Widget central
