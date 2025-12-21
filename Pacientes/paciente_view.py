@@ -113,10 +113,10 @@ class PacienteView(QMainWindow):
             ("Registrar Paciente", self.abrir_dialogo_registrar),
             ("Consultar Paciente", self.abrir_dialogo_consultar),
             ("Historia Clínica", self.abrir_historia_clinica),
-            ("Registrar Anamnesis", self.abrir_anamnesis),
             ("Actualizar Dirección", self.abrir_actualizar_direccion),
             ("Actualizar Teléfono", self.abrir_actualizar_telefono),
             ("Actualizar E-mail", self.abrir_actualizar_email),
+            ("Actualizar Tel. Referencia", self.abrir_actualizar_telefono_referencia),
             ("Salir", self.close),
         ]
 
@@ -171,8 +171,8 @@ class PacienteView(QMainWindow):
         dialogo = HistoriaClinicaDialog(self.controller, self)
         dialogo.exec()
 
-    def abrir_anamnesis(self):
-        """Abre el diálogo para registrar anamnesis del paciente."""
-        from .dialogs import RegistrarAnamnesisDilaog
-        dialogo = RegistrarAnamnesisDilaog(self.controller, self)
+    def abrir_actualizar_telefono_referencia(self):
+        """Abre el diálogo para actualizar teléfono de referencia."""
+        from .dialogs import ActualizarDatosDialog
+        dialogo = ActualizarDatosDialog(self.controller, "telefono_referencia", self)
         dialogo.exec()

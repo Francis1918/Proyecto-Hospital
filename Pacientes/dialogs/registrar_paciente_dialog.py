@@ -345,17 +345,33 @@ class RegistrarPacienteDialog(QDialog):
             QMessageBox.warning(self, "Error", mensaje)
             return
 
-        # Crear historia clínica si está marcado
+        # Crear historia clínica si está marcado (include: crearHistoriaClinica)
         if self.chk_crear_historia.isChecked():
             exito_hist, mensaje_hist = self.controller.crear_historia_clinica(paciente.cc)
             if not exito_hist:
                 QMessageBox.warning(self, "Advertencia",
                                     f"Paciente registrado pero: {mensaje_hist}")
 
-        # Emitir señal y cerrar
+        # Emitir señal
         self.paciente_registrado.emit(paciente)
         QMessageBox.information(self, "Éxito",
                                 f"Paciente {paciente.nombre} {paciente.apellido} registrado exitosamente")
+        
+        # Abrir diálogo de anamnesis (include: registrarAnamnesis)
+        respuesta = QMessageBox.question(
+            self, "Registrar Anamnesis",
+            "¿Desea registrar la anamnesis del paciente ahora?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+        
+        if respuesta == QMessageBox.StandardButton.Yes:
+            from .registrar_anamnesis_dialog import RegistrarAnamnesisDilaog
+            dialogo_anamnesis = RegistrarAnamnesisDilaog(self.controller, self)
+            dialogo_anamnesis.txt_cc.setText(paciente.cc)
+            dialogo_anamnesis.buscar_paciente()  # Auto-buscar el paciente
+            dialogo_anamnesis.exec()
+        
         self.accept()
 
     def limpiar_formulario(self):
