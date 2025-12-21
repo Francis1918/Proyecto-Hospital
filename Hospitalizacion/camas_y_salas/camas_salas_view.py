@@ -200,44 +200,74 @@ class CamasSalasView(QMainWindow):
     def consultar_estado_habitacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Habitación")
         form = QFormLayout(dlg)
-        # Búsqueda y listado (igual estructura que Actualizar Estado)
-        search = QLineEdit(); search.setPlaceholderText("Buscar habitación por ID o ubicación...")
+        # Búsqueda y listado: mostrar solo nombres de la habitación
+        search = QLineEdit(); search.setPlaceholderText("Buscar habitación por nombre...")
         listw = QListWidget()
-        estado_label = QLabel("Estado: —")
+        info_label = QLabel("Seleccione una habitación para ver detalles")
+        info_label.setWordWrap(True)
         def refresh():
             listw.clear()
             for hab in repo.buscar_habitaciones(search.text()):
                 nombre = hab.nombre_clave or hab.numero
-                listw.addItem(f"{hab.numero} — {nombre} — {hab.ubicacion} (Estado: {hab.estado})")
+                item = QListWidgetItem(nombre)
+                # Guardar el ID de la habitación en el item
+                item.setData(Qt.ItemDataRole.UserRole, hab.numero)
+                listw.addItem(item)
         search.textChanged.connect(refresh)
         refresh()
-        def update_estado_preview():
+
+        def update_info():
             item = listw.currentItem()
             if not item:
-                estado_label.setText("Estado: —"); return
-            hab_id = item.text().split(" — ")[0]
-            estado = repo.consultar_estado_habitacion(hab_id)
-            estado_label.setText(f"Estado: {estado if estado is not None else 'no registrada'}")
-        listw.itemSelectionChanged.connect(update_estado_preview)
+                info_label.setText("Seleccione una habitación para ver detalles")
+                return
+            hab_id = item.data(Qt.ItemDataRole.UserRole)
+            hab = repo.habitaciones.get(hab_id)
+            if not hab:
+                info_label.setText("Habitación no registrada")
+                return
+            # Resolver sala
+            sala = repo.salas.get(hab.sala_id) if hab.sala_id else None
+            sala_nombre = (sala.nombre_clave if sala and sala.nombre_clave else (hab.sala_id or "—"))
+            sala_ubic = (sala.ubicacion if sala and sala.ubicacion else "—")
+            sala_activa = ("sí" if (sala and sala.activa) else "no") if sala else "—"
+            # Resolver camas vinculadas a la habitación
+            camas_ids = []
+            camas_disp = 0
+            camas_ocup = 0
+            for cid, cama in repo.camas.items():
+                hmatch = repo._resolve_habitacion(cama.num_habitacion)
+                if hmatch and hmatch.numero == hab.numero:
+                    camas_ids.append(cama.nombre_clave or cid)
+                    if cama.estado == "disponible":
+                        camas_disp += 1
+                    elif cama.estado == "ocupada":
+                        camas_ocup += 1
+            capacidad = len(camas_ids)
+            camas_list = ", ".join(camas_ids) if camas_ids else "—"
+            info_txt = (
+                f"Nombre: {hab.nombre_clave or hab.numero}\n"
+                f"ID Habitación: {hab.numero}\n"
+                f"Sala: {hab.sala_id or '—'} — {sala_nombre} — {sala_ubic} (Activa: {sala_activa})\n"
+                f"Ubicación: {hab.ubicacion}\n"
+                f"Estado: {hab.estado}\n"
+                f"Capacidad (camas): {capacidad}\n"
+                f"Camas disponibles: {camas_disp}\n"
+                f"Camas ocupadas: {camas_ocup}\n"
+                f"Camas: {camas_list}"
+            )
+            info_label.setText(info_txt)
+
+        listw.itemSelectionChanged.connect(update_info)
         # Orden del formulario
         form.addRow("Buscar", search)
         form.addRow(listw)
-        form.addRow("Estado", estado_label)
-        btns = QHBoxLayout(); ok = QPushButton("Consultar"); cancel = QPushButton("Cerrar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
-        def do():
-            item = listw.currentItem()
-            if not item:
-                QMessageBox.critical(dlg, "Error", "Seleccione una habitación de la lista"); return
-            hab_id = item.text().split(" — ")[0]
-            estado = repo.consultar_estado_habitacion(hab_id)
-            if estado is None:
-                QMessageBox.critical(dlg, "Error", "Habitación no registrada")
-            else:
-                QMessageBox.information(dlg, "Resultado", f"Estado: {estado}"); dlg.accept()
-        ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
+        form.addRow("Información", info_label)
+        btns = QHBoxLayout(); cerrar = QPushButton("Cerrar"); btns.addWidget(cerrar); form.addRow(btns)
+        cerrar.clicked.connect(dlg.reject); dlg.exec()
 
     def actualizar_estado_habitacion(self):
         if self.rol != "JEFE":
@@ -273,62 +303,21 @@ class CamasSalasView(QMainWindow):
     def asignar_habitacion(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QComboBox, QListWidget, QLabel
-        dlg = QDialog(self); dlg.setWindowTitle("Asignar Habitación (Cama)")
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
+        dlg = QDialog(self); dlg.setWindowTitle("Asignar Habitación")
         form = QFormLayout(dlg)
         # Selección de paciente hospitalizado con sala registrada
         paciente_search = QLineEdit(); paciente_search.setPlaceholderText("Buscar paciente hospitalizado...")
         paciente_list = QListWidget(); paciente_label = QLabel("Paciente: —")
-        sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala por ID, ubicación o clave...")
-        sala_list = QListWidget()
-        cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama por ID o nombre clave...")
+        sala_label = QLabel("Sala: —")
+        # Selección de habitación (cuarto) y cama
+        hab_search = QLineEdit(); hab_search.setPlaceholderText("Buscar habitación (cuarto)...")
+        hab_list = QListWidget()
+        cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama disponible...")
         cama_list = QListWidget()
-        # Deshabilitar búsqueda/selección de cama hasta elegir sala
+        # Deshabilitar cama hasta elegir habitación
         cama_search.setEnabled(False)
         cama_list.setEnabled(False)
-        # La sala se autoselecciona según el paciente y se bloquea
-        sala_search.setEnabled(False)
-        sala_list.setEnabled(False)
-
-        def refresh_salas(force_select=None):
-            sala_list.clear()
-            for sid, sala in repo.salas.items():
-                if not sala.activa:
-                    continue
-                nombre = sala.nombre_clave or sid
-                text = f"{sid} — {nombre} — {sala.ubicacion}"
-                q = (sala_search.text() or "").lower()
-                if q in text.lower():
-                    sala_list.addItem(text)
-            # Seleccionar una sala específica si se indica
-            if force_select:
-                for i in range(sala_list.count()):
-                    item = sala_list.item(i)
-                    if item and item.text().startswith(force_select):
-                        sala_list.setCurrentRow(i)
-                        break
-
-        def refresh_camas():
-            cama_list.clear()
-            # Filtrar camas disponibles; si hay una sala seleccionada, restringir por esa sala
-            selected_sala_id = sala_list.currentItem().text().split(" — ")[0] if sala_list.currentItem() else None
-            q = (cama_search.text() or "").lower()
-            for cid, cama in repo.camas.items():
-                if cama.estado != "disponible":
-                    continue
-                hab = repo._resolve_habitacion(cama.num_habitacion)
-                if selected_sala_id and (not hab or hab.sala_id != selected_sala_id):
-                    continue
-                nombre_base = hab.nombre_clave if hab and hab.nombre_clave else cama.num_habitacion
-                nombre = cama.nombre_clave or f"{nombre_base}"
-                text = f"{cid} — {nombre}"
-                if q in text.lower():
-                    cama_list.addItem(text)
-
-        sala_search.textChanged.connect(lambda: refresh_salas(None))
-        cama_search.textChanged.connect(refresh_camas)
-        sala_list.itemSelectionChanged.connect(refresh_camas)
-        refresh_salas(None); refresh_camas()
 
         # Cargar pacientes hospitalizados con sala registrada
         pacientes_ids = repo.listar_pacientes_hospitalizados_con_sala()
@@ -343,37 +332,87 @@ class CamasSalasView(QMainWindow):
                     paciente_list.addItem(display)
         paciente_search.textChanged.connect(refresh_pacientes)
         refresh_pacientes()
+        def refresh_habitaciones():
+            hab_list.clear()
+            # Filtrar por sala del paciente seleccionado
+            pac_item = paciente_list.currentItem()
+            sala_id = repo.get_sala_de_paciente(pac_item.text().split(" — ")[0]) if pac_item else None
+            q = (hab_search.text() or "").lower()
+            for hid, hab in repo.habitaciones.items():
+                if sala_id and hab.sala_id != sala_id:
+                    continue
+                nombre = hab.nombre_clave or hab.numero
+                text = f"{hab.numero} — {nombre} — {hab.ubicacion} (Estado: {hab.estado})"
+                if q in text.lower():
+                    hab_list.addItem(text)
+
+        def refresh_camas():
+            cama_list.clear()
+            # Filtrar camas disponibles por habitación seleccionada
+            hab_item = hab_list.currentItem()
+            hab_sel = None
+            if hab_item:
+                hab_id = hab_item.text().split(" — ")[0]
+                hab_sel = repo.habitaciones.get(hab_id)
+            q = (cama_search.text() or "").lower()
+            for cid, cama in repo.camas.items():
+                if cama.estado != "disponible":
+                    continue
+                hab_cama = repo._resolve_habitacion(cama.num_habitacion)
+                if hab_sel and hab_cama != hab_sel:
+                    continue
+                nombre_base = hab_cama.nombre_clave if hab_cama and hab_cama.nombre_clave else cama.num_habitacion
+                nombre = cama.nombre_clave or f"{nombre_base}"
+                text = f"{cid} — {nombre}"
+                if q in text.lower():
+                    cama_list.addItem(text)
 
         def on_paciente_selected():
             item = paciente_list.currentItem()
             if not item:
                 paciente_label.setText("Paciente: —")
+                sala_label.setText("Sala: —")
+                hab_list.clear(); cama_list.clear()
+                cama_search.setEnabled(False)
                 return
             pid = item.text().split(" — ")[0]
             nombre = repo.pacientes.get(pid).nombre if repo.pacientes.get(pid) else pid
             paciente_label.setText(f"Paciente: {nombre} ({pid})")
             sala_id = repo.get_sala_de_paciente(pid)
-            # Bloquear selección de sala y autoseleccionar la sala del paciente
-            refresh_salas(sala_id)
+            sala_label.setText(f"Sala: {sala_id}")
+            # Actualizar habitaciones disponibles para esa sala
+            refresh_habitaciones()
+            # Limitar camas hasta que se elija habitación
+            cama_list.clear(); cama_search.setEnabled(False)
+
+        def on_habitacion_selected():
+            # Habilitar búsqueda de camas cuando haya habitación seleccionada
+            cama_search.setEnabled(hab_list.currentItem() is not None)
             refresh_camas()
+
         paciente_list.itemSelectionChanged.connect(on_paciente_selected)
+        hab_search.textChanged.connect(refresh_habitaciones)
+        hab_list.itemSelectionChanged.connect(on_habitacion_selected)
+        cama_search.textChanged.connect(refresh_camas)
 
         form.addRow("Buscar Paciente", paciente_search)
         form.addRow(paciente_list)
         form.addRow(paciente_label)
-        form.addRow("Buscar Sala", sala_search)
-        form.addRow(sala_list)
+        form.addRow(sala_label)
+        form.addRow("Buscar Habitación", hab_search)
+        form.addRow(hab_list)
         form.addRow("Buscar Cama", cama_search)
         form.addRow(cama_list)
         btns = QHBoxLayout(); ok = QPushButton("Asignar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
             # Validar selección
-            sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem(); pac_item = paciente_list.currentItem()
-            if not pac_item or not sala_item or not cama_item:
-                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala y una cama disponible"); return
-            sala_id = sala_item.text().split(" — ")[0]
-            cama_id = cama_item.text().split(" — ")[0]
+            pac_item = paciente_list.currentItem(); hab_item = hab_list.currentItem(); cama_item = cama_list.currentItem()
+            if not pac_item or not hab_item or not cama_item:
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente, habitación (cuarto) y una cama disponible"); return
+            # Sala proviene del paciente (solo informativa)
             pid = pac_item.text().split(" — ")[0]
+            sala_id = repo.get_sala_de_paciente(pid)
+            cama_id = cama_item.text().split(" — ")[0]
             res = repo.asignar_cama(pid, sala_id, cama_id)
             if res == "OK":
                 QMessageBox.information(dlg, "Éxito", "Cama asignada con éxito"); dlg.accept()
