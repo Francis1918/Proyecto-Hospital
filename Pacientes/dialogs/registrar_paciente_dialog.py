@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox,
     QGroupBox, QCheckBox, QTextEdit, QTabWidget, QWidget
 )
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 from ..paciente import Paciente
 from ..paciente_controller import PacienteController
 
@@ -24,13 +24,106 @@ class RegistrarPacienteDialog(QDialog):
         self.controller = controller
         self.init_ui()
 
+    def get_styles(self):
+        """Retorna los estilos CSS para el diálogo."""
+        return """
+            QDialog {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QTabWidget::pane {
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QTabBar::tab {
+                background-color: #e2e8f0;
+                color: #1a365d;
+                padding: 10px 20px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background-color: #3182ce;
+                color: white;
+            }
+            QLineEdit, QTextEdit {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+            }
+            QLineEdit:focus, QTextEdit:focus {
+                border-color: #2c5282;
+            }
+            QPushButton {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2c5282;
+            }
+            QPushButton:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_cancelar {
+                background-color: #718096;
+            }
+            QPushButton#btn_cancelar:hover {
+                background-color: #4a5568;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                color: #1a365d;
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QCheckBox {
+                font-size: 14px;
+                color: #2d3748;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+            }
+        """
+
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Nuevo Paciente")
         self.setModal(True)
         self.setMinimumSize(600, 700)
+        self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(25, 20, 25, 20)
+
+        # Título
+        titulo = QLabel("Registrar Nuevo Paciente")
+        titulo.setObjectName("titulo")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titulo)
 
         # Crear pestañas para organizar la información
         tabs = QTabWidget()
@@ -52,9 +145,9 @@ class RegistrarPacienteDialog(QDialog):
 
         # Botones de acción
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(15)
 
         btn_guardar = QPushButton("Guardar Paciente")
-        btn_guardar.setStyleSheet("background-color: #4CAF50; color: white; padding: 8px;")
         btn_guardar.clicked.connect(self.guardar_paciente)
         buttons_layout.addWidget(btn_guardar)
 
@@ -63,7 +156,7 @@ class RegistrarPacienteDialog(QDialog):
         buttons_layout.addWidget(btn_limpiar)
 
         btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setStyleSheet("background-color: #f44336; color: white; padding: 8px;")
+        btn_cancelar.setObjectName("btn_cancelar")
         btn_cancelar.clicked.connect(self.reject)
         buttons_layout.addWidget(btn_cancelar)
 

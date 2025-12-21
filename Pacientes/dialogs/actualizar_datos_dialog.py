@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox
+    QGroupBox, QFrame
 )
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 from ..paciente_controller import PacienteController
 
 
@@ -19,256 +19,236 @@ class ActualizarDatosDialog(QDialog):
 
     datos_actualizados = pyqtSignal(str)
 
-    def __init__(self, controller: PacienteController, cc_paciente: str, parent=None):
+    def __init__(self, controller: PacienteController, tipo_campo: str = None, parent=None):
         super().__init__(parent)
         self.controller = controller
-        self.cc_paciente = cc_paciente
+        self.tipo_campo = tipo_campo  # "direccion", "telefono", "email" o None para todos
+        self.cc_paciente = None
         self.paciente = None
         self.init_ui()
-        self.cargar_datos_actuales()
+
+    def get_styles(self):
+        """Retorna los estilos CSS para el diálogo."""
+        return """
+            QDialog {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QFrame#container {
+                background-color: white;
+                border-radius: 10px;
+                padding: 20px;
+            }
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                font-size: 14px;
+                background-color: white;
+            }
+            QLineEdit:focus {
+                border-color: #2c5282;
+            }
+            QPushButton {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 25px;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #2c5282;
+            }
+            QPushButton:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_cancelar {
+                background-color: #718096;
+            }
+            QPushButton#btn_cancelar:hover {
+                background-color: #4a5568;
+            }
+            QLabel {
+                color: #2d3748;
+                font-size: 14px;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                color: #1a365d;
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """
 
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
-        self.setWindowTitle(f"Actualizar Datos - Paciente {self.cc_paciente}")
+        titulos = {
+            "direccion": "Actualizar Dirección",
+            "telefono": "Actualizar Teléfono",
+            "email": "Actualizar E-mail"
+        }
+        titulo = titulos.get(self.tipo_campo, "Actualizar Datos del Paciente")
+
+        self.setWindowTitle(titulo)
         self.setModal(True)
         self.setMinimumSize(500, 400)
+        self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 20, 30, 20)
 
-        # Información del paciente
-        info_label = QLabel(f"Actualizando datos del paciente con CC: {self.cc_paciente}")
-        info_label.setStyleSheet("font-weight: bold; font-size: 12pt; margin-bottom: 10px;")
-        layout.addWidget(info_label)
+        # Título
+        lbl_titulo = QLabel(titulo)
+        lbl_titulo.setObjectName("titulo")
+        lbl_titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_titulo)
 
-        # Grupo: Datos de Contacto
-        group_contacto = QGroupBox("Información de Contacto")
-        form_contacto = QFormLayout()
+        # Contenedor principal
+        container = QFrame()
+        container.setObjectName("container")
+        container_layout = QVBoxLayout(container)
+        container_layout.setSpacing(15)
 
-        # Dirección
-        lbl_direccion = QLabel("Dirección:")
-        self.txt_direccion = QLineEdit()
-        self.txt_direccion.setPlaceholderText("Nueva dirección del paciente")
-        btn_actualizar_dir = QPushButton("Actualizar")
-        btn_actualizar_dir.clicked.connect(self.actualizar_direccion)
+        # Sección de búsqueda de paciente
+        group_buscar = QGroupBox("Buscar Paciente")
+        form_buscar = QFormLayout()
 
-        hbox_dir = QHBoxLayout()
-        hbox_dir.addWidget(self.txt_direccion)
-        hbox_dir.addWidget(btn_actualizar_dir)
-        form_contacto.addRow(lbl_direccion, hbox_dir)
+        self.txt_cc = QLineEdit()
+        self.txt_cc.setPlaceholderText("Ingrese la cédula del paciente")
+        form_buscar.addRow("Cédula:", self.txt_cc)
 
-        # Teléfono
-        lbl_telefono = QLabel("Teléfono:")
-        self.txt_telefono = QLineEdit()
-        self.txt_telefono.setPlaceholderText("Nuevo teléfono del paciente")
-        btn_actualizar_tel = QPushButton("Actualizar")
-        btn_actualizar_tel.clicked.connect(self.actualizar_telefono)
+        btn_buscar = QPushButton("Buscar")
+        btn_buscar.clicked.connect(self.buscar_paciente)
+        form_buscar.addRow("", btn_buscar)
 
-        hbox_tel = QHBoxLayout()
-        hbox_tel.addWidget(self.txt_telefono)
-        hbox_tel.addWidget(btn_actualizar_tel)
-        form_contacto.addRow(lbl_telefono, hbox_tel)
+        group_buscar.setLayout(form_buscar)
+        container_layout.addWidget(group_buscar)
 
-        # Email
-        lbl_email = QLabel("Email:")
-        self.txt_email = QLineEdit()
-        self.txt_email.setPlaceholderText("Nuevo email del paciente")
-        btn_actualizar_email = QPushButton("Actualizar")
-        btn_actualizar_email.clicked.connect(self.actualizar_email)
+        # Sección de datos del paciente (oculta inicialmente)
+        self.group_datos = QGroupBox("Datos del Paciente")
+        self.form_datos = QFormLayout()
 
-        hbox_email = QHBoxLayout()
-        hbox_email.addWidget(self.txt_email)
-        hbox_email.addWidget(btn_actualizar_email)
-        form_contacto.addRow(lbl_email, hbox_email)
+        self.lbl_nombre = QLabel("-")
+        self.form_datos.addRow("Nombre:", self.lbl_nombre)
 
-        # Teléfono de Referencia
-        lbl_tel_ref = QLabel("Teléfono Referencia:")
-        self.txt_telefono_ref = QLineEdit()
-        self.txt_telefono_ref.setPlaceholderText("Nuevo teléfono de referencia")
-        btn_actualizar_tel_ref = QPushButton("Actualizar")
-        btn_actualizar_tel_ref.clicked.connect(self.actualizar_telefono_ref)
+        self.lbl_dato_actual = QLabel("-")
+        label_actual = {
+            "direccion": "Dirección actual:",
+            "telefono": "Teléfono actual:",
+            "email": "Email actual:"
+        }.get(self.tipo_campo, "Dato actual:")
+        self.form_datos.addRow(label_actual, self.lbl_dato_actual)
 
-        hbox_tel_ref = QHBoxLayout()
-        hbox_tel_ref.addWidget(self.txt_telefono_ref)
-        hbox_tel_ref.addWidget(btn_actualizar_tel_ref)
-        form_contacto.addRow(lbl_tel_ref, hbox_tel_ref)
+        # Campo para nuevo valor
+        self.txt_nuevo_valor = QLineEdit()
+        placeholder = {
+            "direccion": "Ingrese la nueva dirección",
+            "telefono": "Ingrese el nuevo teléfono",
+            "email": "Ingrese el nuevo email"
+        }.get(self.tipo_campo, "Ingrese el nuevo valor")
+        self.txt_nuevo_valor.setPlaceholderText(placeholder)
 
-        group_contacto.setLayout(form_contacto)
-        layout.addWidget(group_contacto)
+        label_nuevo = {
+            "direccion": "Nueva dirección:",
+            "telefono": "Nuevo teléfono:",
+            "email": "Nuevo email:"
+        }.get(self.tipo_campo, "Nuevo valor:")
+        self.form_datos.addRow(label_nuevo, self.txt_nuevo_valor)
 
-        # Grupo: Datos Actuales
-        self.group_actuales = QGroupBox("Datos Actuales del Paciente")
-        self.form_actuales = QFormLayout()
+        self.group_datos.setLayout(self.form_datos)
+        self.group_datos.setVisible(False)
+        container_layout.addWidget(self.group_datos)
 
-        self.lbl_dir_actual = QLabel("-")
-        self.form_actuales.addRow("Dirección actual:", self.lbl_dir_actual)
-
-        self.lbl_tel_actual = QLabel("-")
-        self.form_actuales.addRow("Teléfono actual:", self.lbl_tel_actual)
-
-        self.lbl_email_actual = QLabel("-")
-        self.form_actuales.addRow("Email actual:", self.lbl_email_actual)
-
-        self.lbl_tel_ref_actual = QLabel("-")
-        self.form_actuales.addRow("Tel. Ref. actual:", self.lbl_tel_ref_actual)
-
-        self.group_actuales.setLayout(self.form_actuales)
-        layout.addWidget(self.group_actuales)
-
-        layout.addStretch()
+        layout.addWidget(container)
 
         # Botones de acción
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(15)
 
-        btn_actualizar_todo = QPushButton("Actualizar Todo")
-        btn_actualizar_todo.setStyleSheet("background-color: #2196F3; color: white; padding: 8px;")
-        btn_actualizar_todo.clicked.connect(self.actualizar_todo)
-        buttons_layout.addWidget(btn_actualizar_todo)
+        self.btn_actualizar = QPushButton("Actualizar")
+        self.btn_actualizar.clicked.connect(self.actualizar_dato)
+        self.btn_actualizar.setEnabled(False)
+        buttons_layout.addWidget(self.btn_actualizar)
 
-        btn_cerrar = QPushButton("Cerrar")
-        btn_cerrar.setStyleSheet("background-color: #9E9E9E; color: white; padding: 8px;")
-        btn_cerrar.clicked.connect(self.accept)
-        buttons_layout.addWidget(btn_cerrar)
+        btn_cancelar = QPushButton("Cerrar")
+        btn_cancelar.setObjectName("btn_cancelar")
+        btn_cancelar.clicked.connect(self.accept)
+        buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
 
-    def cargar_datos_actuales(self):
-        """Carga los datos actuales del paciente."""
-        self.paciente = self.controller.consultar_paciente(self.cc_paciente)
+    def buscar_paciente(self):
+        """Busca el paciente por cédula."""
+        cc = self.txt_cc.text().strip()
+        if not cc:
+            QMessageBox.warning(self, "Advertencia", "Ingrese una cédula para buscar")
+            return
+
+        self.paciente = self.controller.consultar_paciente(cc)
 
         if self.paciente:
-            self.lbl_dir_actual.setText(self.paciente.direccion)
-            self.lbl_tel_actual.setText(self.paciente.telefono)
-            self.lbl_email_actual.setText(self.paciente.email)
-            self.lbl_tel_ref_actual.setText(
-                self.paciente.telefono_referencia or "No registrado"
-            )
+            self.cc_paciente = cc
+            self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
 
-            # Pre-llenar los campos con los datos actuales
-            self.txt_direccion.setText(self.paciente.direccion)
-            self.txt_telefono.setText(self.paciente.telefono)
-            self.txt_email.setText(self.paciente.email)
-            if self.paciente.telefono_referencia:
-                self.txt_telefono_ref.setText(self.paciente.telefono_referencia)
+            # Mostrar el dato actual según el tipo
+            dato_actual = {
+                "direccion": self.paciente.direccion,
+                "telefono": self.paciente.telefono,
+                "email": self.paciente.email
+            }.get(self.tipo_campo, "-")
+            self.lbl_dato_actual.setText(dato_actual or "No registrado")
 
-    def actualizar_direccion(self):
-        """Actualiza la dirección del paciente."""
-        nueva_direccion = self.txt_direccion.text().strip()
+            self.group_datos.setVisible(True)
+            self.btn_actualizar.setEnabled(True)
+        else:
+            QMessageBox.warning(self, "No encontrado",
+                              f"No se encontró un paciente con cédula {cc}")
+            self.group_datos.setVisible(False)
+            self.btn_actualizar.setEnabled(False)
 
-        if not nueva_direccion:
-            QMessageBox.warning(self, "Advertencia", "Ingrese una dirección válida")
+    def actualizar_dato(self):
+        """Actualiza el dato según el tipo de campo."""
+        nuevo_valor = self.txt_nuevo_valor.text().strip()
+
+        if not nuevo_valor:
+            QMessageBox.warning(self, "Advertencia", "Ingrese un valor válido")
             return
 
-        exito, mensaje = self.controller.actualizar_direccion(
-            self.cc_paciente, nueva_direccion
-        )
-
-        if exito:
-            QMessageBox.information(self, "Éxito", mensaje)
-            self.lbl_dir_actual.setText(nueva_direccion)
-            self.datos_actualizados.emit(self.cc_paciente)
-        else:
-            QMessageBox.warning(self, "Error", mensaje)
-
-    def actualizar_telefono(self):
-        """Actualiza el teléfono del paciente."""
-        nuevo_telefono = self.txt_telefono.text().strip()
-
-        if not nuevo_telefono:
-            QMessageBox.warning(self, "Advertencia", "Ingrese un teléfono válido")
+        if not self.cc_paciente:
+            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
             return
 
-        exito, mensaje = self.controller.actualizar_telefono(
-            self.cc_paciente, nuevo_telefono
-        )
+        # Ejecutar la actualización según el tipo
+        if self.tipo_campo == "direccion":
+            exito, mensaje = self.controller.actualizar_direccion(self.cc_paciente, nuevo_valor)
+        elif self.tipo_campo == "telefono":
+            exito, mensaje = self.controller.actualizar_telefono(self.cc_paciente, nuevo_valor)
+        elif self.tipo_campo == "email":
+            exito, mensaje = self.controller.actualizar_email(self.cc_paciente, nuevo_valor)
+        else:
+            exito, mensaje = False, "Tipo de campo no válido"
 
         if exito:
             QMessageBox.information(self, "Éxito", mensaje)
-            self.lbl_tel_actual.setText(nuevo_telefono)
+            self.lbl_dato_actual.setText(nuevo_valor)
+            self.txt_nuevo_valor.clear()
             self.datos_actualizados.emit(self.cc_paciente)
         else:
             QMessageBox.warning(self, "Error", mensaje)
-
-    def actualizar_email(self):
-        """Actualiza el email del paciente."""
-        nuevo_email = self.txt_email.text().strip()
-
-        if not nuevo_email:
-            QMessageBox.warning(self, "Advertencia", "Ingrese un email válido")
-            return
-
-        exito, mensaje = self.controller.actualizar_email(
-            self.cc_paciente, nuevo_email
-        )
-
-        if exito:
-            QMessageBox.information(self, "Éxito", mensaje)
-            self.lbl_email_actual.setText(nuevo_email)
-            self.datos_actualizados.emit(self.cc_paciente)
-        else:
-            QMessageBox.warning(self, "Error", mensaje)
-
-    def actualizar_telefono_ref(self):
-        """Actualiza el teléfono de referencia del paciente."""
-        nuevo_telefono_ref = self.txt_telefono_ref.text().strip()
-
-        exito, mensaje = self.controller.actualizar_telefono_referencia(
-            self.cc_paciente, nuevo_telefono_ref
-        )
-
-        if exito:
-            QMessageBox.information(self, "Éxito", mensaje)
-            self.lbl_tel_ref_actual.setText(nuevo_telefono_ref or "No registrado")
-            self.datos_actualizados.emit(self.cc_paciente)
-        else:
-            QMessageBox.warning(self, "Error", mensaje)
-
-    def actualizar_todo(self):
-        """Actualiza todos los campos a la vez."""
-        respuesta = QMessageBox.question(
-            self, "Confirmar",
-            "¿Desea actualizar todos los campos modificados?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if respuesta == QMessageBox.StandardButton.Yes:
-            errores = []
-
-            # Actualizar dirección
-            if self.txt_direccion.text().strip():
-                exito, msg = self.controller.actualizar_direccion(
-                    self.cc_paciente, self.txt_direccion.text().strip()
-                )
-                if not exito:
-                    errores.append(f"Dirección: {msg}")
-
-            # Actualizar teléfono
-            if self.txt_telefono.text().strip():
-                exito, msg = self.controller.actualizar_telefono(
-                    self.cc_paciente, self.txt_telefono.text().strip()
-                )
-                if not exito:
-                    errores.append(f"Teléfono: {msg}")
-
-            # Actualizar email
-            if self.txt_email.text().strip():
-                exito, msg = self.controller.actualizar_email(
-                    self.cc_paciente, self.txt_email.text().strip()
-                )
-                if not exito:
-                    errores.append(f"Email: {msg}")
-
-            # Actualizar teléfono de referencia
-            if self.txt_telefono_ref.text().strip():
-                exito, msg = self.controller.actualizar_telefono_referencia(
-                    self.cc_paciente, self.txt_telefono_ref.text().strip()
-                )
-                if not exito:
-                    errores.append(f"Tel. Referencia: {msg}")
-
-            if errores:
-                QMessageBox.warning(self, "Errores", "\n".join(errores))
-            else:
-                QMessageBox.information(self, "Éxito",
-                                        "Todos los datos fueron actualizados correctamente")
-                self.cargar_datos_actuales()
-                self.datos_actualizados.emit(self.cc_paciente)

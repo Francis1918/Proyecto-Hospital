@@ -1,8 +1,9 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
-    QLineEdit, QLabel, QGroupBox, QFormLayout, QDialog
+    QPushButton, QMessageBox, QLabel, QDialog,
+    QFrame, QGridLayout
 )
+from PyQt6.QtCore import Qt
 from .paciente_controller import PacienteController
 from .paciente import Paciente
 
@@ -18,199 +19,162 @@ class PacienteView(QMainWindow):
         self.controller = controller or PacienteController()
         self.init_ui()
 
+    def get_styles(self):
+        """Retorna los estilos CSS para la vista de pacientes."""
+        return """
+            QMainWindow {
+                background-color: #e8f4fc;
+            }
+            QWidget#central {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 20px;
+            }
+            QFrame#menu_container {
+                background-color: #e8f4fc;
+                padding: 20px;
+            }
+            QPushButton.menu_btn {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 20px;
+                font-size: 16px;
+                font-weight: bold;
+                min-height: 70px;
+                min-width: 200px;
+            }
+            QPushButton.menu_btn:hover {
+                background-color: #2c5282;
+            }
+            QPushButton.menu_btn:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_salir {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 20px;
+                font-size: 16px;
+                font-weight: bold;
+                min-height: 70px;
+                min-width: 200px;
+            }
+            QPushButton#btn_salir:hover {
+                background-color: #2c5282;
+            }
+            QPushButton#btn_salir:pressed {
+                background-color: #1a365d;
+            }
+        """
+
     def init_ui(self):
         """Inicializa la interfaz de usuario."""
-        self.setWindowTitle("Gestión de Pacientes")
-        self.setGeometry(100, 100, 1000, 600)
+        self.setWindowTitle("Sistema de Gestión Clínica - Pacientes")
+        self.setMinimumSize(800, 600)
+        self.setStyleSheet(self.get_styles())
 
         central_widget = QWidget()
+        central_widget.setObjectName("central")
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(40, 20, 40, 20)
 
-        # Sección de búsqueda
-        search_group = self.crear_seccion_busqueda()
-        main_layout.addWidget(search_group)
+        # Título
+        titulo = QLabel("Sistema de Gestión Clínica")
+        titulo.setObjectName("titulo")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(titulo)
 
-        # Botones de acción
-        buttons_layout = self.crear_botones_accion()
-        main_layout.addLayout(buttons_layout)
+        # Contenedor del menú de botones
+        menu_container = self.crear_menu_botones()
+        main_layout.addWidget(menu_container)
 
-        # Tabla de pacientes
-        self.tabla_pacientes = self.crear_tabla_pacientes()
-        main_layout.addWidget(self.tabla_pacientes)
+        main_layout.addStretch()
 
-        # Cargar datos iniciales
-        self.cargar_pacientes()
+    def crear_menu_botones(self):
+        """Crea el contenedor con los botones del menú estilo tarjeta."""
+        container = QFrame()
+        container.setObjectName("menu_container")
 
-    def crear_seccion_busqueda(self) -> QGroupBox:
-        """Crea la sección de búsqueda de pacientes."""
-        group = QGroupBox("Buscar Paciente")
-        layout = QHBoxLayout()
+        grid_layout = QGridLayout(container)
+        grid_layout.setSpacing(20)
+        grid_layout.setContentsMargins(20, 20, 20, 20)
 
-        layout.addWidget(QLabel("Cédula:"))
-        self.txt_buscar_cc = QLineEdit()
-        self.txt_buscar_cc.setPlaceholderText("Ingrese cédula del paciente")
-        layout.addWidget(self.txt_buscar_cc)
+        # Definir los botones del menú de pacientes
+        botones = [
+            ("Registrar Paciente", self.abrir_dialogo_registrar),
+            ("Consultar Paciente", self.abrir_dialogo_consultar),
+            ("Historia Clínica", self.abrir_historia_clinica),
+            ("Registrar Anamnesis", self.abrir_anamnesis),
+            ("Actualizar Dirección", self.abrir_actualizar_direccion),
+            ("Actualizar Teléfono", self.abrir_actualizar_telefono),
+            ("Actualizar E-mail", self.abrir_actualizar_email),
+            ("Salir", self.close),
+        ]
 
-        btn_buscar = QPushButton("Buscar")
-        btn_buscar.clicked.connect(self.buscar_paciente)
-        layout.addWidget(btn_buscar)
+        # Crear botones en una cuadrícula 4x2
+        for i, (texto, funcion) in enumerate(botones):
+            btn = QPushButton(texto)
+            if texto == "Salir":
+                btn.setObjectName("btn_salir")
+            else:
+                btn.setProperty("class", "menu_btn")
+            btn.clicked.connect(funcion)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            row = i // 2
+            col = i % 2
+            grid_layout.addWidget(btn, row, col)
 
-        btn_limpiar = QPushButton("Limpiar")
-        btn_limpiar.clicked.connect(self.limpiar_busqueda)
-        layout.addWidget(btn_limpiar)
+        return container
 
-        group.setLayout(layout)
-        return group
+    def abrir_dialogo_consultar(self):
+        """Abre el diálogo para consultar un paciente."""
+        from .dialogs import ConsultarPacienteDialog
+        dialogo = ConsultarPacienteDialog(self.controller, None, self)
+        dialogo.exec()
 
-    def crear_botones_accion(self) -> QHBoxLayout:
-        """Crea los botones de acción principales."""
-        layout = QHBoxLayout()
+    def abrir_actualizar_direccion(self):
+        """Abre el diálogo para actualizar dirección."""
+        from .dialogs import ActualizarDatosDialog
+        dialogo = ActualizarDatosDialog(self.controller, "direccion", self)
+        dialogo.exec()
 
-        btn_registrar = QPushButton("Registrar Paciente")
-        btn_registrar.clicked.connect(self.abrir_dialogo_registrar)
-        layout.addWidget(btn_registrar)
+    def abrir_actualizar_telefono(self):
+        """Abre el diálogo para actualizar teléfono."""
+        from .dialogs import ActualizarDatosDialog
+        dialogo = ActualizarDatosDialog(self.controller, "telefono", self)
+        dialogo.exec()
 
-        btn_actualizar = QPushButton("Actualizar Datos")
-        btn_actualizar.clicked.connect(self.abrir_dialogo_actualizar)
-        layout.addWidget(btn_actualizar)
-
-        btn_consultar = QPushButton("Consultar Detalles")
-        btn_consultar.clicked.connect(self.consultar_detalles)
-        layout.addWidget(btn_consultar)
-
-        btn_historia = QPushButton("Historia Clínica")
-        btn_historia.clicked.connect(self.abrir_historia_clinica)
-        layout.addWidget(btn_historia)
-
-        btn_anamnesis = QPushButton("Anamnesis")
-        btn_anamnesis.clicked.connect(self.abrir_anamnesis)
-        layout.addWidget(btn_anamnesis)
-
-        layout.addStretch()
-
-        return layout
-
-    def crear_tabla_pacientes(self) -> QTableWidget:
-        """Crea la tabla para mostrar los pacientes."""
-        tabla = QTableWidget()
-        tabla.setColumnCount(7)
-        tabla.setHorizontalHeaderLabels([
-            "Cédula", "Número Único", "Nombre", "Apellido",
-            "Teléfono", "Email", "Dirección"
-        ])
-        tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        tabla.horizontalHeader().setStretchLastSection(True)
-
-        return tabla
-
-    def cargar_pacientes(self):
-        """Carga todos los pacientes en la tabla."""
-        pacientes = self.controller.listar_pacientes()
-        self.tabla_pacientes.setRowCount(len(pacientes))
-
-        for row, paciente in enumerate(pacientes):
-            self.tabla_pacientes.setItem(row, 0, QTableWidgetItem(paciente.cc))
-            self.tabla_pacientes.setItem(row, 1, QTableWidgetItem(paciente.num_unic))
-            self.tabla_pacientes.setItem(row, 2, QTableWidgetItem(paciente.nombre))
-            self.tabla_pacientes.setItem(row, 3, QTableWidgetItem(paciente.apellido))
-            self.tabla_pacientes.setItem(row, 4, QTableWidgetItem(paciente.telefono))
-            self.tabla_pacientes.setItem(row, 5, QTableWidgetItem(paciente.email))
-            self.tabla_pacientes.setItem(row, 6, QTableWidgetItem(paciente.direccion))
-
-    def buscar_paciente(self):
-        """Busca un paciente por cédula."""
-        cc = self.txt_buscar_cc.text().strip()
-        if not cc:
-            QMessageBox.warning(self, "Advertencia", "Ingrese una cédula para buscar")
-            return
-
-        paciente = self.controller.consultar_paciente(cc)
-        if paciente:
-            self.tabla_pacientes.setRowCount(1)
-            self.tabla_pacientes.setItem(0, 0, QTableWidgetItem(paciente.cc))
-            self.tabla_pacientes.setItem(0, 1, QTableWidgetItem(paciente.num_unic))
-            self.tabla_pacientes.setItem(0, 2, QTableWidgetItem(paciente.nombre))
-            self.tabla_pacientes.setItem(0, 3, QTableWidgetItem(paciente.apellido))
-            self.tabla_pacientes.setItem(0, 4, QTableWidgetItem(paciente.telefono))
-            self.tabla_pacientes.setItem(0, 5, QTableWidgetItem(paciente.email))
-            self.tabla_pacientes.setItem(0, 6, QTableWidgetItem(paciente.direccion))
-        else:
-            QMessageBox.information(self, "No encontrado", "No se encontró el paciente")
-
-    def limpiar_busqueda(self):
-        """Limpia la búsqueda y recarga todos los pacientes."""
-        self.txt_buscar_cc.clear()
-        self.cargar_pacientes()
+    def abrir_actualizar_email(self):
+        """Abre el diálogo para actualizar email."""
+        from .dialogs import ActualizarDatosDialog
+        dialogo = ActualizarDatosDialog(self.controller, "email", self)
+        dialogo.exec()
 
     def abrir_dialogo_registrar(self):
         """Abre el diálogo para registrar un nuevo paciente."""
+        from .dialogs import RegistrarPacienteDialog
         dialogo = RegistrarPacienteDialog(self.controller, self)
-        if dialogo.exec() == QDialog.DialogCode.Accepted:
-            self.cargar_pacientes()
-
-    def abrir_dialogo_actualizar(self):
-        """Abre el diálogo para actualizar datos del paciente."""
-        fila_seleccionada = self.tabla_pacientes.currentRow()
-        if fila_seleccionada < 0:
-            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
-            return
-
-        cc = self.tabla_pacientes.item(fila_seleccionada, 0).text()
-        dialogo = ActualizarDatosDialog(self.controller, cc, self)
-        if dialogo.exec() == QDialog.DialogCode.Accepted:
-            self.cargar_pacientes()
-
-    def consultar_detalles(self):
-        """Consulta y muestra los detalles completos del paciente."""
-        fila_seleccionada = self.tabla_pacientes.currentRow()
-        if fila_seleccionada < 0:
-            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
-            return
-
-        cc = self.tabla_pacientes.item(fila_seleccionada, 0).text()
-        paciente = self.controller.consultar_paciente(cc)
-
-        if paciente:
-            detalles = f"""
-            Cédula: {paciente.cc}
-            Número Único: {paciente.num_unic}
-            Nombre: {paciente.nombre} {paciente.apellido}
-            Dirección: {paciente.direccion}
-            Teléfono: {paciente.telefono}
-            Email: {paciente.email}
-            Teléfono de Referencia: {paciente.telefono_referencia or 'No registrado'}
-            Fecha de Registro: {paciente.fecha_registro}
-            """
-            QMessageBox.information(self, "Detalles del Paciente", detalles)
+        dialogo.exec()
 
     def abrir_historia_clinica(self):
         """Abre la historia clínica del paciente."""
-        fila_seleccionada = self.tabla_pacientes.currentRow()
-        if fila_seleccionada < 0:
-            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
-            return
-
-        cc = self.tabla_pacientes.item(fila_seleccionada, 0).text()
         QMessageBox.information(self, "Historia Clínica",
-                                f"Abriendo historia clínica del paciente {cc}")
+                                "Módulo de Historia Clínica.\n\nSeleccione un paciente para ver su historia.")
 
     def abrir_anamnesis(self):
         """Abre la anamnesis del paciente."""
-        fila_seleccionada = self.tabla_pacientes.currentRow()
-        if fila_seleccionada < 0:
-            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
-            return
-
-        cc = self.tabla_pacientes.item(fila_seleccionada, 0).text()
-        anamnesis = self.controller.consultar_anamnesis(cc)
-
-        if anamnesis:
-            QMessageBox.information(self, "Anamnesis", f"Anamnesis del paciente {cc}")
-        else:
-            QMessageBox.information(self, "Anamnesis", "No hay anamnesis registrada")
+        QMessageBox.information(self, "Registrar Anamnesis",
+                                "Módulo de Anamnesis.\n\nFuncionalidad para registrar anamnesis del paciente.")
 
 
 class RegistrarPacienteDialog(QDialog):

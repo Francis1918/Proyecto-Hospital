@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox,
     QGroupBox, QTextEdit, QTabWidget, QWidget
 )
+from PyQt6.QtCore import Qt
 from ..paciente_controller import PacienteController
 
 
@@ -28,13 +29,104 @@ class ConsultarPacienteDialog(QDialog):
             self.txt_buscar_cc.setText(self.cc_paciente)
             self.consultar_paciente()
 
+    def get_styles(self):
+        """Retorna los estilos CSS para el diálogo."""
+        return """
+            QDialog {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QTabWidget::pane {
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QTabBar::tab {
+                background-color: #e2e8f0;
+                color: #1a365d;
+                padding: 10px 20px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background-color: #3182ce;
+                color: white;
+            }
+            QLineEdit, QTextEdit {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+            }
+            QLineEdit:focus, QTextEdit:focus {
+                border-color: #2c5282;
+            }
+            QLineEdit:read-only {
+                background-color: #f7fafc;
+            }
+            QPushButton {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2c5282;
+            }
+            QPushButton:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_cerrar {
+                background-color: #718096;
+            }
+            QPushButton#btn_cerrar:hover {
+                background-color: #4a5568;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                color: #1a365d;
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QLabel {
+                color: #2d3748;
+            }
+        """
+
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Consultar Paciente")
         self.setModal(True)
         self.setMinimumSize(700, 600)
+        self.setStyleSheet(self.get_styles())
 
         layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(25, 20, 25, 20)
+
+        # Título
+        titulo = QLabel("Consultar Paciente")
+        titulo.setObjectName("titulo")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titulo)
 
         # Sección de búsqueda
         group_busqueda = QGroupBox("Buscar Paciente")
@@ -46,7 +138,6 @@ class ConsultarPacienteDialog(QDialog):
         hbox_busqueda.addWidget(self.txt_buscar_cc)
 
         btn_buscar = QPushButton("Buscar")
-        btn_buscar.setStyleSheet("background-color: #2196F3; color: white; padding: 8px;")
         btn_buscar.clicked.connect(self.consultar_paciente)
         hbox_busqueda.addWidget(btn_buscar)
 
@@ -73,6 +164,7 @@ class ConsultarPacienteDialog(QDialog):
 
         # Botones de acción
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(15)
 
         btn_imprimir = QPushButton("Imprimir Información")
         btn_imprimir.clicked.connect(self.imprimir_informacion)
@@ -85,7 +177,7 @@ class ConsultarPacienteDialog(QDialog):
         buttons_layout.addStretch()
 
         btn_cerrar = QPushButton("Cerrar")
-        btn_cerrar.setStyleSheet("background-color: #9E9E9E; color: white; padding: 8px;")
+        btn_cerrar.setObjectName("btn_cerrar")
         btn_cerrar.clicked.connect(self.accept)
         buttons_layout.addWidget(btn_cerrar)
 
