@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import (
     QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
     QLineEdit, QLabel, QGroupBox, QFormLayout, QDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal
 from .paciente_controller import PacienteController
 from .paciente import Paciente
 

@@ -14,6 +14,9 @@ class PacienteController:
         db_connection: Conexión a la base de datos (ajustar según tu implementación)
         """
         self.db = db_connection
+        # Almacenamiento en memoria (temporal, hasta que se implemente BD)
+        self._pacientes_memoria: dict[str, Paciente] = {}  # cc -> Paciente
+        self._anamnesis_memoria: dict[str, dict] = {}  # cc -> datos_anamnesis
 
     def registrar_paciente(self, paciente: Paciente) -> tuple[bool, str]:
         """
@@ -29,8 +32,12 @@ class PacienteController:
             if self.consultar_paciente(paciente.cc):
                 return False, "El paciente con esta cédula ya existe"
 
+            # Guardar en memoria (temporal)
+            self._pacientes_memoria[paciente.cc] = paciente
+
             # Aquí iría la lógica para guardar en la base de datos
-            # self.db.insert('pacientes', paciente.to_dict())
+            # if self.db:
+            #     self.db.insert('pacientes', paciente.to_dict())
 
             return True, "Paciente registrado exitosamente"
         except Exception as e:
@@ -47,8 +54,12 @@ class PacienteController:
             if not paciente:
                 return False, "El paciente no existe"
 
+            # Guardar en memoria (temporal)
+            self._anamnesis_memoria[cc_paciente] = datos_anamnesis
+
             # Aquí iría la lógica para guardar la anamnesis
-            # self.db.insert('anamnesis', datos_anamnesis)
+            # if self.db:
+            #     self.db.insert('anamnesis', datos_anamnesis)
 
             return True, "Anamnesis registrada exitosamente"
         except Exception as e:
@@ -80,8 +91,16 @@ class PacienteController:
             if not nueva_direccion:
                 return False, "La dirección no puede estar vacía"
 
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
+                return False, "El paciente no existe"
+
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].direccion = nueva_direccion
+
             # Aquí iría la lógica para actualizar en la base de datos
-            # self.db.update('pacientes', {'direccion': nueva_direccion}, {'cc': cc_paciente})
+            # if self.db:
+            #     self.db.update('pacientes', {'direccion': nueva_direccion}, {'cc': cc_paciente})
 
             return True, "Dirección actualizada exitosamente"
         except Exception as e:
@@ -96,8 +115,16 @@ class PacienteController:
             if not nuevo_telefono or len(nuevo_telefono) < 7:
                 return False, "El teléfono debe tener al menos 7 dígitos"
 
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
+                return False, "El paciente no existe"
+
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].telefono = nuevo_telefono
+
             # Aquí iría la lógica para actualizar en la base de datos
-            # self.db.update('pacientes', {'telefono': nuevo_telefono}, {'cc': cc_paciente})
+            # if self.db:
+            #     self.db.update('pacientes', {'telefono': nuevo_telefono}, {'cc': cc_paciente})
 
             return True, "Teléfono actualizado exitosamente"
         except Exception as e:
@@ -112,8 +139,16 @@ class PacienteController:
             if nuevo_email and '@' not in nuevo_email:
                 return False, "El email no es válido"
 
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
+                return False, "El paciente no existe"
+
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].email = nuevo_email
+
             # Aquí iría la lógica para actualizar en la base de datos
-            # self.db.update('pacientes', {'email': nuevo_email}, {'cc': cc_paciente})
+            # if self.db:
+            #     self.db.update('pacientes', {'email': nuevo_email}, {'cc': cc_paciente})
 
             return True, "Email actualizado exitosamente"
         except Exception as e:
@@ -125,8 +160,16 @@ class PacienteController:
         Actualiza el teléfono de referencia del paciente.
         """
         try:
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
+                return False, "El paciente no existe"
+
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].telefono_referencia = nuevo_telefono_ref
+
             # Aquí iría la lógica para actualizar en la base de datos
-            # self.db.update('pacientes', {'telefono_referencia': nuevo_telefono_ref}, {'cc': cc_paciente})
+            # if self.db:
+            #     self.db.update('pacientes', {'telefono_referencia': nuevo_telefono_ref}, {'cc': cc_paciente})
 
             return True, "Teléfono de referencia actualizado exitosamente"
         except Exception as e:
@@ -138,10 +181,15 @@ class PacienteController:
         Consulta un paciente por su cédula.
         """
         try:
+            # Buscar en memoria primero
+            if cc_paciente in self._pacientes_memoria:
+                return self._pacientes_memoria[cc_paciente]
+
             # Aquí iría la lógica para consultar en la base de datos
-            # resultado = self.db.query('pacientes', {'cc': cc_paciente})
-            # if resultado:
-            #     return Paciente.from_dict(resultado)
+            # if self.db:
+            #     resultado = self.db.query('pacientes', {'cc': cc_paciente})
+            #     if resultado:
+            #         return Paciente.from_dict(resultado)
 
             return None
         except Exception as e:
@@ -178,8 +226,13 @@ class PacienteController:
         Consulta la anamnesis del paciente.
         """
         try:
+            # Buscar en memoria primero
+            if cc_paciente in self._anamnesis_memoria:
+                return self._anamnesis_memoria[cc_paciente]
+
             # Aquí iría la lógica para consultar la anamnesis
-            # return self.db.query('anamnesis', {'cc_paciente': cc_paciente})
+            # if self.db:
+            #     return self.db.query('anamnesis', {'cc_paciente': cc_paciente})
 
             return None
         except Exception as e:
@@ -191,11 +244,15 @@ class PacienteController:
         Lista todos los pacientes registrados.
         """
         try:
-            # Aquí iría la lógica para listar todos los pacientes
-            # resultados = self.db.query_all('pacientes')
-            # return [Paciente.from_dict(r) for r in resultados]
+            # Retornar pacientes de memoria
+            pacientes = list(self._pacientes_memoria.values())
 
-            return []
+            # Aquí iría la lógica para listar todos los pacientes
+            # if self.db:
+            #     resultados = self.db.query_all('pacientes')
+            #     return [Paciente.from_dict(r) for r in resultados]
+
+            return pacientes
         except Exception as e:
             print(f"Error al listar pacientes: {str(e)}")
             return []

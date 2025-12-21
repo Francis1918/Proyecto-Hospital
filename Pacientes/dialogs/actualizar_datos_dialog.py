@@ -1,10 +1,10 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox, QTabWidget, QWidget
+    QGroupBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from .paciente_controller import PacienteController
+from PyQt6.QtCore import pyqtSignal
+from ..paciente_controller import PacienteController
 
 
 class ActualizarDatosDialog(QDialog):

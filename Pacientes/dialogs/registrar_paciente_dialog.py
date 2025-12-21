@@ -3,9 +3,9 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox,
     QGroupBox, QCheckBox, QTextEdit, QTabWidget, QWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from .paciente import Paciente
-from .paciente_controller import PacienteController
+from PyQt6.QtCore import pyqtSignal
+from ..paciente import Paciente
+from ..paciente_controller import PacienteController
 
 
 class RegistrarPacienteDialog(QDialog):

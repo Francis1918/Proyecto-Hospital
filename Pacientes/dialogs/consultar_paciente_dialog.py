@@ -3,8 +3,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox,
     QGroupBox, QTextEdit, QTabWidget, QWidget
 )
-from PyQt6.QtCore import Qt
-from .paciente_controller import PacienteController
+from ..paciente_controller import PacienteController
 
 
 class ConsultarPacienteDialog(QDialog):
