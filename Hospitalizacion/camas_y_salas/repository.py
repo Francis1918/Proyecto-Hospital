@@ -40,6 +40,8 @@ class MemoryRepository:
             "P001": Paciente("P001", "Juan Perez", "en_observacion"),
             "P002": Paciente("P002", "Maria Gomez", "hospitalizado", "C-102-1"),
         }
+        # Índice opcional para mapear cédulas (cc) del módulo Pacientes a IDs internos del repositorio
+        self._pacientes_idx_por_cc: Dict[str, str] = {}
         self.pedidos: Dict[str, PedidoHospitalizacion] = {}
         self.historial = Historial()
 
@@ -93,6 +95,43 @@ class MemoryRepository:
         except Exception:
             # No interrumpir si falla la inicialización opcional
             pass
+
+    def _gen_paciente_id(self) -> str:
+        """Genera un nuevo ID interno para paciente (formato P###) evitando colisiones."""
+        n = 1
+        while True:
+            pid = f"P{n:03d}"
+            if pid not in self.pacientes:
+                return pid
+            n += 1
+
+    def ensure_repo_patient(self, cc: Optional[str], nombre: str) -> str:
+        """
+        Asegura que exista un paciente en el repositorio para la cédula/nombre dado.
+        - Si hay `cc` y ya está mapeado, retorna el ID existente.
+        - Si no existe, crea un nuevo `Paciente` con ID interno autogenerado y lo retorna.
+        """
+        # Si tenemos cc mapeada previamente, usarla
+        if cc:
+            mapped = self._pacientes_idx_por_cc.get(cc)
+            if mapped and mapped in self.pacientes:
+                return mapped
+        # Intento heurístico: si existe un paciente con el mismo nombre, reutilizar su ID
+        for pid, pac in self.pacientes.items():
+            try:
+                if (pac.nombre or "").strip().lower() == (nombre or "").strip().lower():
+                    if cc:
+                        self._pacientes_idx_por_cc[cc] = pid
+                    return pid
+            except Exception:
+                pass
+        # Crear uno nuevo
+        new_id = self._gen_paciente_id()
+        self.pacientes[new_id] = Paciente(new_id, nombre or f"Paciente {new_id}")
+        if cc:
+            self._pacientes_idx_por_cc[cc] = new_id
+        self.historial.registrar(f"Paciente creado/asegurado: {new_id} ({nombre})")
+        return new_id
 
     # Infraestructura
     def registrar_infraestructura(self, infra: Infraestructura) -> Optional[str]:

@@ -255,6 +255,9 @@ class CamasSalasView(QMainWindow):
         sala_list = QListWidget()
         cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama por ID o nombre clave...")
         cama_list = QListWidget()
+        # Deshabilitar búsqueda/selección de cama hasta elegir sala
+        cama_search.setEnabled(False)
+        cama_list.setEnabled(False)
 
         def refresh_salas():
             sala_list.clear()
@@ -312,14 +315,47 @@ class CamasSalasView(QMainWindow):
     def registrar_hospitalizacion_paciente(self):
         if self.rol != "JEFE":
             QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QDateEdit, QTimeEdit
+        from PyQt6.QtCore import QDate, QTime
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Hospitalización de Paciente")
         form = QFormLayout(dlg)
-        id_p = QLineEdit(); fecha = QLineEdit(); motivo = QLineEdit()
+        # Búsqueda y selección de paciente (por nombre) usando módulo Pacientes
+        paciente_search = QLineEdit(); paciente_search.setPlaceholderText("Buscar paciente por nombre o apellido...")
+        paciente_list = QListWidget()
+        motivo = QLineEdit()
+        # Date/Time pickers
+        fecha_edit = QDateEdit(); fecha_edit.setCalendarPopup(True); fecha_edit.setDate(QDate.currentDate())
+        hora_edit = QTimeEdit(); hora_edit.setTime(QTime.currentTime())
         sala_search = QLineEdit(); sala_search.setPlaceholderText("Buscar sala por ID, ubicación o clave...")
         sala_list = QListWidget()
         cama_search = QLineEdit(); cama_search.setPlaceholderText("Buscar cama por ID o nombre clave...")
         cama_list = QListWidget()
+
+        # Cargar pacientes desde el módulo Pacientes
+        pacientes_cache = []
+        try:
+            # Intentar importar el controlador de pacientes para obtener la base en memoria
+            try:
+                from Pacientes.paciente_controller import PacienteController as _PC
+            except Exception:
+                import os, sys
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                from Pacientes.paciente_controller import PacienteController as _PC
+            pc = _PC()
+            pacientes_cache = pc.obtener_todos_pacientes()
+        except Exception:
+            pacientes_cache = []
+
+        def refresh_pacientes():
+            paciente_list.clear()
+            q = (paciente_search.text() or "").strip().lower()
+            for p in pacientes_cache:
+                nombre_comp = f"{p.nombre} {p.apellido}".strip()
+                display = f"{p.cc} — {nombre_comp}"
+                if not q or q in nombre_comp.lower() or q in (p.cc or "").lower():
+                    paciente_list.addItem(display)
+        paciente_search.textChanged.connect(refresh_pacientes)
+        refresh_pacientes()
 
         def refresh_salas():
             sala_list.clear()
@@ -349,12 +385,20 @@ class CamasSalasView(QMainWindow):
                     cama_list.addItem(text)
 
         sala_search.textChanged.connect(refresh_salas)
-        sala_list.itemSelectionChanged.connect(refresh_camas)
+        def on_sala_selection_changed():
+            has_sel = sala_list.currentItem() is not None
+            cama_search.setEnabled(has_sel)
+            cama_list.setEnabled(has_sel)
+            refresh_camas()
+        sala_list.itemSelectionChanged.connect(on_sala_selection_changed)
         cama_search.textChanged.connect(refresh_camas)
         refresh_salas(); refresh_camas()
 
-        form.addRow("ID Paciente", id_p)
-        form.addRow("Fecha", fecha)
+        # Ensamblar formulario en el orden solicitado: paciente -> sala -> cama
+        form.addRow("Buscar Paciente", paciente_search)
+        form.addRow(paciente_list)
+        form.addRow("Fecha", fecha_edit)
+        form.addRow("Hora", hora_edit)
         form.addRow("Motivo", motivo)
         form.addRow("Buscar Sala", sala_search)
         form.addRow(sala_list)
@@ -363,11 +407,32 @@ class CamasSalasView(QMainWindow):
         btns = QHBoxLayout(); ok = QPushButton("Registrar"); cancel = QPushButton("Cancelar"); btns.addWidget(ok); btns.addWidget(cancel); form.addRow(btns)
         def do():
             sala_item = sala_list.currentItem(); cama_item = cama_list.currentItem()
-            if not all([id_p.text(), fecha.text(), motivo.text()]) or not sala_item or not cama_item:
-                QMessageBox.critical(dlg, "Error", "Complete los datos y seleccione sala y cama disponibles"); return
+            pac_item = paciente_list.currentItem()
+            if not pac_item or not motivo.text() or not sala_item or not cama_item:
+                QMessageBox.critical(dlg, "Error", "Seleccione paciente, sala, cama y motive la hospitalización"); return
+            # Resolver paciente: extraer cc y nombre, asegurar ID interno
+            try:
+                cc_sel, nombre_sel = pac_item.text().split(" — ", 1)
+            except Exception:
+                cc_sel, nombre_sel = None, pac_item.text()
             sala_id = sala_item.text().split(" — ")[0]
             cama_id = cama_item.text().split(" — ")[0]
-            res = repo.registrar_hospitalizacion(id_p.text(), fecha.text(), sala_id, cama_id, motivo.text())
+            # Construir fecha/hora en formato ISO simple
+            try:
+                from datetime import datetime
+                dt = datetime(
+                    fecha_edit.date().year(),
+                    fecha_edit.date().month(),
+                    fecha_edit.date().day(),
+                    hora_edit.time().hour(),
+                    hora_edit.time().minute()
+                )
+                fecha_str = dt.strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                fecha_str = f"{fecha_edit.date().toString('yyyy-MM-dd')} {hora_edit.time().toString('HH:mm')}"
+            # Asegurar paciente en el repositorio y registrar
+            id_repo_pac = repo.ensure_repo_patient(cc_sel, nombre_sel)
+            res = repo.registrar_hospitalizacion(id_repo_pac, fecha_str, sala_id, cama_id, motivo.text())
             if res == "OK":
                 QMessageBox.information(dlg, "Éxito", "Hospitalización registrada con éxito"); dlg.accept()
             else:
