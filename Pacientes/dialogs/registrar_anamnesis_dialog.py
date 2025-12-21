@@ -1,11 +1,10 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QGroupBox, QTextEdit
+    QGroupBox, QTextEdit, QScrollArea, QWidget
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 from ..paciente_controller import PacienteController
-
 
 class RegistrarAnamnesisDilaog(QDialog):
     """
@@ -25,8 +24,8 @@ class RegistrarAnamnesisDilaog(QDialog):
     def get_styles(self):
         """Retorna los estilos CSS para el diálogo."""
         return """
-            QDialog {
-                background-color: #e8f4fc;
+            QWidget#fondo_principal {
+                background-color: #e8f4fc; 
             }
             QLabel#titulo {
                 color: #1a365d;
@@ -102,12 +101,28 @@ class RegistrarAnamnesisDilaog(QDialog):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Anamnesis")
         self.setModal(True)
-        self.setMinimumSize(650, 700)
+        # Aumenté un poco la altura total de la ventana para acomodar los campos más grandes
+        self.setMinimumSize(700, 850) 
         self.setStyleSheet(self.get_styles())
 
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(25, 20, 25, 20)
+        # Layout principal
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(25, 20, 25, 20)
+
+        # --- ÁREA DE DESPLAZAMIENTO (SCROLL) ---
+        # Dado que los campos ahora son grandes, es mejor meter el formulario
+        # en un ScrollArea por si la pantalla es pequeña.
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QScrollArea.Shape.NoFrame) # Sin bordes feos
+        
+        # Widget contenedor dentro del scroll
+        scroll_content = QWidget()
+        scroll_content.setObjectName("fondo_principal")
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 10, 0) # Margen derecho para la barra de scroll
 
         # Título
         titulo = QLabel("Registrar Anamnesis")
@@ -147,14 +162,17 @@ class RegistrarAnamnesisDilaog(QDialog):
         # Grupo: Datos de Anamnesis (oculto inicialmente)
         self.group_anamnesis = QGroupBox("Datos de Anamnesis")
         form_anamnesis = QVBoxLayout()
-        form_anamnesis.setSpacing(10)
+        form_anamnesis.setSpacing(15) # Más espacio entre preguntas
+
+        # CAMBIOS APLICADOS AQUI:
+        # Se cambió setMaximumHeight(80) por setMinimumHeight(100 o 120)
 
         # Motivo de consulta
         lbl_motivo = QLabel("Motivo de Consulta:")
         form_anamnesis.addWidget(lbl_motivo)
         self.txt_motivo_consulta = QTextEdit()
         self.txt_motivo_consulta.setPlaceholderText("Describa el motivo de la consulta...")
-        self.txt_motivo_consulta.setMaximumHeight(80)
+        self.txt_motivo_consulta.setMinimumHeight(120) # Mínimo 120px de alto
         form_anamnesis.addWidget(self.txt_motivo_consulta)
 
         # Enfermedad actual
@@ -162,7 +180,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_enfermedad)
         self.txt_enfermedad_actual = QTextEdit()
         self.txt_enfermedad_actual.setPlaceholderText("Describa la enfermedad actual...")
-        self.txt_enfermedad_actual.setMaximumHeight(80)
+        self.txt_enfermedad_actual.setMinimumHeight(120) # Mínimo 120px de alto
         form_anamnesis.addWidget(self.txt_enfermedad_actual)
 
         # Antecedentes personales
@@ -170,7 +188,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_ant_personales)
         self.txt_antecedentes_personales = QTextEdit()
         self.txt_antecedentes_personales.setPlaceholderText("Antecedentes médicos personales...")
-        self.txt_antecedentes_personales.setMaximumHeight(80)
+        self.txt_antecedentes_personales.setMinimumHeight(100)
         form_anamnesis.addWidget(self.txt_antecedentes_personales)
 
         # Antecedentes familiares
@@ -178,14 +196,15 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_ant_familiares)
         self.txt_antecedentes_familiares = QTextEdit()
         self.txt_antecedentes_familiares.setPlaceholderText("Antecedentes médicos familiares...")
-        self.txt_antecedentes_familiares.setMaximumHeight(80)
+        self.txt_antecedentes_familiares.setMinimumHeight(100)
         form_anamnesis.addWidget(self.txt_antecedentes_familiares)
 
-        # Alergias
+        # Alergias (Convertido a QTextEdit para que sea grande también)
         lbl_alergias = QLabel("Alergias:")
         form_anamnesis.addWidget(lbl_alergias)
-        self.txt_alergias = QLineEdit()
+        self.txt_alergias = QTextEdit() # Antes era QLineEdit
         self.txt_alergias.setPlaceholderText("Alergias conocidas...")
+        self.txt_alergias.setMinimumHeight(80) 
         form_anamnesis.addWidget(self.txt_alergias)
 
         self.group_anamnesis.setLayout(form_anamnesis)
@@ -194,7 +213,11 @@ class RegistrarAnamnesisDilaog(QDialog):
 
         layout.addStretch()
 
-        # Botones de acción
+        # Configurar el scroll area
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        # Botones de acción (fuera del scroll para que siempre se vean abajo)
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(15)
 
@@ -212,7 +235,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         btn_cancelar.clicked.connect(self.accept)
         buttons_layout.addWidget(btn_cancelar)
 
-        layout.addLayout(buttons_layout)
+        main_layout.addLayout(buttons_layout)
 
     def buscar_paciente(self):
         """Busca el paciente por cédula."""
@@ -243,12 +266,13 @@ class RegistrarAnamnesisDilaog(QDialog):
             return
 
         # Validar que al menos un campo tenga datos
+        # Nota: txt_alergias ahora usa toPlainText() porque lo cambiamos a QTextEdit
         if not any([
             self.txt_motivo_consulta.toPlainText().strip(),
             self.txt_enfermedad_actual.toPlainText().strip(),
             self.txt_antecedentes_personales.toPlainText().strip(),
             self.txt_antecedentes_familiares.toPlainText().strip(),
-            self.txt_alergias.text().strip()
+            self.txt_alergias.toPlainText().strip() 
         ]):
             QMessageBox.warning(self, "Advertencia",
                               "Ingrese al menos un dato de anamnesis")
@@ -260,7 +284,7 @@ class RegistrarAnamnesisDilaog(QDialog):
             'enfermedad_actual': self.txt_enfermedad_actual.toPlainText().strip(),
             'antecedentes_personales': self.txt_antecedentes_personales.toPlainText().strip(),
             'antecedentes_familiares': self.txt_antecedentes_familiares.toPlainText().strip(),
-            'alergias': self.txt_alergias.text().strip()
+            'alergias': self.txt_alergias.toPlainText().strip() # Actualizado
         }
 
         exito, mensaje = self.controller.registrar_anamnesis(self.cc_paciente, datos_anamnesis)
@@ -287,4 +311,3 @@ class RegistrarAnamnesisDilaog(QDialog):
         self.cc_paciente = None
         self.paciente = None
         self.txt_cc.setFocus()
-
