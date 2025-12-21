@@ -1,40 +1,89 @@
-from typing import List, Optional
+from typing import List, Tuple
 from datetime import datetime
+
 
 class ConsultaExternaController:
     def __init__(self):
-        # Almacenamiento temporal (Simulando persistencia del sistema)
+        # Agenda sincronizada con los datos de ejemplo de PacienteController
         self._agenda_hoy = [
-            {"id_cita": "101", "cc": "1234567890", "paciente": "Juan Pérez", "hora": "08:00", "estado": "Pendiente"},
-            {"id_cita": "102", "cc": "0987654321", "paciente": "María González", "hora": "09:00", "estado": "Pendiente"}
+            {
+                "id_cita": "CE-2025-001", 
+                "cc": "1234567890", 
+                "paciente": "Juan Carlos Pérez García", 
+                "hora": "08:00", 
+                "estado": "Pendiente"
+            },
+            {
+                "id_cita": "CE-2025-002", 
+                "cc": "0987654321", 
+                "paciente": "María Elena González López", 
+                "hora": "09:30", 
+                "estado": "Pendiente"
+            },
+            {
+                "id_cita": "CE-2025-003", 
+                "cc": "1122334455", 
+                "paciente": "Carlos Alberto Rodríguez Martínez", 
+                "hora": "10:15", 
+                "estado": "Pendiente"
+            }
         ]
-        self._consultas_realizadas = {} # id_cita -> datos_consulta
+        self._consultas_realizadas = {}
 
-    # --- CASOS DE USO: ENFERMERA ---
     def consultar_agenda(self) -> List[dict]:
         """Caso de uso: consultarAgenda"""
         return self._agenda_hoy
 
     def registrar_anamnesis(self, id_cita: str, datos: dict) -> tuple[bool, str]:
-        """Caso de uso: registrarAnamnesis"""
+        """
+        Caso de uso: registrarAnamnesis con control de datos erróneos.
+        """
         if not id_cita:
-            return False, "Debe seleccionar una cita de la agenda."
-        
-        # Validar datos mínimos (Triaje)
-        campos_req = ['peso', 'talla', 'presion', 'motivo']
-        if not all(datos.get(k) for k in campos_req):
-            return False, "Todos los campos de anamnesis son obligatorios."
+            return False, "Debe seleccionar una cita activa de la tabla."
 
-        if id_cita not in self._consultas_realizadas:
-            self._consultas_realizadas[id_cita] = {}
-        
-        self._consultas_realizadas[id_cita]['anamnesis'] = datos
-        # Actualizar estado en la agenda
-        for cita in self._agenda_hoy:
-            if cita['id_cita'] == id_cita:
-                cita['estado'] = 'Triaje Completado'
-        
-        return True, "Anamnesis registrada exitosamente."
+        try:
+            # 1. Intento de conversión para detectar letras donde debe haber números
+            peso = float(datos.get('peso', 0))
+            talla = float(datos.get('talla', 0))
+            presion = str(datos.get('presion', '')).strip()
+            motivo = str(datos.get('motivo', '')).strip()
+
+            # 2. Validación de lógica física y clínica
+            if peso <= 0 or peso > 500:
+                return False, f"Peso inválido ({peso} kg). Debe ser un valor positivo real."
+            
+            if talla <= 0.3 or talla > 2.50:
+                return False, f"Talla inválida ({talla} m). Ingrese valores entre 0.30 y 2.50."
+
+            if not presion or "/" not in presion:
+                return False, "Formato de presión arterial incorrecto (ej: 120/80)."
+
+            if len(motivo) < 5:
+                return False, "El motivo de consulta es demasiado breve o está vacío."
+
+            # 3. Guardado si los datos son lógicos
+            if id_cita not in self._consultas_realizadas:
+                self._consultas_realizadas[id_cita] = {}
+            
+            self._consultas_realizadas[id_cita]['anamnesis'] = {
+                'peso': peso,
+                'talla': talla,
+                'presion': presion,
+                'motivo': motivo,
+                'imc': round(peso / (talla ** 2), 2)
+            }
+
+            # Actualizar estado en la agenda local
+            for cita in self._agenda_hoy:
+                if cita['id_cita'] == id_cita:
+                    cita['estado'] = 'Triaje Completado'
+            
+            return True, "Anamnesis validada y registrada correctamente."
+
+        except ValueError:
+            return False, "Error de tipo: Peso y Talla deben ser números (use punto para decimales)."
+        except Exception as e:
+            return False, f"Error inesperado: {str(e)}"
 
     # --- CASOS DE USO: MÉDICO ---
     def consultar_historia_clinica(self, cc_paciente: str) -> str:
