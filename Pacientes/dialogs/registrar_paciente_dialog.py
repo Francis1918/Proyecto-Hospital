@@ -251,6 +251,79 @@ class RegistrarPacienteDialog(QDialog):
 
         return widget
 
+    def crear_campos_formulario(self):
+        """Crea los campos del formulario."""
+        form_widget = QWidget()
+        form_layout = QGridLayout(form_widget)
+        form_layout.setSpacing(15)
+        form_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Nombre
+        lbl_nombre = QLabel("Nombre *:")
+        lbl_nombre.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_nombre = QLineEdit()
+        self.txt_nombre.setPlaceholderText("Nombre del paciente")
+        self.txt_nombre.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_nombre, 0, 0)
+        form_layout.addWidget(self.txt_nombre, 0, 1)
+
+        # Apellido
+        lbl_apellido = QLabel("Apellido *:")
+        lbl_apellido.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_apellido = QLineEdit()
+        self.txt_apellido.setPlaceholderText("Apellido del paciente")
+        self.txt_apellido.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_apellido, 1, 0)
+        form_layout.addWidget(self.txt_apellido, 1, 1)
+
+        # Cédula
+        lbl_cc = QLabel("Cédula *:")
+        lbl_cc.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_cc = QLineEdit()
+        self.txt_cc.setPlaceholderText("Ej: 1234567890")
+        self.txt_cc.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_cc, 2, 0)
+        form_layout.addWidget(self.txt_cc, 2, 1)
+
+        # Teléfono
+        lbl_telefono = QLabel("Teléfono:")
+        lbl_telefono.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_telefono = QLineEdit()
+        self.txt_telefono.setPlaceholderText("Ej: 0999999999")
+        self.txt_telefono.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_telefono, 5, 0)  # Ajustar fila según tu layout
+        form_layout.addWidget(self.txt_telefono, 5, 1)
+
+        # Teléfono de Referencia (NUEVO CAMPO)
+        lbl_telefono_ref = QLabel("Teléfono de Referencia:")
+        lbl_telefono_ref.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_telefono_referencia = QLineEdit()
+        self.txt_telefono_referencia.setPlaceholderText("Ej: 0999999999 (contacto de emergencia)")
+        self.txt_telefono_referencia.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_telefono_ref, 6, 0)  # Nueva fila
+        form_layout.addWidget(self.txt_telefono_referencia, 6, 1)
+
+        # Email
+        lbl_email = QLabel("Email *:")
+        lbl_email.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_email = QLineEdit()
+        self.txt_email.setPlaceholderText("correo@ejemplo.com")
+        self.txt_email.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_email, 7, 0)
+        form_layout.addWidget(self.txt_email, 7, 1)
+
+        # Dirección
+        lbl_direccion = QLabel("Dirección *:")
+        lbl_direccion.setStyleSheet("font-weight: bold; color: #4a5568;")
+        self.txt_direccion = QLineEdit()
+        self.txt_direccion.setPlaceholderText("Dirección completa")
+        self.txt_direccion.setStyleSheet(self.get_input_style())
+        form_layout.addWidget(lbl_direccion, 8, 0)
+        form_layout.addWidget(self.txt_direccion, 8, 1)
+
+        form_widget.setLayout(form_layout)
+        return form_widget
+
     def guardar_paciente(self):
         """Guarda el nuevo paciente con su historia clínica."""
         # Crear objeto Paciente
@@ -306,3 +379,15 @@ class RegistrarPacienteDialog(QDialog):
 
 
             self.txt_cc.setFocus()
+
+    def recopilar_datos(self):
+        """Recopila los datos del formulario."""
+        return {
+            'cc': self.txt_cc.text().strip(),
+            'nombre': self.txt_nombre.text().strip(),
+            'apellido': self.txt_apellido.text().strip(),
+            'direccion': self.txt_direccion.text().strip(),
+            'telefono': self.txt_telefono.text().strip(),
+            'email': self.txt_email.text().strip(),
+            'telefono_referencia': self.txt_telefono_referencia.text().strip(),  # NUEVO
+        }

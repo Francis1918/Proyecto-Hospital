@@ -415,3 +415,19 @@ ALERGIAS:
 
         QMessageBox.information(self, "Exportar PDF",
                                 "Función de exportación a PDF en desarrollo")
+
+    def mostrar_informacion_paciente(self, paciente):
+        """Muestra la información del paciente en un formato legible."""
+        # Agregar teléfono de referencia en la información mostrada
+        telefono_ref = paciente.get('telefono_referencia', 'No especificado')
+        
+        info_html = f"""
+        <h3>Información del Paciente</h3>
+        <p><b>Nombre:</b> {paciente.get('nombre')} {paciente.get('apellido')}</p>
+        <p><b>Dirección:</b> {paciente.get('direccion')}</p>
+        <p><b>Teléfono:</b> {paciente.get('telefono')}</p>
+        <p><b>Teléfono de Referencia:</b> {telefono_ref}</p>
+        <p><b>Email:</b> {paciente.get('email')}</p>
+        """
+        # Aquí se podría mostrar la información en un QMessageBox, QLabel, o donde sea necesario
+        QMessageBox.information(self, "Información del Paciente", info_html)

@@ -23,6 +23,13 @@ class PacienteController:
         Caso de uso: registrarPaciente
         Registra un nuevo paciente en el sistema.
         """
+        # Si recibimos un diccionario, convertirlo a Paciente
+        if isinstance(paciente, dict):
+            try:
+                paciente = Paciente(**paciente)
+            except Exception as e:
+                return False, f"Error en los datos: {str(e)}"
+
         es_valido, mensaje = paciente.validar_datos()
         if not es_valido:
             return False, mensaje

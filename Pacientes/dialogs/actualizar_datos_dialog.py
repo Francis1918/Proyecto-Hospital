@@ -108,7 +108,8 @@ class ActualizarDatosDialog(QDialog):
         titulos = {
             "direccion": "Actualizar Dirección",
             "telefono": "Actualizar Teléfono",
-            "email": "Actualizar E-mail"
+            "email": "Actualizar E-mail",
+            "telefono_referencia": "Actualizar Teléfono de Referencia"
         }
         titulo = titulos.get(self.tipo_campo, "Actualizar Datos del Paciente")
 
@@ -159,7 +160,8 @@ class ActualizarDatosDialog(QDialog):
         label_actual = {
             "direccion": "Dirección actual:",
             "telefono": "Teléfono actual:",
-            "email": "Email actual:"
+            "email": "Email actual:",
+            "telefono_referencia": "Teléfono de referencia actual:"
         }.get(self.tipo_campo, "Dato actual:")
         self.form_datos.addRow(label_actual, self.lbl_dato_actual)
 
@@ -168,14 +170,16 @@ class ActualizarDatosDialog(QDialog):
         placeholder = {
             "direccion": "Ingrese la nueva dirección",
             "telefono": "Ingrese el nuevo teléfono",
-            "email": "Ingrese el nuevo email"
+            "email": "Ingrese el nuevo email",
+            "telefono_referencia": "Ingrese el nuevo teléfono de referencia"
         }.get(self.tipo_campo, "Ingrese el nuevo valor")
         self.txt_nuevo_valor.setPlaceholderText(placeholder)
 
         label_nuevo = {
             "direccion": "Nueva dirección:",
             "telefono": "Nuevo teléfono:",
-            "email": "Nuevo email:"
+            "email": "Nuevo email:",
+            "telefono_referencia": "Nuevo teléfono de referencia:"
         }.get(self.tipo_campo, "Nuevo valor:")
         self.form_datos.addRow(label_nuevo, self.txt_nuevo_valor)
 
@@ -218,7 +222,8 @@ class ActualizarDatosDialog(QDialog):
             dato_actual = {
                 "direccion": self.paciente.direccion,
                 "telefono": self.paciente.telefono,
-                "email": self.paciente.email
+                "email": self.paciente.email,
+                "telefono_referencia": self.paciente.telefono_referencia
             }.get(self.tipo_campo, "-")
             self.lbl_dato_actual.setText(dato_actual or "No registrado")
 
@@ -229,6 +234,32 @@ class ActualizarDatosDialog(QDialog):
                               f"No se encontró un paciente con cédula {cc}")
             self.group_datos.setVisible(False)
             self.btn_actualizar.setEnabled(False)
+
+    def cargar_datos_paciente(self):
+        """Carga los datos del paciente en los campos del formulario."""
+        if not self.paciente:
+            return
+
+        self.txt_cc.setText(self.cc_paciente)
+        self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
+
+        # Cargar el dato actual según el tipo
+        dato_actual = {
+            "direccion": self.paciente.direccion,
+            "telefono": self.paciente.telefono,
+            "email": self.paciente.email,
+            "telefono_referencia": self.paciente.telefono_referencia
+        }.get(self.tipo_campo, "-")
+        self.lbl_dato_actual.setText(dato_actual or "No registrado")
+
+    def recopilar_datos(self):
+        """Recopila los datos del formulario."""
+        return {
+            'cedula': self.txt_cc.text().strip(),
+            'nombre': self.lbl_nombre.text().strip(),
+            'nuevo_valor': self.txt_nuevo_valor.text().strip(),
+            'tipo_campo': self.tipo_campo
+        }
 
     def actualizar_dato(self):
         """Actualiza el dato según el tipo de campo."""
@@ -249,6 +280,8 @@ class ActualizarDatosDialog(QDialog):
             exito, mensaje = self.controller.actualizar_telefono(self.cc_paciente, nuevo_valor)
         elif self.tipo_campo == "email":
             exito, mensaje = self.controller.actualizar_email(self.cc_paciente, nuevo_valor)
+        elif self.tipo_campo == "telefono_referencia":
+            exito, mensaje = self.controller.actualizar_telefono_referencia(self.cc_paciente, nuevo_valor)
         else:
             exito, mensaje = False, "Tipo de campo no válido"
 

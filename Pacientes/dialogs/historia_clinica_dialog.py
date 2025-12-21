@@ -160,10 +160,6 @@ class HistoriaClinicaDialog(QDialog):
         self.lbl_cc.setObjectName("info_label")
         form_paciente.addRow(QLabel("Cédula:"), self.lbl_cc)
 
-        self.lbl_codigo = QLabel("-")
-        self.lbl_codigo.setObjectName("info_label")
-        form_paciente.addRow(QLabel("Código Único:"), self.lbl_codigo)
-
         self.lbl_nombre = QLabel("-")
         self.lbl_nombre.setObjectName("info_label")
         form_paciente.addRow(QLabel("Nombre Completo:"), self.lbl_nombre)
@@ -283,7 +279,6 @@ class HistoriaClinicaDialog(QDialog):
         """Muestra los datos del paciente en el formulario."""
         if self.paciente:
             self.lbl_cc.setText(self.paciente.cc)
-            self.lbl_codigo.setText(self.paciente.num_unic or "-")
             self.lbl_nombre.setText(f"{self.paciente.nombre} {self.paciente.apellido}")
             self.lbl_telefono.setText(self.paciente.telefono or "-")
             self.lbl_email.setText(self.paciente.email or "-")
@@ -313,7 +308,6 @@ class HistoriaClinicaDialog(QDialog):
     def limpiar_datos(self):
         """Limpia todos los datos mostrados."""
         self.lbl_cc.setText("-")
-        self.lbl_codigo.setText("-")
         self.lbl_nombre.setText("-")
         self.lbl_telefono.setText("-")
         self.lbl_email.setText("-")
