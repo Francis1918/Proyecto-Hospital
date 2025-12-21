@@ -293,9 +293,9 @@ class ConsultarPacienteDialog(QDialog):
         self.txt_anamnesis.setReadOnly(True)
         layout.addWidget(self.txt_anamnesis)
 
-        btn_consultar_anamnesis = QPushButton("Actualizar Anamnesis")
-        btn_consultar_anamnesis.clicked.connect(self.consultar_anamnesis)
-        layout.addWidget(btn_consultar_anamnesis)
+        btn_actualizar_anamnesis = QPushButton("Registrar/Actualizar Anamnesis")
+        btn_actualizar_anamnesis.clicked.connect(self.abrir_dialogo_anamnesis)
+        layout.addWidget(btn_actualizar_anamnesis)
 
         return widget
 
@@ -396,7 +396,33 @@ ALERGIAS:
             """
             self.txt_anamnesis.setText(texto.strip())
         else:
-            self.txt_anamnesis.setText("No hay información de anamnesis registrada para este paciente.")
+            self.txt_anamnesis.setText("No hay información de anamnesis registrada para este paciente.\n\nUse el botón 'Registrar/Actualizar Anamnesis' para agregar la información.")
+
+    def abrir_dialogo_anamnesis(self):
+        """Abre el diálogo para registrar o actualizar la anamnesis del paciente."""
+        if not self.paciente:
+            QMessageBox.warning(self, "Advertencia", "Primero busque un paciente")
+            return
+
+        from .registrar_anamnesis_dialog import RegistrarAnamnesisDilaog
+        dialogo = RegistrarAnamnesisDilaog(self.controller, self)
+
+        # Pre-llenar la cédula y buscar automáticamente
+        dialogo.txt_cc.setText(self.paciente.cc)
+        dialogo.buscar_paciente()
+
+        # Si ya existe anamnesis, cargar los datos en el formulario
+        anamnesis_existente = self.controller.consultar_anamnesis(self.paciente.cc)
+        if anamnesis_existente:
+            dialogo.txt_motivo_consulta.setText(anamnesis_existente.get('motivo_consulta', ''))
+            dialogo.txt_enfermedad_actual.setText(anamnesis_existente.get('enfermedad_actual', ''))
+            dialogo.txt_antecedentes_personales.setText(anamnesis_existente.get('antecedentes_personales', ''))
+            dialogo.txt_antecedentes_familiares.setText(anamnesis_existente.get('antecedentes_familiares', ''))
+            dialogo.txt_alergias.setText(anamnesis_existente.get('alergias', ''))
+
+        # Ejecutar el diálogo y actualizar la vista si se guardó
+        if dialogo.exec():
+            self.consultar_anamnesis()  # Refrescar los datos mostrados
 
     def imprimir_informacion(self):
         """Imprime la información del paciente."""
