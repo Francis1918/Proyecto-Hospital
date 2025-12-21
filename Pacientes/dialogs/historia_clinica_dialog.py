@@ -275,6 +275,42 @@ class HistoriaClinicaDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
+    def cargar_historia_clinica(self):
+        """Carga la historia clínica cuando el paciente viene precargado."""
+        if not self.paciente or not self.cc_paciente:
+            return
+
+        # Verificar si tiene historia clínica
+        historia = self.controller.consultar_historia_clinica(self.cc_paciente)
+
+        if historia:
+            self.mostrar_datos_paciente(historia)
+            self.cargar_anamnesis()
+            self.group_paciente.setVisible(True)
+            self.group_anamnesis.setVisible(True)
+            self.btn_imprimir.setEnabled(True)
+        else:
+            # El paciente existe pero no tiene historia clínica
+            respuesta = QMessageBox.question(
+                self, "Sin Historia Clínica",
+                f"El paciente {self.paciente.nombre} {self.paciente.apellido} no tiene historia clínica.\n¿Desea crearla ahora?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if respuesta == QMessageBox.StandardButton.Yes:
+                exito, mensaje = self.controller.crear_historia_clinica(self.cc_paciente)
+                if exito:
+                    QMessageBox.information(self, "Éxito", mensaje)
+                    historia = self.controller.consultar_historia_clinica(self.cc_paciente)
+                    self.mostrar_datos_paciente(historia)
+                    self.cargar_anamnesis()
+                    self.group_paciente.setVisible(True)
+                    self.group_anamnesis.setVisible(True)
+                    self.btn_imprimir.setEnabled(True)
+                else:
+                    QMessageBox.warning(self, "Error", mensaje)
+            else:
+                self.limpiar_datos()
+
     def buscar_paciente(self):
         """Busca el paciente por cédula o código único."""
         busqueda = self.txt_buscar.text().strip()
