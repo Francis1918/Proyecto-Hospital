@@ -1,3 +1,3 @@
-from .hospitalizacion_view import HospitalizacionView
+from .orden_view import GestionOrdenView
 
-__all__ = ["HospitalizacionView"]
+__all__ = ["GestionOrdenView"]
