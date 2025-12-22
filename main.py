@@ -9,6 +9,7 @@ from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.ventana_farmacia import VentanaFarmacia
+from Citas_Medicas import CitasMedicasView, CitasMedicasController
 
 from Medicos.medicos import VentanaPrincipal
 
@@ -216,11 +217,14 @@ class MenuPrincipal(QMainWindow):
         return footer
 
     def abrir_citas_medicas(self):
-        """Abre el módulo de citas médicas."""
-        QMessageBox.information(
-            self, "Citas Médicas",
-            "Módulo de Citas Médicas en desarrollo.\n\nPróximamente disponible."
-        )
+        if "citas_medicas" not in self.ventanas_abiertas or not self.ventanas_abiertas["citas_medicas"].isVisible():
+            controller = CitasMedicasController()
+            ventana = CitasMedicasView(controller)
+            ventana.setWindowTitle("Citas Médicas - Submódulo")
+            self.ventanas_abiertas["citas_medicas"] = ventana
+            ventana.show()
+            ventana.raise_()
+            ventana.activateWindow()
 
     def abrir_pacientes(self):
         """Abre el módulo de gestión de pacientes."""
