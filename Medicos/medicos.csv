@@ -1,0 +1,102 @@
+Nombres,Apellidos,Especialidad,Teléfono 1,Teléfono 2,Dirección,Estado
+Valeria,Espinoza,Neurología,0930060621,,Calle Los Pinos N53-178,Activo
+Diego,Castro,Dermatología,0945039986,,Av. Eloy Alfaro N65-136,Activo
+Daniela,Castillo,Pediatría,0946031632,,Calle Sucre N25-178,Activo
+Lucía,Díaz,Neurología,0991312794,,Av. Amazonas N67-287,Activo
+Miguel,Guerrero,Neurología,0997579070,,Calle Los Pinos N31-295,Activo
+Ricardo,Aguilar,Cardiología,0932192398,,Calle Larga N83-277,Activo
+Alejandro,Herrera,Medicina General,0988447970,,Av. Patria N49-188,Activo
+Sara,González,Cardiología,0978229504,0924662169,Calle Larga N35-244,Activo
+Pedro,Medina,Cardiología,0988809640,,Calle Los Pinos N35-191,Licencia
+Pedro,Cevallos,Dermatología,0996614992,0924897533,Calle Bolivar N60-194,Activo
+Daniela,Ortega,Neurología,0940470462,,Av. Amazonas N62-214,Activo
+Sofía,Navarro,Dermatología,0958762698,0940151092,Av. 6 de Diciembre N19-154,Vacaciones
+Juan,Martínez,Dermatología,0979707700,,Av. Amazonas N38-277,Vacaciones
+Andrés,Rios,Pediatría,0986514331,,Calle Los Pinos N21-290,Activo
+José,Herrera,Medicina General,0940924384,,Av. 6 de Diciembre N64-281,Activo
+Elena,Sánchez,Dermatología,0959886113,,Calle Larga N35-166,Activo
+Adriana,Guerrero,Medicina General,0958197508,,Calle Larga N59-238,Activo
+Sofía,Morales,Dermatología,0940565570,,Calle Los Pinos N60-142,Activo
+Sofía,Mendoza,Dermatología,0975995617,,Av. Eloy Alfaro N53-118,Activo
+Alejandro,Silva,Cardiología,0944203425,0940450198,Av. Patria N88-136,Activo
+Elena,Soto,Cardiología,0914756725,,Av. Amazonas N31-120,Activo
+Valeria,Guerrero,Cardiología,0928975717,,Calle Larga N99-260,Activo
+Paula,Torres,Pediatría,0975928003,,Av. Eloy Alfaro N88-241,Licencia
+Paula,Castro,Medicina General,0926355295,,Calle Sucre N43-242,Licencia
+Pedro,Morales,Pediatría,0942834505,,Av. Patria N19-298,Activo
+Andrés,Silva,Pediatría,0990809351,,Calle Bolivar N23-256,Activo
+Gabriela,Aguilar,Medicina General,0928970303,0911266012,Av. 6 de Diciembre N21-266,Activo
+Fernando,Aguilar,Cardiología,0945056136,0986301497,Av. Patria N31-286,Activo
+Fernando,Mendoza,Cardiología,0998546885,0984808872,Calle Sucre N34-253,Activo
+Adriana,Ortega,Cardiología,0942885258,0931207397,Av. Patria N35-208,Vacaciones
+Sara,González,Medicina General,0983785072,,Av. Eloy Alfaro N39-267,Licencia
+Lucía,González,Cardiología,0945222907,0953663389,Calle Larga N26-239,Activo
+Juan,Medina,Cardiología,0992646464,0961627200,Av. Amazonas N80-234,Activo
+María,Soto,Medicina General,0935652131,,Calle Sucre N24-222,Activo
+Pedro,Sánchez,Neurología,0927355541,,Calle Sucre N42-284,Activo
+Paula,Soto,Neurología,0963503910,,Av. Amazonas N57-214,Activo
+Alejandro,Navarro,Neurología,0955219241,,Av. Eloy Alfaro N26-289,Licencia
+Andrés,Vargas,Pediatría,0952361186,,Av. 6 de Diciembre N35-144,Activo
+Sara,Pérez,Neurología,0944859283,,Av. Patria N61-281,Activo
+Lucía,Rojas,Medicina General,0985906757,0995634523,Calle Larga N24-155,Activo
+Diego,Cevallos,Neurología,0933919344,,Av. Amazonas N41-107,Licencia
+Martina,Sánchez,Neurología,0989644736,0920522282,Av. Amazonas N59-136,Activo
+Daniela,Vargas,Medicina General,0962446393,,Av. Amazonas N40-185,Inactivo
+Valeria,Sánchez,Medicina General,0961483963,,Calle Sucre N71-196,Activo
+Manuel,Ortega,Medicina General,0987203528,,Calle Bolivar N31-175,Activo
+Carlos,Martínez,Dermatología,0952329809,,Av. 6 de Diciembre N80-281,Activo
+Pedro,Rojas,Dermatología,0945750205,0976593810,Av. 6 de Diciembre N30-252,Activo
+Daniela,Vega,Pediatría,0969512665,,Av. Eloy Alfaro N12-105,Activo
+Fernando,Silva,Medicina General,0910169671,,Av. Amazonas N86-169,Activo
+Miguel,Rodríguez,Neurología,0941839291,,Calle Sucre N63-270,Licencia
+José,Ruiz,Pediatría,0988014203,,Av. 6 de Diciembre N44-275,Activo
+Jorge,Díaz,Dermatología,0955081391,0911022779,Av. Patria N22-123,Activo
+Martina,Pérez,Pediatría,0951130025,,Calle Los Pinos N71-222,Licencia
+Andrés,Mendoza,Cardiología,0950913821,0963871378,Av. 6 de Diciembre N22-153,Vacaciones
+Andrés,García,Cardiología,0932453043,,Av. Eloy Alfaro N94-117,Activo
+Isabel,Rodríguez,Pediatría,0982301034,,Av. 6 de Diciembre N48-243,Activo
+José,Cevallos,Cardiología,0988551993,,Calle Bolivar N60-132,Activo
+Fernando,Ruiz,Medicina General,0983903716,,Calle Sucre N12-118,Activo
+Roberto,Espinoza,Medicina General,0943384698,,Calle Larga N38-134,Activo
+Roberto,López,Neurología,0980393375,,Calle Bolivar N91-297,Activo
+Pedro,Silva,Dermatología,0939085941,,Av. 6 de Diciembre N43-248,Activo
+Valeria,Martínez,Dermatología,0913267117,0984943432,Av. Eloy Alfaro N82-293,Activo
+Diego,García,Cardiología,0978194847,,Calle Bolivar N83-211,Activo
+José,Castillo,Dermatología,0928082323,0923242363,Av. Amazonas N54-224,Activo
+Camila,Díaz,Medicina General,0948644602,,Calle Larga N54-273,Licencia
+Andrés,Estrada,Pediatría,0997201174,0913987758,Calle Larga N61-192,Activo
+María,Sánchez,Dermatología,0994087158,,Av. Eloy Alfaro N47-220,Activo
+Gabriela,Cevallos,Cardiología,0940109755,,Calle Los Pinos N75-214,Activo
+Gabriela,Sánchez,Medicina General,0955530812,,Av. Amazonas N28-265,Inactivo
+Martina,Ortega,Dermatología,0962935116,0929859324,Av. Amazonas N29-218,Activo
+Juan,Rios,Pediatría,0996251966,,Calle Los Pinos N36-141,Activo
+Ricardo,Ortega,Dermatología,0937162372,,Calle Sucre N33-203,Activo
+José,Martínez,Pediatría,0928822003,,Av. Patria N33-140,Activo
+Jorge,López,Pediatría,0973114928,,Av. Amazonas N72-103,Activo
+Ana,Castillo,Medicina General,0961436816,,Av. Patria N95-202,Activo
+Manuel,Díaz,Medicina General,0913497487,,Calle Larga N27-182,Licencia
+Carlos,Estrada,Medicina General,0991972164,,Calle Larga N69-296,Activo
+Jorge,Medina,Pediatría,0949485977,0943909782,Calle Larga N23-216,Activo
+David,Díaz,Dermatología,0963367371,0942798934,Av. 6 de Diciembre N91-211,Licencia
+Alejandro,Vargas,Dermatología,0926306733,0985283828,Calle Los Pinos N14-242,Vacaciones
+Pedro,Aguilar,Cardiología,0936807383,0996510899,Av. Patria N69-208,Activo
+Sara,García,Medicina General,0920964269,,Av. Amazonas N31-254,Activo
+Pedro,García,Pediatría,0932123488,,Calle Larga N68-140,Vacaciones
+José,Mendoza,Dermatología,0953072803,,Av. 6 de Diciembre N77-167,Activo
+Elena,Rodríguez,Pediatría,0915336161,,Calle Bolivar N61-102,Activo
+Pedro,López,Medicina General,0954111437,,Av. Patria N60-232,Activo
+Sofía,Ruiz,Pediatría,0925302752,,Calle Sucre N85-264,Activo
+Lucía,Vega,Neurología,0961470329,0988337282,Av. Amazonas N21-279,Inactivo
+Valeria,Díaz,Cardiología,0981013570,,Av. Amazonas N19-171,Vacaciones
+Miguel,Vega,Neurología,0959799013,,Calle Sucre N75-252,Activo
+Roberto,Castro,Pediatría,0986150114,0949264240,Av. Amazonas N80-177,Activo
+Alejandro,Estrada,Dermatología,0972346101,,Av. Eloy Alfaro N73-188,Activo
+José,García,Dermatología,0999371035,,Calle Bolivar N32-185,Activo
+Sofía,Martínez,Cardiología,0989782273,,Calle Bolivar N29-279,Activo
+Carmen,Ortega,Dermatología,0996540921,0960388585,Calle Bolivar N43-141,Activo
+Sara,Morales,Neurología,0937615225,,Calle Los Pinos N81-164,Licencia
+Manuel,Mendoza,Dermatología,0989949542,,Av. 6 de Diciembre N44-288,Activo
+Ana,Soto,Cardiología,0912999165,,Av. Patria N80-256,Activo
+Paula,Navarro,Pediatría,0929504095,0929253564,Av. 6 de Diciembre N93-164,Inactivo
+María,Estrada,Cardiología,0929061818,,Av. Amazonas N46-124,Vacaciones
+Jose Luis,Andino,Neurología,088898912,,Av UnaCosa,Vacaciones

@@ -1,0 +1,319 @@
+/* =======================================================
+   ESTILOS GENERALES Y SIDEBAR
+   ======================================================= */
+
+/* Fondo general de la ventana y color de texto base */
+QMainWindow, QWidget {
+    background-color: #FFFFFF; /* Azul muy claro del nuevo tema [cite: 1] */
+    color: #1a365d;            /* Azul oscuro para texto general [cite: 1] */
+    font-family: "Segoe UI", sans-serif; /* Fuente moderna [cite: 2] */
+}
+
+/* --- SIDEBAR (Barra Lateral) --- */
+QFrame#sidebar_frame {
+    background-color: #2c5282; /* Azul oscuro corporativo [cite: 3] */
+    border: none;
+}
+
+/* Botones del Menú Lateral */
+QFrame#sidebar_frame QPushButton {
+    background-color: transparent;
+    color: white;
+    text-align: left;
+    padding: 15px;
+    font-size: 14px;
+    border: none;
+    border-left: 5px solid transparent;
+}
+
+QFrame#sidebar_frame QPushButton:hover {
+    background-color: #2b6cb0; /* Azul intermedio al pasar el mouse [cite: 5] */
+}
+
+QFrame#sidebar_frame QPushButton:checked {
+    background-color: #ebf8ff; /* Fondo claro al seleccionar [cite: 5] */
+    color: #2c5282;            /* Texto azul oscuro al seleccionar [cite: 5] */
+    border-left: 5px solid #4299e1; /* Borde azul brillante a la izquierda [cite: 6] */
+    font-weight: bold;
+}
+
+/* =======================================================
+   CONTENIDO PRINCIPAL
+   ======================================================= */
+QFrame#content_frame {
+    background-color: #FFFFFF; /* Fondo consistente con el tema global [cite: 1] */
+}
+
+/* Títulos de las páginas */
+QLabel#titulo_page {
+    color: #2c5282; /* Título en azul oscuro */
+    font-size: 24px;
+    font-weight: bold; 
+    margin-bottom: 10px;
+}
+
+/* Contenedores de formularios (tarjetas blancas) */
+QFrame#form_card, QFrame#filtro_container {
+    background-color: white; 
+    border-radius: 10px;
+    border: 2px solid #2C5282; /* Borde azul muy suave [cite: 7] */
+}
+
+/* =======================================================
+   INPUTS (Campos de Texto) Y COMBOBOX
+   ======================================================= */
+QLineEdit, QComboBox {
+    background-color: #ffffff;
+    color: #2d3748;            /* Gris oscuro para buena lectura [cite: 8] */
+    border: 1px solid #cbd5e0; /* Borde gris suave [cite: 8] */
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+QLineEdit:focus, QComboBox:focus {
+    border: 2px solid #63b3ed; /* Borde azul brillante al escribir [cite: 9] */
+    background-color: #ffffff;
+}
+
+/* --- ARREGLO DE LEGIBILIDAD PARA COMBOBOX --- */
+QComboBox QAbstractItemView {
+    background-color: #ffffff; /* Fondo blanco para la lista desplegable */
+    color: #2d3748;            /* Texto oscuro legible */
+    border: 1px solid #cbd5e0;
+}
+
+/* --- VALIDACIONES DINÁMICAS --- */
+
+/* Estilo ERROR (Rojo) */
+QLineEdit[status="error"], QComboBox[status="error"] {
+    border: 2px solid #e53e3e;     /* Rojo intenso [cite: 10] */
+    background-color: #fff5f5;     /* Fondo rojizo claro [cite: 10] */
+}
+
+/* Estilo ÉXITO (Verde Flash) */
+QLineEdit[status="success"], QComboBox[status="success"] {
+    border: 2px solid #38a169;
+    background-color: #f0fff4;
+}
+
+QComboBox::drop-down {
+    border: none;
+    background: transparent;
+}
+
+QFormLayout QLabel {
+    color: #1a365d; /* Etiquetas del formulario en azul oscuro */
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* =======================================================
+   NOTIFICACIONES (QMessageBox)
+   ======================================================= */
+QMessageBox {
+    background-color: #ffffff; /* Fondo blanco limpio */
+}
+QMessageBox QLabel {
+    color: #2d3748; /* Texto gris oscuro muy legible */
+    font-size: 13px;
+}
+QMessageBox QPushButton {
+    background-color: #3182ce;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+}
+QMessageBox QPushButton:hover {
+    background-color: #2b6cb0;
+}
+
+/* =======================================================
+   BOTONES ESPECÍFICOS
+   ======================================================= */
+QPushButton#btnGuardar {
+    background-color: #38a169; /* Verde del nuevo tema [cite: 11] */
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    font-size: 12px;
+    padding: 10px;
+    border: none;
+}
+QPushButton#btnGuardar:hover {
+    background-color: #2f855a; /* Verde más oscuro [cite: 11] */
+}
+
+QPushButton#btnCancelar {
+    background-color: #95a5a6; /* Verde del nuevo tema [cite: 11] */
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    font-size: 12px;
+    padding: 10px;
+    border: none;
+}
+QPushButton#btnCancelar:hover {
+    background-color: #6c7879; /* Verde más oscuro [cite: 11] */
+}
+
+QPushButton#btnRefrescar {
+    background-color: #3182ce; /* Azul del nuevo tema [cite: 13] */
+    color: white; 
+    padding: 8px; 
+    border-radius: 4px;
+    font-weight: bold;
+    border: none;
+}
+QPushButton#btnRefrescar:hover {
+    background-color: #2b6cb0;
+}
+
+QPushButton#btnAddTel {
+    color: #3182ce; /* Texto azul enlace */
+    border: none; 
+    text-align: left; 
+    font-weight: bold;
+    background: transparent;
+}
+QPushButton#btnAddTel:hover {
+    text-decoration: underline;
+    color: #2b6cb0;
+}
+
+/* =======================================================
+   TABLAS
+   ======================================================= */
+QTableWidget {
+    background-color: white;
+    
+    border: 1px solid #cbd5e0;
+    border-radius: 10px;
+    color: #2d3748;            /* Texto de datos en gris oscuro */
+    
+}
+
+QHeaderView::section {
+    background-color: #2c5282; /* Cabecera azul oscuro [cite: 14] */
+    color: white;
+    padding: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+QHeaderView::section:first {
+    border-top-left-radius: 10px;
+}
+
+QHeaderView::section:last {
+    border-top-right-radius: 10px;
+}
+
+/* Botones dentro de la tabla */
+QPushButton#btnTablaEditar {
+    background-color: #dd6b20; /* Naranja quemado para editar */
+    color: white;
+    border-radius: 4px;
+    font-weight: bold;
+    padding: 5px;
+    border: none;
+}
+QPushButton#btnTablaEditar:hover { background-color: #f57a3d; }
+
+QPushButton#btnTablaEliminar {
+    background-color: #e53e3e; /* Rojo tema [cite: 10] */
+    color: white;
+    border-radius: 4px;
+    font-weight: bold;
+    padding: 5px;
+    border: none;
+}
+QPushButton#btnTablaEliminar:hover { background-color: #c53030; }
+
+/* =======================================================
+   SCROLLBAR (BARRA DE DESPLAZAMIENTO) PERSONALIZADA
+   ======================================================= */
+
+/* El fondo de la barra vertical */
+QScrollBar:vertical {
+    border: none;
+    background: #f7fafc; /* Fondo muy claro, casi blanco */
+    width: 12px;         /* Ancho cómodo pero no invasivo */
+    margin: 0px 0px 0px 0px;
+    border-radius: 0px;
+}
+
+/* El "agarrador" o barra que se mueve (Handle) */
+QScrollBar::handle:vertical {
+    background: #cbd5e0; /* Gris azulado suave (mismo que los bordes) */
+    min-height: 30px;    /* Altura mínima para que no desaparezca */
+    border-radius: 6px;  /* Bordes totalmente redondos */
+    border: 2px solid #f7fafc; /* Pequeño margen interno simulado */
+}
+
+/* Cuando pasas el mouse por encima del agarrador */
+QScrollBar::handle:vertical:hover {
+    background: #a0aec0; /* Se oscurece un poco para indicar interacción */
+}
+
+/* Cuando haces clic y arrastras */
+QScrollBar::handle:vertical:pressed {
+    background: #718096; /* Color más oscuro (estilo botón secondary) */
+}
+
+/* Ocultar las flechas de arriba y abajo (Estilo moderno) */
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: none;
+}
+
+/* Fondo de la parte donde no está la barra */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* =======================================================
+   BARRA DE FILTROS (CONSULTA)
+   ======================================================= */
+QLineEdit#input_busqueda {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e0;
+    border-radius: 3px; 
+    padding-left: 15px;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+QLineEdit#input_busqueda:focus {
+    border: 1px solid #63b3ed; /* Focus azul brillante */
+    background-color: #ebf8ff;
+}
+
+QPushButton#btnRefrescarSmall {
+    background-color: #5AAEFA; 
+    border: 1px solid #cbd5e0;
+    color: #2d3748;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+}
+QPushButton#btnRefrescarSmall:hover {
+    background-color: #a2a7ad;
+}
+
+/* =======================================================
+   FORMULARIO DE EDICIÓN (INFERIOR)
+   ======================================================= */
+QFrame#frame_edicion {
+    background-color: #FFFFFF; /* Fondo muy claro para diferenciar */
+    border: 2px solid #3182ce; /* Borde azul activo */
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+QLabel#titulo_edicion {
+    color: #2b6cb0;
+    font-weight: bold;
+    font-size: 16px;
+}
