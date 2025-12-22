@@ -170,7 +170,10 @@ class HospitalizacionView(QMainWindow):
         self.hide()
 
     def abrir_visitas_restricciones(self):
-        QMessageBox.information(self, "Hospitalización", "Visitas y restricciones - En desarrollo.")
+        from Visitas.visitas_view import VisitasView  # Importa la nueva ventana
+
+        visitas_window = VisitasView(self)
+        visitas_window.exec()
 
     def abrir_admision_alta(self):
         QMessageBox.information(self, "Hospitalización", "Gestión de admisión y alta - En desarrollo.")
