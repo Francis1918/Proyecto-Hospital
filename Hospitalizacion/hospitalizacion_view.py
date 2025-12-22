@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QGridLayout,
-    QFrame, QPushButton, QLabel, QMessageBox, QApplication
+    QFrame, QPushButton, QLabel, QMessageBox
 )
 from PyQt6.QtCore import Qt
 try:
@@ -110,7 +110,7 @@ class HospitalizacionView(QMainWindow):
             ("Gestión de camas y salas", self.abrir_camas_salas),
             ("Visitas y restricciones", self.abrir_visitas_restricciones),
             ("Gestión de admisión y alta", self.abrir_admision_alta),
-            ("Gestión de orden, evolución y cuidados", self.abrir_orden_evolucion_cuidados),
+            ("Gestión de orden", self.abrir_orden_evolucion_cuidados),
         ]
 
         for i, (texto, handler) in enumerate(botones):
@@ -179,7 +179,48 @@ class HospitalizacionView(QMainWindow):
         QMessageBox.information(self, "Hospitalización", "Gestión de admisión y alta - En desarrollo.")
 
     def abrir_orden_evolucion_cuidados(self):
-        QMessageBox.information(self, "Hospitalización", "Gestión de orden, evolución y cuidados - En desarrollo.")
+        # Solicitar login y abrir vista con rol
+        try:
+            from .camas_y_salas.auth import authenticate_role
+        except ImportError:
+            import os, sys
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from Hospitalizacion.camas_y_salas.auth import authenticate_role
+            
+        try:
+             from .gestion_orden.orden_view import GestionOrdenView
+        except ImportError:
+            import os, sys
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from Hospitalizacion.gestion_orden.orden_view import GestionOrdenView
+
+        rol = authenticate_role(self)
+        if not rol:
+            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas")
+            return
+
+        # Cerrar cualquier otra ventana del módulo (solo una a la vez)
+        for k, v in list(self.ventanas_abiertas.items()):
+            try:
+                if v.isVisible():
+                    v.close()
+            except Exception:
+                pass
+            self.ventanas_abiertas.pop(k, None)
+
+        key = f"gestion_orden_{rol.lower()}"
+        self.ventanas_abiertas[key] = GestionOrdenView(rol, parent=self)
+        self.ventanas_abiertas[key].setWindowTitle(f"Gestión de Orden Médica - {rol}")
+        w = self.ventanas_abiertas[key]
+        w.show()
+        try:
+            w.showMaximized()
+        except Exception:
+            pass
+        w.raise_()
+        w.activateWindow()
+        # Ocultar Hospitalización mientras la subvista está abierta
+        self.hide()
 
     def closeEvent(self, event):
         """Al cerrar Hospitalización, volver al menú principal (padre)."""

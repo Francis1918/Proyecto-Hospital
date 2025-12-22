@@ -51,7 +51,7 @@ logs/
 ~$*
 
 # IDE/editor settings
-.vscode/
+
 .idea/
 *.sublime-workspace
 *.sublime-project

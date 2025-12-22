@@ -1,60 +1,42 @@
-from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QMessageBox, QHBoxLayout
+from PyQt6.QtWidgets import (
+    QDialog, QFormLayout, QLineEdit,
+    QPushButton, QMessageBox
+)
 from datetime import datetime
 from .models import OrdenMedica
-from .repository import orden_repo
-
-from Hospitalizacion.camas_y_salas.repository import repo as hosp_repo
+from .repository import repo_orden
 
 class RegistrarOrdenDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar Orden Médica")
-        self.init_ui()
 
-    def init_ui(self):
         layout = QFormLayout(self)
-
         self.id_paciente = QLineEdit()
-        self.descripcion = QLineEdit()
         self.medico = QLineEdit()
+        self.descripcion = QLineEdit()
 
         layout.addRow("ID Paciente", self.id_paciente)
-        layout.addRow("Descripción", self.descripcion)
         layout.addRow("Médico", self.medico)
+        layout.addRow("Descripción", self.descripcion)
 
-        btns = QHBoxLayout()
-        btn_ok = QPushButton("Registrar")
-        btn_cancel = QPushButton("Cancelar")
-
-        btn_ok.clicked.connect(self.registrar)
-        btn_cancel.clicked.connect(self.reject)
-
-        btns.addWidget(btn_ok)
-        btns.addWidget(btn_cancel)
-        layout.addRow(btns)
+        btn = QPushButton("Registrar")
+        btn.clicked.connect(self.registrar)
+        layout.addWidget(btn)
 
     def registrar(self):
-        pid = self.id_paciente.text().strip()
-        desc = self.descripcion.text().strip()
-        medico = self.medico.text().strip()
-
-        if not pid or not desc or not medico:
-            QMessageBox.critical(self, "Error", "Todos los campos son obligatorios")
-            return
-
-        paciente = hosp_repo.pacientes.get(pid)
-        if not paciente or paciente.estado != "hospitalizado":
-            QMessageBox.critical(self, "Error", "Paciente no hospitalizado o inexistente")
+        if not self.id_paciente.text():
+            QMessageBox.warning(self, "Error", "Campos obligatorios")
             return
 
         orden = OrdenMedica(
-            id_orden=f"O-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            id_paciente=pid,
-            descripcion=desc,
-            fecha=datetime.now(),
-            medico=medico
+            id_orden=f"ORD-{datetime.now().strftime('%H%M%S')}",
+            id_paciente=self.id_paciente.text(),
+            medico=self.medico.text(),
+            descripcion=self.descripcion.text(),
+            fecha=datetime.now()
         )
 
-        orden_repo.registrar(orden)
-        QMessageBox.information(self, "Éxito", "Orden registrada")
+        repo_orden.registrar(orden)
+        QMessageBox.information(self, "OK", "Orden registrada")
         self.accept()

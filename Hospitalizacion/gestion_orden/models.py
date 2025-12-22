@@ -5,6 +5,7 @@ from datetime import datetime
 class OrdenMedica:
     id_orden: str
     id_paciente: str
+    medico: str
     descripcion: str
     fecha: datetime
-    medico: str
+    estado: str = "Activa"
