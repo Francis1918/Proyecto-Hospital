@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt
 from Pacientes import PacienteView, PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
-from Hospitalizacion import HospitalizacionView
+from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.ventana_farmacia import VentanaFarmacia
 
 from Medicos.medicos import VentanaPrincipal
