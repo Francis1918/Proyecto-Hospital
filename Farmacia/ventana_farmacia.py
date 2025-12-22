@@ -397,9 +397,12 @@ class VentanaFarmacia(QMainWindow):
         row = self.table_pedidos_prov.currentRow()
         if row >= 0:
             id_pedido = int(self.table_pedidos_prov.item(row, 0).text())
-            msg = self.sistema.eliminarPedidoDeMedicamentosAProveedor(id_pedido)
-            QMessageBox.information(self, "Info", msg)
-            self.actualizar_tabla_pedidos_proveedores()
+            try:
+                msg = self.sistema.eliminarPedidoDeProveedor(id_pedido)
+                QMessageBox.information(self, "Info", msg)
+                self.actualizar_tabla_pedidos_proveedores()
+            except ValueError as e:
+                QMessageBox.warning(self, "Error", str(e))
         else:
             QMessageBox.warning(self, "Error", "Seleccione un pedido")
 
@@ -421,19 +424,27 @@ class VentanaFarmacia(QMainWindow):
     def registrar_recepcion(self):
         try:
             id_pedido = int(self.input_recep_id.text())
-            msg = self.sistema.registrarEntregaDeMedicamentos(id_pedido)
+            msg = self.sistema.registrarRecepcionPedido(id_pedido)
             QMessageBox.information(self, "Resultado", msg)
             self.actualizar_tabla_pedidos_proveedores()
             self.actualizar_tablas_inventario()
-        except ValueError:
-            QMessageBox.warning(self, "Error", "ID inválido")
+        except ValueError as e:
+            QMessageBox.warning(self, "Error", str(e))
 
     # --- PESTAÑA 5: CADUCIDAD ---
     def init_tab_caducidad(self):
         layout = QVBoxLayout()
-        btn_check = QPushButton("Consultar Caducidad (Próximos 30 días)")
+        
+        hbox_filter = QHBoxLayout()
+        self.combo_cad_filtro = QComboBox()
+        self.combo_cad_filtro.addItems(["Próximos (30 días)", "Vencidos", "Todos"])
+        btn_check = QPushButton("Consultar")
         btn_check.clicked.connect(self.consultar_caducidad)
-        layout.addWidget(btn_check)
+        
+        hbox_filter.addWidget(QLabel("Filtro:"))
+        hbox_filter.addWidget(self.combo_cad_filtro)
+        hbox_filter.addWidget(btn_check)
+        layout.addLayout(hbox_filter)
         
         self.table_caducidad = QTableWidget()
         self.table_caducidad.setColumnCount(3)
@@ -444,7 +455,15 @@ class VentanaFarmacia(QMainWindow):
         self.tab_caducidad.setLayout(layout)
 
     def consultar_caducidad(self):
-        lista = self.sistema.consultarCaducidadDeMedicamento()
+        filtro_map = {
+            "Próximos (30 días)": "proximos",
+            "Vencidos": "vencidos",
+            "Todos": "todos"
+        }
+        filtro_txt = self.combo_cad_filtro.currentText()
+        filtro_val = filtro_map.get(filtro_txt, "proximos")
+        
+        lista = self.sistema.consultarCaducidad(tipo="todos", filtro=filtro_val)
         self.table_caducidad.setRowCount(len(lista))
         hoy = QDate.currentDate().toPyDate()
         

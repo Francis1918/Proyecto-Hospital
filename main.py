@@ -8,6 +8,7 @@ from Pacientes import PacienteView, PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion import HospitalizacionView
+from Farmacia.ventana_farmacia import VentanaFarmacia
 
 
 class MenuPrincipal(QMainWindow):
@@ -240,17 +241,29 @@ class MenuPrincipal(QMainWindow):
             ventana.setWindowTitle("Atención de Consultas Externas")
             ventana.resize(800, 700) # Tamaño cómodo para formularios
             self.ventanas_abiertas["consulta_externa"] = ventana
+            self.ventanas_abiertas["hospitalizacion"] = ventana
 
-        self.ventanas_abiertas["consulta_externa"].show()
-        self.ventanas_abiertas["consulta_externa"].raise_()
-        self.ventanas_abiertas["consulta_externa"].activateWindow()
+        w = self.ventanas_abiertas["hospitalizacion"]
+        w.show()
+        try:
+            w.showMaximized()
+        except Exception:
+            pass
+        w.raise_()
+        w.activateWindow()
+        # Ocultar el menú principal mientras Hospitalización está abierta
+        self.hide()
 
     def abrir_farmacia(self):
         """Abre el módulo de farmacia."""
-        QMessageBox.information(
-            self, "Farmacia",
-            "Módulo de Farmacia en desarrollo.\n\nPróximamente disponible."
-        )
+        if "farmacia" not in self.ventanas_abiertas or not self.ventanas_abiertas["farmacia"].isVisible():
+            ventana = VentanaFarmacia()
+            ventana.setWindowTitle("Gestión de Farmacia - Submódulo")
+            self.ventanas_abiertas["farmacia"] = ventana
+
+        self.ventanas_abiertas["farmacia"].show()
+        self.ventanas_abiertas["farmacia"].raise_()
+        self.ventanas_abiertas["farmacia"].activateWindow()
 
     def abrir_hospitalizacion(self):
         """Abre el módulo de hospitalización."""
