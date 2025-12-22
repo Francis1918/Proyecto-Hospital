@@ -1,7 +1,5 @@
-
 from datetime import datetime
 from .models import OrdenMedica
-
 
 class OrdenRepository:
     def __init__(self):
@@ -28,12 +26,6 @@ class OrdenRepository:
             ]
         }
 
-    def registrar_orden(self, orden: OrdenMedica):
-        self.ordenes.setdefault(orden.id_paciente, []).append(orden)
-
-    def obtener_ordenes(self, id_paciente: str):
-        return self.ordenes.get(id_paciente, [])
-=======
     def obtener_por_paciente(self, id_paciente):
         return self.ordenes.get(id_paciente, [])
 
@@ -69,4 +61,3 @@ class OrdenRepository:
         return False
 
 repo_orden = OrdenRepository()
-
