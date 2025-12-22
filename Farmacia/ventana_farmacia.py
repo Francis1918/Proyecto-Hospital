@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QHeaderView, QGroupBox, QFrame
 )
 from PyQt6.QtCore import Qt, QDate
-from logica_farmacia import SistemaFarmacia
+from Farmacia.logica_farmacia import SistemaFarmacia
 
 class VentanaFarmacia(QMainWindow):
     def __init__(self):
