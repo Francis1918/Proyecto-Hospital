@@ -1,20 +1,16 @@
 # Gestión de Orden Médica
 
-Este módulo permite el registro y consulta de órdenes médicas
-asociadas a pacientes hospitalizados.
-
-## Alcance
-- Registrar órdenes médicas
-- Consultar órdenes por paciente
+Este módulo gestiona exclusivamente las órdenes médicas asociadas
+a pacientes hospitalizados.
 
 ## Roles
-- MÉDICO: registrar y consultar
-- JEFE: consultar
+- Médico: registra y consulta órdenes
+- Jefe: consulta órdenes
 
 ## Restricciones
-- Solo se pueden registrar órdenes a pacientes hospitalizados
-- El módulo no modifica estados clínicos ni administrativos
+- Solo se registran órdenes a pacientes hospitalizados
+- No modifica estados clínicos ni infraestructura
 
 ## Diseño
-Este módulo reutiliza la arquitectura del módulo Gestión de Camas y Salas,
-manteniendo separación entre vista, lógica y modelos.
+El módulo reutiliza la arquitectura del sistema de hospitalización
+y el mecanismo de autenticación definido en el UML.

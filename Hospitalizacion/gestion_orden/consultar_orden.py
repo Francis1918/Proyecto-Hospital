@@ -1,13 +1,10 @@
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QLineEdit,
-    QPushButton, QTextEdit, QMessageBox
-)
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QTextEdit
 from .repository import orden_repo
 
 class ConsultarOrdenDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Consultar Órdenes Médicas")
+        self.setWindowTitle("Consultar Órdenes")
         self.init_ui()
 
     def init_ui(self):
@@ -28,16 +25,16 @@ class ConsultarOrdenDialog(QDialog):
 
     def consultar(self):
         pid = self.id_paciente.text().strip()
-        ordenes = orden_repo.obtener_ordenes(pid)
+        ordenes = orden_repo.obtener_por_paciente(pid)
 
         if not ordenes:
-            self.resultado.setText("No existen órdenes médicas registradas.")
+            self.resultado.setText("No existen órdenes registradas.")
             return
 
         texto = ""
         for o in ordenes:
             texto += (
-                f"ID Orden: {o.id_orden}\n"
+                f"ID: {o.id_orden}\n"
                 f"Fecha: {o.fecha}\n"
                 f"Médico: {o.medico}\n"
                 f"Descripción: {o.descripcion}\n"

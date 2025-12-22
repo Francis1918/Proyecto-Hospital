@@ -1,12 +1,8 @@
-from PyQt6.QtWidgets import (
-    QDialog, QFormLayout, QLineEdit,
-    QPushButton, QMessageBox, QHBoxLayout
-)
+from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QMessageBox, QHBoxLayout
 from datetime import datetime
 from .models import OrdenMedica
 from .repository import orden_repo
 
-# reutiliza pacientes del repositorio de hospitalización
 from Hospitalizacion.camas_y_salas.repository import repo as hosp_repo
 
 class RegistrarOrdenDialog(QDialog):
@@ -23,8 +19,8 @@ class RegistrarOrdenDialog(QDialog):
         self.medico = QLineEdit()
 
         layout.addRow("ID Paciente", self.id_paciente)
-        layout.addRow("Descripción de la orden", self.descripcion)
-        layout.addRow("Médico responsable", self.medico)
+        layout.addRow("Descripción", self.descripcion)
+        layout.addRow("Médico", self.medico)
 
         btns = QHBoxLayout()
         btn_ok = QPushButton("Registrar")
@@ -48,11 +44,7 @@ class RegistrarOrdenDialog(QDialog):
 
         paciente = hosp_repo.pacientes.get(pid)
         if not paciente or paciente.estado != "hospitalizado":
-            QMessageBox.critical(
-                self,
-                "Error",
-                "El paciente no está hospitalizado o no existe"
-            )
+            QMessageBox.critical(self, "Error", "Paciente no hospitalizado o inexistente")
             return
 
         orden = OrdenMedica(
@@ -63,6 +55,6 @@ class RegistrarOrdenDialog(QDialog):
             medico=medico
         )
 
-        orden_repo.registrar_orden(orden)
-        QMessageBox.information(self, "Éxito", "Orden médica registrada")
+        orden_repo.registrar(orden)
+        QMessageBox.information(self, "Éxito", "Orden registrada")
         self.accept()
