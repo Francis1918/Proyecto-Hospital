@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QFrame, QGridLayout, QMessageBox
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QCloseEvent
 from Pacientes import PacienteView, PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
@@ -322,13 +323,14 @@ class MenuPrincipal(QMainWindow):
                     ventana.close()
             self.close()
 
-    def closeEvent(self, event):
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
         """Maneja el evento de cierre de la ventana."""
         # Cerrar todas las ventanas secundarias
         for ventana in self.ventanas_abiertas.values():
             if ventana.isVisible():
                 ventana.close()
-        event.accept()
+        if a0:
+            a0.accept()
 
 
 def main():
