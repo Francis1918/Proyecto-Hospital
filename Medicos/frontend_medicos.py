@@ -1,12 +1,20 @@
 import sys
+import os
+
+# --- CORRECCIÓN DE RUTAS (IMPORTANTE) ---
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+# ----------------------------------------
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QPushButton, QFrame, QStackedWidget, QLabel
 )
-# AGREGAMOS QParallelAnimationGroup
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, QParallelAnimationGroup
 from PyQt6.QtGui import QIcon
 
+# Ahora estos imports funcionarán correctamente
 import theme
 from pages.registrar_page import WidgetRegistrar
 from pages.consultar_page import WidgetConsultar
