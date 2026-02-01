@@ -12,7 +12,7 @@ from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.ventana_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 
-from Medicos.medicos import VentanaPrincipal
+from Medicos.frontend_medicos import VentanaPrincipal
 
 class MenuPrincipal(QMainWindow):
     """
