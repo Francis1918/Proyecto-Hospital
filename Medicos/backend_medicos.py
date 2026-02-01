@@ -1,5 +1,4 @@
 import sqlite3
-import os
 
 class GestorMedicos:
     def __init__(self, db_name="medicos.db"):
@@ -14,13 +13,16 @@ class GestorMedicos:
         """Crea la tabla si no existe."""
         conn = self.conectar()
         cursor = conn.cursor()
+        
+        # CORRECCIÓN: Volvemos a TEXT en teléfonos para conservar el '0' inicial.
+        # La validación de que "solo sean números" la hace tu logic_medicos.py
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS medicos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
                 especialidad TEXT NOT NULL,
-                telefono1 TEXT NOT NULL,
+                telefono1 TEXT NOT NULL, 
                 telefono2 TEXT,
                 direccion TEXT,
                 estado TEXT NOT NULL
@@ -47,8 +49,7 @@ class GestorMedicos:
 
     def obtener_medicos(self, buscar="", filtro_esp="Todas las Especialidades", filtro_est="Todos los Estados"):
         """
-        Obtiene médicos aplicando filtros directamente en SQL (más eficiente).
-        Retorna una lista de tuplas incluyendo el ID.
+        Obtiene médicos aplicando filtros directamente en SQL.
         """
         conn = self.conectar()
         cursor = conn.cursor()
@@ -67,7 +68,7 @@ class GestorMedicos:
             query += " AND especialidad = ?"
             params.append(filtro_esp)
 
-        # Filtro Estado
+        # Filtro Estado (Opcional, preparado para el futuro)
         if filtro_est and filtro_est != "Todos los Estados":
             query += " AND estado = ?"
             params.append(filtro_est)

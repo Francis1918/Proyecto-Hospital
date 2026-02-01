@@ -17,30 +17,29 @@ def asset_url(filename: str) -> str:
 # ==========================================
 class Palette:
     # --- Fondos ---
-    Bg_Main        = "#f0f0f0"  # Blanco puro
-    Bg_Soft        = "#f8f9fa"  # Gris muy suave para alternar
+    Bg_Main        = "#FFFFFF"  # Contenido blanco puro
     
-    # --- Textos ---
-    Text_Primary   = "#1a365d"  # Azul oscuro
-    Text_Secondary = "#2d3748"  # Gris oscuro
-    Text_Light     = "#718096"  # Gris claro
+    # --- Sidebar (Gris muy suave, casi blanco) ---
+    Sidebar_Bg     = "#7C93C1"
+    Sidebar_Hover  = "#E2E2E2"
+    Sidebar_Active = "#EAEAEA"
+    Sidebar_Txt_Active = "#000000"
 
-    # --- Sidebar (Azul Corporativo) ---
-    Sidebar_Bg     = "#2c5282"  #
-    Sidebar_Hover  = "#2b6cb0"  #
-    Sidebar_Active = "#2bb5ff"  # Fondo claro seleccionado
-    Sidebar_Txt_Active = "#2c5282" 
+    # --- Textos ---
+    Text_Primary   = "#1A202C"  # Negro suave (Casi negro)
+    Text_Secondary = "#718096"  # Gris para iconos o textos secundarios
+    Text_Light     = "#A0AEC0"  # Gris muy claro (para versiones, footers)
 
     # --- Elementos UI ---
-    Border         = "#cbd5e0"  #
-    Focus          = "#63b3ed"  # Azul brillante
-    Focus_Bg       = "#ebf8ff"  #
+    Border         = "#E2E8F0"  # Bordes muy sutiles
+    Focus          = "#3182CE"  
+    Focus_Bg       = "#EBF8FF"  
     
     # --- Acciones ---
-    Primary        = "#2c5282"  # Usamos el azul del sidebar como primario
-    Action_Blue    = "#5AAEFA"  # Azul botón refrescar
-    Danger         = "#e53e3e"  # Rojo error
-    Success        = "#48bb78"  # Verde éxito
+    Primary        = "#1A202C"  # Botones principales negros (estilo minimalista) o azul si prefieres
+    Action_Blue    = "#3182CE"  
+    Danger         = "#E53E3E"  
+    Success        = "#38A169"
 
 # ==========================================
 # 3. HOJA DE ESTILOS GLOBAL (QSS)
@@ -66,6 +65,10 @@ def get_sheet() -> str:
         font-size: 22px; font-weight: bold; color: {c.Text_Primary}; 
         padding: 0px; margin-bottom: 10px;
     }}
+    QLabel#h2 {{ 
+        font-size: 16px; font-weight: bold; color: {c.Bg_Main}; 
+        padding: 0px;
+    }}
     
     /* --- INPUTS --- */
     QLineEdit, QComboBox {{ 
@@ -84,19 +87,130 @@ def get_sheet() -> str:
         background-color: {c.Bg_Main};
         gridline-color: {c.Border};
         border: 1px solid {c.Border};
-        selection-background-color: {c.Focus_Bg};
-        selection-color: {c.Text_Primary};
+        border-radius: 8px;
+        outline: none; /* Quita la línea punteada fea al seleccionar */
+    }}
+
+    /* Estilo de la celda cuando está SELECCIONADA */
+    QTableWidget::item:selected {{
+        background-color: {c.Focus}; /* Usamos el azul fuerte (#3182CE) para que se note */
+        color: white;               /* Texto blanco */
+        border: none;
+    }}
+
+    /* Estilo de la selección cuando la tabla PIERDE EL FOCO (ej. al tocar botones) */
+    QTableWidget::item:selected:!active {{
+        background-color: {c.Focus};
+        color: white;
+    }}
+
+    QHeaderView::section {{
+        background-color: {c.Sidebar_Bg};
+        color: {c.Text_Primary};
+        border: none;
+        border-bottom: 1px solid {c.Border};
+        padding: 10px;
+        font-weight: 600;
     }}
     QHeaderView::section {{
-        background-color: {c.Bg_Soft};
+        background-color: {c.Sidebar_Hover};
         color: {c.Text_Primary};
         border: none;
         border-bottom: 2px solid {c.Border};
         padding: 8px;
         font-weight: bold;
     }}
-    """
 
+    /* --- SCROLLBAR VERTICAL --- */
+    QScrollBar:vertical {{
+        border: none;
+        background: {c.Focus_Bg};
+        width: 10px;
+        margin: 12px 0px 12px 0px;
+    }}
+    
+    /* La barra que se mueve (Handle) */
+    QScrollBar::handle:vertical {{
+        background: {c.Focus};
+        min-height: 30px;
+        border-radius: 5px;
+    }}
+    
+    /* Efecto Hover en la barra */
+    QScrollBar::handle:vertical:hover {{
+        background: {c.Text_Light};
+    }}
+
+    /* Botón de Arriba (sub-line) */
+    QScrollBar::sub-line:vertical {{
+        border: none;
+        background: {c.Focus};
+        height: 16px;
+        subcontrol-position: top;
+        subcontrol-origin: margin;
+    }}
+
+    /* Botón de Abajo (add-line) */
+    QScrollBar::add-line:vertical {{
+        border: none;
+        background: {c.Focus};
+        height: 16px;
+        subcontrol-position: bottom;
+        subcontrol-origin: margin;
+    }}
+
+    QScrollBar::sub-line:vertical:hover, QScrollBar::add-line:vertical:hover {{
+        background: {c.Focus_Bg};
+    }}
+
+    /* --- ICONOS DE LAS FLECHAS --- */
+    QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
+        width: 12px;
+        height: 12px;
+    }}
+
+    QScrollBar::up-arrow:vertical {{
+        image: url({asset_url("chevron-up.svg")});
+    }}
+
+    QScrollBar::down-arrow:vertical {{
+        image: url({asset_url("chevron-down.svg")});
+    }}
+    /* Fondo cuando no hay barra */
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+        background: none;
+    }}
+
+    /* --- SCROLLBAR HORIZONTAL --- */
+    QScrollBar:horizontal {{
+        border: none;
+        background: {c.Focus_Bg}; /* Fondo sutil (gris muy claro) */
+        height: 10px;            /* Altura delgada */
+        margin: 0px 0px 0px 0px;
+        border-radius: 0px;
+    }}
+    
+    QScrollBar::handle:horizontal {{
+        background: {c.Focus};
+        min-width: 30px;
+        border-radius: 5px;
+    }}
+    
+    QScrollBar::handle:horizontal:hover {{
+        background: {c.Text_Light};
+    }}
+    
+    QScrollBar::sub-line:horizontal, QScrollBar::add-line:horizontal {{
+        border: none;
+        background: none;
+        width: 0px;
+    }}
+    
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+        background: none;
+    }}
+    """
+    
 # ==========================================
 # 4. COMPONENTES ESPECÍFICOS
 # ==========================================
@@ -118,7 +232,7 @@ STYLES = {
             background-color: {c.Primary}; 
             color: white; 
             border-radius: 6px; 
-            padding: 8px 16px; 
+            padding: 8px; 
             font-weight: bold; 
         }}
         QPushButton:hover {{ background-color: {c.Sidebar_Hover}; }}
@@ -130,27 +244,30 @@ STYLES = {
             background-color: transparent; 
             border: 1px solid {c.Border}; 
             border-radius: 6px; 
-            padding: 6px; 
+            padding: 8px; 
         }} 
-        QPushButton:hover {{ background-color: {c.Bg_Soft}; }}
+        QPushButton:hover {{ background-color: {c.Sidebar_Hover}; }}
     """,
 
     # Botones del Sidebar (Estilo exacto de estilos.qss)
     "sidebar_btn": f"""
         QPushButton {{
             background-color: transparent; 
-            color: white; 
+            color: {c.Bg_Main}; 
             text-align: left; 
-            padding: 12px 20px; 
+            padding: 10px 15px; 
             border: none; 
-            border-left: 4px solid transparent;
+            border-radius: 8px; /* Bordes redondeados */
             font-size: 14px;
+            margin: 2px 10px; /* Margen para que el botón no toque los bordes del sidebar */
         }}
-        QPushButton:hover {{ background-color: {c.Sidebar_Hover}; }}
+        QPushButton:hover {{ 
+            background-color: {c.Sidebar_Hover}; 
+            color: {c.Text_Primary};
+        }}
         QPushButton:checked {{ 
-            background-color: {c.Sidebar_Active}; 
+            background-color: {c.Sidebar_Active}; /* Fondo gris suave */
             color: {c.Sidebar_Txt_Active}; 
-            border-left: 4px solid {c.Primary}; 
             font-weight: bold; 
         }}
     """,
@@ -191,7 +308,7 @@ STYLES = {
 
         /* Estilo de la lista desplegable (El menú que se abre) */
         QComboBox QAbstractItemView {{
-            background-color: {c.Text_Primary}; 
+            background-color: {c.Focus}; 
             color: {c.Bg_Main};
             border: 1px solid {c.Border};
             selection-background-color: {c.Primary}; 
