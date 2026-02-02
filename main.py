@@ -13,7 +13,7 @@ from Farmacia.ventana_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 from database import inicializar_db
 
-from Medicos.frontend_medicos import VentanaPrincipal
+from Medicos.frontend.frontend_medicos import VentanaPrincipal
 
 class MenuPrincipal(QMainWindow):
     """

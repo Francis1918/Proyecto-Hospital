@@ -1,41 +1,30 @@
+# Medicos/backend/backend_medicos.py
+
 import sqlite3
+import os
 
 class GestorMedicos:
-    def __init__(self, db_name="medicos.db"):
-        self.db_name = db_name
-        self.inicializar_db()
+    def __init__(self):
+        # 1. CAMBIO IMPORTANTE: Apuntamos a la base de datos central
+        # Usamos ruta relativa para asegurar que encuentre el archivo en la raíz del proyecto
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.db_name = os.path.join(base_dir, "hospital.db")
+        
+        # Opcional: Ya no llamamos a inicializar_db() aquí forzosamente
+        # porque main.py llama a database.py -> inicializar_db() al arrancar.
 
     def conectar(self):
-        """Establece conexión con la base de datos."""
+        """Establece conexión con la base de datos central."""
         return sqlite3.connect(self.db_name)
 
-    def inicializar_db(self):
-        """Crea la tabla si no existe."""
-        conn = self.conectar()
-        cursor = conn.cursor()
-        
-        # CORRECCIÓN: Volvemos a TEXT en teléfonos para conservar el '0' inicial.
-        # La validación de que "solo sean números" la hace tu logic_medicos.py
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS medicos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombres TEXT NOT NULL,
-                apellidos TEXT NOT NULL,
-                especialidad TEXT NOT NULL,
-                telefono1 TEXT NOT NULL, 
-                telefono2 TEXT,
-                direccion TEXT,
-                estado TEXT NOT NULL
-            )
-        ''')
-        conn.commit()
-        conn.close()
+    # El método inicializar_db se puede conservar como seguridad, 
+    # pero database.py es quien manda ahora.
 
     def registrar_medico(self, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
-        """Inserta un nuevo médico."""
         conn = self.conectar()
         cursor = conn.cursor()
         try:
+            # Nota: database.py define 'telefono1' y 'telefono2', asegúrate de usar esos nombres
             cursor.execute('''
                 INSERT INTO medicos (nombres, apellidos, especialidad, telefono1, telefono2, direccion, estado)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -48,27 +37,21 @@ class GestorMedicos:
             conn.close()
 
     def obtener_medicos(self, buscar="", filtro_esp="Todas las Especialidades", filtro_est="Todos los Estados"):
-        """
-        Obtiene médicos aplicando filtros directamente en SQL.
-        """
         conn = self.conectar()
         cursor = conn.cursor()
         
         query = "SELECT * FROM medicos WHERE 1=1"
         params = []
 
-        # Filtro de búsqueda (Nombre o Apellido)
         if buscar:
             query += " AND (lower(nombres) LIKE ? OR lower(apellidos) LIKE ?)"
             term = f"%{buscar.lower()}%"
             params.extend([term, term])
 
-        # Filtro Especialidad
         if filtro_esp and filtro_esp != "Todas las Especialidades":
             query += " AND especialidad = ?"
             params.append(filtro_esp)
 
-        # Filtro Estado (Opcional, preparado para el futuro)
         if filtro_est and filtro_est != "Todos los Estados":
             query += " AND estado = ?"
             params.append(filtro_est)
@@ -79,7 +62,6 @@ class GestorMedicos:
         return resultados
 
     def actualizar_medico(self, id_medico, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
-        """Actualiza un médico existente por su ID."""
         conn = self.conectar()
         cursor = conn.cursor()
         try:
@@ -96,7 +78,6 @@ class GestorMedicos:
             conn.close()
 
     def eliminar_medico(self, id_medico):
-        """Elimina un médico por su ID."""
         conn = self.conectar()
         cursor = conn.cursor()
         try:
