@@ -25,121 +25,6 @@ class ConsultarPacienteDialog(QDialog):
             self.txt_buscar.setText(self.cc_paciente)
             self.filtrar_pacientes()
 
-    def get_styles(self):
-        """Retorna los estilos CSS para el diálogo."""
-        return """
-            QDialog {
-                background-color: #e8f4fc;
-            }
-            QLabel#titulo {
-                color: #1a365d;
-                font-size: 24px;
-                font-weight: bold;
-                padding: 15px;
-            }
-            QLabel {
-                color: #1a365d;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            QLineEdit {
-                padding: 10px;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                font-size: 14px;
-                background-color: white;
-                color: #2d3748;
-            }
-            QLineEdit:focus {
-                border-color: #2c5282;
-            }
-            QComboBox {
-                padding: 8px;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                font-size: 14px;
-                background-color: white;
-                color: #2d3748;
-                min-width: 150px;
-            }
-            QComboBox:focus {
-                border-color: #2c5282;
-            }
-            QComboBox::drop-down {
-                border: none;
-                padding-right: 10px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #2d3748;
-                selection-background-color: #3182ce;
-                selection-color: white;
-            }
-            QPushButton {
-                background-color: #3182ce;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2c5282;
-            }
-            QPushButton:pressed {
-                background-color: #1a365d;
-            }
-            QPushButton#btn_cerrar {
-                background-color: #718096;
-            }
-            QPushButton#btn_cerrar:hover {
-                background-color: #4a5568;
-            }
-            QGroupBox {
-                font-weight: bold;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                margin-top: 15px;
-                padding: 15px;
-                padding-top: 25px;
-                background-color: white;
-            }
-            QGroupBox::title {
-                color: #1a365d;
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                left: 15px;
-                top: 5px;
-                padding: 0 8px;
-                background-color: white;
-                font-size: 14px;
-            }
-            QTableWidget {
-                background-color: white;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                gridline-color: #e2e8f0;
-                font-size: 13px;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                color: #2d3748;
-            }
-            QTableWidget::item:selected {
-                background-color: #3182ce;
-                color: white;
-            }
-            QHeaderView::section {
-                background-color: #3182ce;
-                color: white;
-                padding: 10px;
-                border: none;
-                font-weight: bold;
-                font-size: 13px;
-            }
-        """
-
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Consultar Pacientes")
@@ -355,105 +240,6 @@ class DetallePacienteDialog(QDialog):
         self.init_ui()
         self.cargar_datos_paciente()
 
-    def get_styles(self):
-        """Retorna los estilos CSS para el diálogo."""
-        return """
-            QDialog {
-                background-color: #e8f4fc;
-            }
-            QLabel#titulo {
-                color: #1a365d;
-                font-size: 24px;
-                font-weight: bold;
-                padding: 15px;
-            }
-            QLabel#info_paciente {
-                color: #1a365d;
-                font-size: 18px;
-                font-weight: bold;
-                padding: 15px;
-                background-color: white;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-            }
-            QLabel {
-                color: #1a365d;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            QTabWidget::pane {
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                background-color: white;
-            }
-            QTabBar::tab {
-                background-color: #e2e8f0;
-                color: #1a365d;
-                padding: 10px 20px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                font-weight: bold;
-            }
-            QTabBar::tab:selected {
-                background-color: #3182ce;
-                color: white;
-            }
-            QLineEdit, QTextEdit {
-                padding: 8px;
-                border: 2px solid #3182ce;
-                border-radius: 6px;
-                font-size: 13px;
-                background-color: white;
-                color: #2d3748;
-            }
-            QLineEdit:focus, QTextEdit:focus {
-                border-color: #2c5282;
-            }
-            QLineEdit:read-only, QTextEdit:read-only {
-                background-color: #f7fafc;
-                color: #2d3748;
-            }
-            QPushButton {
-                background-color: #3182ce;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2c5282;
-            }
-            QPushButton:pressed {
-                background-color: #1a365d;
-            }
-            QPushButton#btn_cerrar {
-                background-color: #718096;
-            }
-            QPushButton#btn_cerrar:hover {
-                background-color: #4a5568;
-            }
-            QGroupBox {
-                font-weight: bold;
-                border: 2px solid #3182ce;
-                border-radius: 8px;
-                margin-top: 15px;
-                padding: 15px;
-                padding-top: 25px;
-                background-color: white;
-            }
-            QGroupBox::title {
-                color: #1a365d;
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                left: 15px;
-                top: 5px;
-                padding: 0 8px;
-                background-color: white;
-                font-size: 14px;
-            }
-        """
 
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
@@ -691,20 +477,20 @@ class DetallePacienteDialog(QDialog):
 
         if anamnesis:
             texto = f"""
-MOTIVO DE CONSULTA:
-{anamnesis.get('motivo_consulta', 'No registrado')}
+            MOTIVO DE CONSULTA:
+            {anamnesis.get('motivo_consulta', 'No registrado')}
 
-ENFERMEDAD ACTUAL:
-{anamnesis.get('enfermedad_actual', 'No registrado')}
+            ENFERMEDAD ACTUAL:
+            {anamnesis.get('enfermedad_actual', 'No registrado')}
 
-ANTECEDENTES PERSONALES:
-{anamnesis.get('antecedentes_personales', 'No registrado')}
+            ANTECEDENTES PERSONALES:
+            {anamnesis.get('antecedentes_personales', 'No registrado')}
 
-ANTECEDENTES FAMILIARES:
-{anamnesis.get('antecedentes_familiares', 'No registrado')}
+            ANTECEDENTES FAMILIARES:
+            {anamnesis.get('antecedentes_familiares', 'No registrado')}
 
-ALERGIAS:
-{anamnesis.get('alergias', 'No registrado')}
+            ALERGIAS:
+            {anamnesis.get('alergias', 'No registrado')}
             """
             self.txt_anamnesis.setText(texto.strip())
         else:

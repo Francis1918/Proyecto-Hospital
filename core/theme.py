@@ -68,9 +68,10 @@ def get_sheet() -> str:
     }}
 
     /* =======================================================
-       3. INPUTS Y FORMULARIOS (QLineEdit, QDateEdit, etc.)
+       3. INPUTS Y FORMULARIOS GENERALES
+       (QLineEdit, QComboBox, QDateEdit, QDateTimeEdit)
        ======================================================= */
-    QLineEdit, QComboBox, QDateEdit, QDateTimeEdit, QSpinBox {{ 
+    QLineEdit, QComboBox, QDateEdit, QDateTimeEdit {{ 
         background-color: {c.Bg_Card}; 
         border: 1px solid {c.Border}; 
         border-radius: 6px; 
@@ -78,16 +79,16 @@ def get_sheet() -> str:
         color: {c.text_primary};
         selection-background-color: {c.Focus};
         selection-color: white;
-        font-size: 14px; /* Explícito para evitar herencias raras */
+        font-size: 14px;
     }}
 
-    QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDateTimeEdit:focus, QSpinBox:focus {{ 
+    QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDateTimeEdit:focus {{ 
         border: 1px solid {c.Focus}; 
         background-color: {c.Bg_Card}; 
     }}
     
-    /* Botón flecha en DateEdit/ComboBox */
-    QDateEdit::drop-down, QComboBox::drop-down {{
+    /* Botón flecha desplegable en DateEdit/ComboBox */
+    QComboBox::drop-down, QDateEdit::drop-down, QDateTimeEdit::drop-down {{
         subcontrol-origin: padding;
         subcontrol-position: top right;
         width: 30px; 
@@ -95,44 +96,81 @@ def get_sheet() -> str:
         border-top-right-radius: 6px;
         border-bottom-right-radius: 6px;
     }}
+    
+    /* Flecha visual para QDateEdit */
+    QDateEdit::down-arrow, QDateTimeEdit::down-arrow {{
+        width: 10px;
+        height: 10px;
+        /* Esto usa el estilo por defecto del sistema operativo si no se define imagen,
+           pero asegura que el área sea clicable */
+    }}
 
     /* =======================================================
-       4. CALENDARIO (QCalendarWidget) - FIX CRÍTICO APLICADO
+       4. CALENDARIO (QCalendarWidget)
        ======================================================= */
-    /* Fondo general del popup */
+    
+    /* Widget base: Fuente explícita para evitar errores de cálculo */
+    QCalendarWidget {{
+        font-size: 14px;
+    }}
+
+    /* Fondo general */
     QCalendarWidget QWidget {{
         background-color: {c.Bg_Card};
         alternate-background-color: {c.bg_main};
         color: {c.text_primary};
     }}
     
-    /* Barra de navegación superior (Mes, Año, Flechas) */
-    /* IMPORTANTE: font-size explícito evita el error 'Point size <= 0' */
+    /* BOTONES DE NAVEGACIÓN (Mes anterior/siguiente)
+       IMPORTANTE: border: 1px solid transparent (reserva espacio)
+    */
     QCalendarWidget QToolButton {{
         color: {c.text_primary};
         background-color: transparent;
         icon-size: 20px;
+        border: 1px solid transparent; 
         border-radius: 4px;
         font-weight: bold;
         margin: 2px;
-        font-size: 14px;  /* <--- ESTA LÍNEA ARREGLA EL ERROR */
+        font-size: 13px;
+        height: 25px; /* Altura fija ayuda a la estabilidad */
+        width: 25px;
     }}
+    
     QCalendarWidget QToolButton:hover {{
         background-color: {c.hover};
         border: 1px solid {c.Border};
     }}
     
-    /* Input del año (SpinBox dentro del calendario) */
+    /* SELECTOR DE AÑO (QSpinBox dentro del calendario)
+       IMPORTANTE: Sobrescribimos el padding global para que no rompa el header
+    */
     QCalendarWidget QSpinBox {{
         background-color: {c.bg_main};
         color: {c.text_primary};
         border: 1px solid {c.Border};
         border-radius: 4px;
-        font-size: 14px;  /* <--- ESTA TAMBIÉN ES NECESARIA */
+        margin: 2px;
+        font-size: 13px;
+        padding-right: 0px; /* <--- CRUCIAL: Quita el padding de los flechas globales */
         selection-background-color: {c.Focus};
+        selection-color: white;
+        min-width: 60px;
     }}
     
-    /* La cuadrícula de días */
+    /* Flechas del SpinBox del año */
+    QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {{
+        subcontrol-origin: border;
+        width: 15px;
+        border: none;
+        background: transparent;
+    }}
+
+    QCalendarWidget QSpinBox::up-button:hover, QCalendarWidget QSpinBox::down-button:hover {{
+        background-color: {c.hover};
+    }}
+    
+    /* La grilla de días */
     QCalendarWidget QAbstractItemView:enabled {{
         color: {c.text_primary};
         background-color: {c.Bg_Card};
@@ -142,10 +180,73 @@ def get_sheet() -> str:
         outline: 0;
     }}
     
-    /* Días deshabilitados (otro mes) */
     QCalendarWidget QAbstractItemView:disabled {{
         color: {c.text_light};
     }}
+
+    /* =======================================================
+       3.1 SPINBOXES (NUEVO CÓDIGO AGREGADO)
+       ======================================================= */
+    QSpinBox, QDoubleSpinBox {{
+        background-color: {c.Bg_Card}; 
+        color: {c.text_primary}; 
+        border: 1px solid {c.Border};
+        border-radius: 6px;
+        padding: 6px 10px; 
+        padding-right: 25px; /* Espacio para botones */
+        selection-background-color: {c.Focus};
+        selection-color: white;
+        font-size: 14px;
+    }}
+    
+    QSpinBox:focus, QDoubleSpinBox:focus {{
+        background-color: {c.Bg_Card};
+        border: 1px solid {c.Focus};
+    }}
+
+    /* Botón Arriba */
+    QSpinBox::up-button, QDoubleSpinBox::up-button {{
+        subcontrol-origin: border; 
+        subcontrol-position: top right; 
+        width: 20px; 
+        border: none;
+        border-left: 1px solid {c.Border}; 
+        border-top-right-radius: 6px; 
+        background-color: {c.Bg_Card};
+        margin-top: 1px;
+        margin-right: 1px;
+    }}
+    
+    /* Botón Abajo */
+    QSpinBox::down-button, QDoubleSpinBox::down-button {{
+        subcontrol-origin: border; 
+        subcontrol-position: bottom right; 
+        width: 20px; 
+        border: none;
+        border-left: 1px solid {c.Border}; 
+        border-bottom-right-radius: 6px; 
+        background-color: {c.Bg_Card};
+        margin-bottom: 1px;
+        margin-right: 1px;
+    }}
+
+    /* Hover en los botones */
+    QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+    QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {{
+        background-color: {c.hover};
+    }}
+
+    /* Flechas internas (para asegurar que se vean limpias) */
+    QSpinBox::up-arrow, QDoubleSpinBox::up-arrow,
+    QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+        width: 8px;
+        height: 8px;
+        color: {c.text_secondary};
+    }}
+
+    /* =======================================================
+       4. CALENDARIO (QCalendarWidget)
+       ======================================================= */
 
     /* =======================================================
        5. PESTAÑAS (QTabWidget)
@@ -180,7 +281,7 @@ def get_sheet() -> str:
        ======================================================= */
     QTableWidget {{
         background-color: {c.Bg_Card};
-        gridline-color: {c.hover}; /* Líneas sutiles */
+        gridline-color: {c.hover};
         border: 1px solid {c.Border};
         border-radius: 8px;
         selection-background-color: {c.Focus_Bg};
@@ -229,6 +330,41 @@ def get_sheet() -> str:
     }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
         height: 0px;
+    }}
+    /* =======================================================
+       8. Comboboxes (QComboBox)
+       ======================================================= */   
+    QComboBox {{
+        background-color: {AppPalette.Bg_Card}; 
+        border: 1px solid {AppPalette.Border};
+        border-radius: 6px; 
+        padding: 6px 12px; 
+        color: {AppPalette.text_primary};
+        font-size: 14px;
+    }}
+    QComboBox:hover, QComboBox:focus {{ 
+        border: 1px solid {AppPalette.Focus}; 
+    }}
+    QComboBox::drop-down {{ border: none; width: 30px; }}
+    
+    QComboBox QAbstractItemView {{
+        background-color: {AppPalette.Bg_Card};
+        border: 1px solid {AppPalette.Border};
+        border-radius: 6px; 
+        selection-background-color: {AppPalette.Focus_Bg};
+        selection-color: {AppPalette.Focus};
+        outline: none;
+        padding: 4px;
+    }}
+    QComboBox QAbstractItemView::item {{
+        min-height: 30px;
+        padding: 0px 8px;
+        color: {AppPalette.text_primary};
+        border: 1px solid {AppPalette.Border};
+    }}
+    QComboBox QAbstractItemView::item:selected {{
+        background-color: {AppPalette.Focus_Bg};
+        color: {AppPalette.Focus};
     }}
     """
 
@@ -319,7 +455,6 @@ STYLES = {
         }}
     """,
     "combobox": f"""
-        /* ESTILO ESPECÍFICO PARA COMBOBOX QUE NECESITAN MAS DETALLE */
         QComboBox {{
             background-color: {AppPalette.Bg_Card}; 
             border: 1px solid {AppPalette.Border};
@@ -333,7 +468,6 @@ STYLES = {
         }}
         QComboBox::drop-down {{ border: none; width: 30px; }}
         
-        /* Popup desplegable */
         QComboBox QAbstractItemView {{
             background-color: {AppPalette.Bg_Card};
             border: 1px solid {AppPalette.Border};
@@ -347,7 +481,7 @@ STYLES = {
             min-height: 30px;
             padding: 0px 8px;
             color: {AppPalette.text_primary};
-            border: none;
+            border: 1px solid {AppPalette.Border};
         }}
         QComboBox QAbstractItemView::item:selected {{
             background-color: {AppPalette.Focus_Bg};
