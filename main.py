@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFrame, QStackedWidget, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 
 # --- IMPORTACIONES ---
 import core.utils as utils
@@ -20,6 +20,7 @@ from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 from core.database import inicializar_db
 from Medicos.frontend import module_medicos
+from dashboard_view import DashboardView
 
 class MenuPrincipal(QMainWindow):
     """
@@ -77,7 +78,7 @@ class MenuPrincipal(QMainWindow):
         self.header_layout = QHBoxLayout(self.header_widget)
         self.header_layout.setContentsMargins(15, 8, 15, 8)
         
-        self.lbl_logo = QLabel("Hospital\nManager")
+        self.lbl_logo = QLabel("Sistema\nHospitalario")
         self.lbl_logo.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-weight: bold; font-size: 15px;")
         
         self.icon_app = QLabel()
@@ -262,19 +263,25 @@ class MenuPrincipal(QMainWindow):
             }}
             QPushButton:hover {{ background-color: #fef2f2; border-radius: 8px; }}
         """)
+    def navegar_por_indice(self, index):
+        """Permite navegar usando solo el número de índice (para el Dashboard)"""
+        if 0 <= index < len(self.nav_btns):
+            boton_destino = self.nav_btns[index]
+            self.navegar(boton_destino)
 
     def load_modules(self):
         # --- 0. Inicio (Dashboard) ---
-        page_home = QWidget()
-        l = QVBoxLayout(page_home)
-        l.addWidget(QLabel("Dashboard Principal", alignment=Qt.AlignmentFlag.AlignCenter))
-        self.stack.addWidget(page_home)
+        self.view_dashboard = DashboardView()
+        # Conectamos la señal de los botones para que naveguen
+        self.view_dashboard.solicitar_navegacion.connect(self.navegar_por_indice)
+        
+        self.stack.addWidget(self.view_dashboard)
 
         # --- Helper para cargar ventanas QMainWindow dentro de widgets ---
         def embed(window):
+            # Transformamos la ventana en un widget simple
             window.setWindowFlags(Qt.WindowType.Widget)
             window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-            window.show()
             return window
 
         # --- 1. Citas ---
