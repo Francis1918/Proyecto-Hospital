@@ -1,41 +1,38 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget
-try:
-    from .evolucion_widget import EvolucionWidget
-    from .cuidados_widget import CuidadosWidget
-except Exception:
-    import os, sys
-    # Asegurarnos de que la raíz del proyecto esté en sys.path para que
-    # las importaciones absolutas como 'Hospitalizacion...' resuelvan
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-    if root not in sys.path:
-        sys.path.insert(0, root)
-    from Hospitalizacion.evolucion_cuidados.evolucion_widget import EvolucionWidget
-    from Hospitalizacion.evolucion_cuidados.cuidados_widget import CuidadosWidget
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTabWidget, QHBoxLayout, QLabel
+from PyQt6.QtCore import Qt
+from .evolucion_widget import EvolucionWidget
+from .cuidados_widget import CuidadosWidget
+from core.theme import AppPalette as HospitalPalette
 
 class EvolucionCuidadosView(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.main_layout = QVBoxLayout(self)
-        
+    def __init__(self, parent_hospitalizacion):
+        super().__init__()
+        self.parent_hosp = parent_hospitalizacion
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header (sin botón de volver redundante)
+        header_layout = QHBoxLayout()
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
+
+        # Título de sección con color oscuro para evitar letras blancas
+        lbl_seccion = QLabel("Gestión de Evolución Médica y Cuidados")
+        lbl_seccion.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-size: 20px; font-weight: bold;")
+        layout.addWidget(lbl_seccion)
+
+        # Sistema de Pestañas
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{ border: 1px solid {HospitalPalette.Border}; border-radius: 8px; background: white; }}
+            QTabBar::tab {{ padding: 12px 25px; background: #edf2f7; color: {HospitalPalette.text_secondary}; }}
+            QTabBar::tab:selected {{ background: white; color: {HospitalPalette.Primary}; font-weight: bold; }}
+        """)
         
-        self.tab_evolucion = EvolucionWidget()
-        self.tab_cuidados = CuidadosWidget()
+        self.tabs.addTab(EvolucionWidget(), "Evolución Médica")
+        self.tabs.addTab(CuidadosWidget(), "Cuidados de Enfermería")
         
-        # En la UI sí podemos usar tildes
-        self.tabs.addTab(self.tab_evolucion, "Evolución Médica")
-        self.tabs.addTab(self.tab_cuidados, "Cuidados de Enfermería")
-        
-        self.main_layout.addWidget(self.tabs)
-
-
-if __name__ == "__main__":
-    import sys
-    from PyQt6.QtWidgets import QApplication, QMainWindow
-
-    app = QApplication(sys.argv)
-    win = QMainWindow()
-    win.setWindowTitle("Prueba Evolución y Cuidados")
-    win.setCentralWidget(EvolucionCuidadosView(win))
-    win.show()
-    sys.exit(app.exec())
+        layout.addWidget(self.tabs)
