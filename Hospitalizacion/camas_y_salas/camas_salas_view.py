@@ -59,12 +59,7 @@ class CamasSalasView(QMainWindow):
 
         layout.addWidget(container)
 
-        # Botón de regreso
-        btn_back = QPushButton("Regresar")
-        btn_back.setProperty("class", "menu_btn")
-        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_back.clicked.connect(self.go_back)
-        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignCenter)
+        # (Se eliminó botón de regreso redundante; la navegación la controla la vista padre)
 
         # Abrir maximizado
         try:

@@ -25,8 +25,7 @@ class GestionOrdenView(QMainWindow):
             QPushButton.menu_btn { background-color: #3182ce; color: white; border: none; border-radius: 8px; padding: 16px; font-size: 14px; font-weight: bold; min-height: 56px; min-width: 220px; }
             QPushButton.menu_btn:hover { background-color: #2c5282; }
             QPushButton.menu_btn:pressed { background-color: #1a365d; }
-            QPushButton#btn_volver { background-color: #718096; }
-            QPushButton#btn_volver:hover { background-color: #4a5568; }
+            /* Botón volver eliminado en versión embebida */
         """
 
     def init_ui(self):
@@ -84,12 +83,7 @@ class GestionOrdenView(QMainWindow):
         self.btn_anular.clicked.connect(self.anular)
         grid.addWidget(self.btn_anular, 1, 1)
 
-        self.btn_volver = QPushButton("Volver")
-        self.btn_volver.setProperty("class", "menu_btn")
-        self.btn_volver.setObjectName("btn_volver")
-        self.btn_volver.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_volver.clicked.connect(self.volver)
-        layout.addWidget(self.btn_volver, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Botón 'Volver' eliminado: la navegación la controla la vista padre
 
     def registrar(self):
         if self.rol != "MEDICO":
@@ -112,7 +106,3 @@ class GestionOrdenView(QMainWindow):
              return
         AnularOrdenDialog(self).exec()
 
-    def volver(self):
-        if self.parent_view:
-            self.parent_view.show()
-        self.close()

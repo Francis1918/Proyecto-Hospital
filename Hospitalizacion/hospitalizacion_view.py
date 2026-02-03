@@ -1,298 +1,117 @@
-from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QGridLayout,
-    QFrame, QPushButton, QLabel, QMessageBox
-)
+import sys
+import os
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame
 from PyQt6.QtCore import Qt
-try:
-    from .camas_y_salas import CamasSalasView
-except ImportError:
-    # Permitir ejecutar este archivo directamente agregando el directorio padre al sys.path
-    import os, sys
-    # Asegurar que la raíz del proyecto esté en sys.path para que
-    # las importaciones absolutas como 'Hospitalizacion...' resuelvan
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    if root not in sys.path:
-        sys.path.insert(0, root)
-    from Hospitalizacion.camas_y_salas import CamasSalasView
 
+# Configuración de ruta para core
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from core.theme import AppPalette as HospitalPalette, get_sheet
+from Hospitalizacion.evolucion_cuidados.evolucion_cuidados_view import EvolucionCuidadosView
+from Hospitalizacion.camas_y_salas.camas_salas_view import CamasSalasView
+from Hospitalizacion.Visitas.visitas_view import VisitasView
+# Importar la gestión de órdenes que ya existe en tu repo
+from Hospitalizacion.gestion_orden.orden_view import GestionOrdenView
 
 class HospitalizacionView(QMainWindow):
-    """
-    Submenú del módulo Hospitalización.
-    Contiene accesos a:
-    - Gestión de camas y salas
-    - Visitas y restricciones
-    - Gestión de admisión y alta
-    - Gestión de orden, evolución y cuidados
-    """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.padre = parent
-        # Mantener referencias a subventanas para evitar GC y cierre inmediato
-        self.ventanas_abiertas = {}
         self.init_ui()
 
-    def get_styles(self):
-        """Estilos QSS para la vista de hospitalización."""
-        return """
-            QMainWindow {
-                background-color: #e8f4fc;
-            }
-            QWidget#central {
-                background-color: #e8f4fc;
-            }
-            QLabel#titulo {
-                color: #1a365d;
-                font-size: 28px;
-                font-weight: bold;
-                padding: 16px;
-            }
-            QFrame#menu_container {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 12px;
-                padding: 24px;
-            }
-            QPushButton.menu_btn {
-                background-color: #3182ce;
-                color: white;
-                border: none;
-                border-radius: 10px;
-                padding: 20px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 70px;
-                min-width: 220px;
-            }
-            QPushButton.menu_btn:hover {
-                background-color: #2c5282;
-            }
-            QPushButton.menu_btn:pressed {
-                background-color: #1a365d;
-            }
-            QPushButton#btn_salir {
-                background-color: #e53e3e;
-                color: white;
-                border: none;
-                border-radius: 10px;
-                padding: 16px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 60px;
-                min-width: 180px;
-            }
-            QPushButton#btn_salir:hover {
-                background-color: #c53030;
-            }
-        """
-
     def init_ui(self):
-        self.setWindowTitle("Hospitalización - Submódulo")
-        self.setMinimumSize(900, 600)
-        self.setStyleSheet(self.get_styles())
+        # Aplicar el stylesheet global para asegurar colores legibles en inputs
+        try:
+            self.setStyleSheet(get_sheet())
+        except Exception:
+            # Fallback a fondo simple si falla
+            self.setStyleSheet(f"background-color: {HospitalPalette.bg_main};")
+        
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
-        central = QWidget()
-        central.setObjectName("central")
-        self.setCentralWidget(central)
+        # --- ENCABEZADO (Header idéntico a Pacientes) ---
+        self.header_frame = QFrame()
+        self.header_frame.setStyleSheet("background-color: white; border-bottom: 1px solid #e2e8f0;")
+        header_layout = QVBoxLayout(self.header_frame)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        titulo_container = QWidget()
+        titulo_layout = QHBoxLayout(titulo_container)
+        self.lbl_titulo = QLabel("Hospitalización")
+        self.lbl_titulo.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-size: 26px; font-weight: bold; padding: 15px 20px;")
+        titulo_layout.addWidget(self.lbl_titulo)
+        titulo_layout.addStretch()
+        header_layout.addWidget(titulo_container)
 
-        layout = QVBoxLayout(central)
-        layout.setSpacing(20)
-        layout.setContentsMargins(40, 20, 40, 20)
+        # --- BARRA DE PESTAÑAS (Sin "Inicio") ---
+        self.nav_bar = QWidget()
+        self.nav_bar.setFixedHeight(50)
+        nav_layout = QHBoxLayout(self.nav_bar)
+        nav_layout.setContentsMargins(20, 0, 20, 0)
+        nav_layout.setSpacing(10)
 
-        titulo = QLabel("Hospitalización")
-        titulo.setObjectName("titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(titulo)
-
-        container = QFrame()
-        container.setObjectName("menu_container")
-        grid = QGridLayout(container)
-        grid.setSpacing(20)
-        grid.setContentsMargins(20, 20, 20, 20)
-
-        botones = [
-            ("Gestión de camas y salas", self.abrir_camas_salas),
-            ("Visitas y restricciones", self.abrir_visitas_restricciones),
-            ("Gestión de admisión y alta", self.abrir_admision_alta),
-            ("Evolución y cuidados", self.abrir_evolucion_cuidados),
-            ("Gestión de orden", self.abrir_orden_evolucion_cuidados),
+        self.btns = []
+        # Solo módulos con contenido
+        self.tabs_info = [
+            ("Camas y Salas", 0),
+            ("Evolución y Cuidados", 1),
+            ("Órdenes Médicas", 2),
+            ("Visitas", 3),
+            ("Admisión y Alta", 4)
         ]
 
-        for i, (texto, handler) in enumerate(botones):
-            btn = QPushButton(texto)
-            btn.setProperty("class", "menu_btn")
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.clicked.connect(handler)
-            row = i // 2
-            col = i % 2
-            grid.addWidget(btn, row, col)
+        for texto, index in self.tabs_info:
+            btn = self.crear_nav_btn(texto, index)
+            self.btns.append(btn)
+            nav_layout.addWidget(btn)
+        
+        nav_layout.addStretch()
+        header_layout.addWidget(self.nav_bar)
+        self.main_layout.addWidget(self.header_frame)
 
-        layout.addWidget(container)
+        # --- CONTENEDOR DE VISTAS (STACK) ---
+        self.stack = QStackedWidget()
+        self.main_layout.addWidget(self.stack)
 
-        # Botón salir/cerrar submódulo
-        btn_salir = QPushButton("Cerrar Hospitalización")
-        btn_salir.setObjectName("btn_salir")
-        btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_salir.clicked.connect(self.close)
-        layout.addWidget(btn_salir, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Inyectamos las vistas reales que están en el repositorio
+        self.stack.addWidget(CamasSalasView("Admin"))            # Index 0
+        self.stack.addWidget(EvolucionCuidadosView(self))        # Index 1
+        self.stack.addWidget(GestionOrdenView("Admin"))         # Index 2
+        self.stack.addWidget(VisitasView(self))                  # Index 3
+        self.stack.addWidget(self.crear_placeholder("Admisión")) # Index 4 (Aún no tiene vista funcional en el repo)
 
-    # Handlers provisionales
-    def abrir_camas_salas(self):
-        # Solicitar login y abrir vista con rol
-        try:
-            from .camas_y_salas.auth import authenticate_role
-        except ImportError:
-            import os, sys
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from Hospitalizacion.camas_y_salas.auth import authenticate_role
+        self.cambiar_pestana(0) # Inicia directamente en Camas
 
-        rol = authenticate_role(self)
-        if not rol:
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas")
-            return
+    def crear_nav_btn(self, texto, index):
+        btn = QPushButton(texto)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setFixedHeight(45)
+        btn.clicked.connect(lambda: self.cambiar_pestana(index))
+        return btn
 
-        # Cerrar cualquier otra ventana del módulo (solo una a la vez)
-        for k, v in list(self.ventanas_abiertas.items()):
-            try:
-                if v.isVisible():
-                    v.close()
-            except Exception:
-                pass
-            self.ventanas_abiertas.pop(k, None)
+    def cambiar_pestana(self, index):
+        self.stack.setCurrentIndex(index)
+        estilo_base = f"padding: 0 15px; border: none; font-weight: bold; font-size: 13px; color: {HospitalPalette.text_secondary}; background: transparent;"
+        estilo_activo = f"color: {HospitalPalette.Primary}; border-bottom: 3px solid {HospitalPalette.Primary};"
+        
+        for i, btn in enumerate(self.btns):
+            btn.setStyleSheet(estilo_base + (estilo_activo if i == index else ""))
 
-        key = f"camas_salas_{rol.lower()}"
-        self.ventanas_abiertas[key] = CamasSalasView(rol, parent=self)
-        self.ventanas_abiertas[key].setWindowTitle(f"Camas y Salas - {rol}")
-        w = self.ventanas_abiertas[key]
-        w.show()
-        try:
-            w.showMaximized()
-        except Exception:
-            pass
-        w.raise_()
-        w.activateWindow()
-        # Ocultar Hospitalización mientras la subvista está abierta
-        self.hide()
+    def regresar_al_menu(self):
+        self.cambiar_pestana(0)
 
-    def abrir_visitas_restricciones(self):
-        from Hospitalizacion.Visitas.visitas_view import VisitasView  # Importa la nueva ventana
-
-        visitas_window = VisitasView(self)
-        visitas_window.exec()
-
-    def abrir_evolucion_cuidados(self):
-        # Abrir la vista de evolución y cuidados en una ventana independiente
-        try:
-            from .evolucion_cuidados.evolucion_cuidados_view import EvolucionCuidadosView
-        except ImportError:
-            import os, sys
-            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-            if root not in sys.path:
-                sys.path.insert(0, root)
-            from Hospitalizacion.evolucion_cuidados.evolucion_cuidados_view import EvolucionCuidadosView
-
-        from PyQt6.QtWidgets import QMainWindow
-
-        key = "evolucion_cuidados"
-
-        # Cerrar ventanas previas del módulo
-        for k, v in list(self.ventanas_abiertas.items()):
-            try:
-                if v.isVisible():
-                    v.close()
-            except Exception:
-                pass
-            self.ventanas_abiertas.pop(k, None)
-
-        win = QMainWindow(self)
-        win.setWindowTitle("Evolución y Cuidados")
-        ev_widget = EvolucionCuidadosView(parent=win)
-        win.setCentralWidget(ev_widget)
-
-        # Cuando la ventana se destruya, volver a mostrar el padre
-        def _on_destroyed(*args, **kwargs):
-            try:
-                self.show()
-                self.raise_()
-                self.activateWindow()
-            except Exception:
-                pass
-
-        win.destroyed.connect(_on_destroyed)
-
-        self.ventanas_abiertas[key] = win
-        win.show()
-        try:
-            win.showMaximized()
-        except Exception:
-            pass
-        win.raise_()
-        win.activateWindow()
-        self.hide()
-
-    def abrir_admision_alta(self):
-        QMessageBox.information(self, "Hospitalización", "Gestión de admisión y alta - En desarrollo.")
-
-    def abrir_orden_evolucion_cuidados(self):
-        # Solicitar login y abrir vista con rol
-        try:
-            from .camas_y_salas.auth import authenticate_role
-        except ImportError:
-            import os, sys
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from Hospitalizacion.camas_y_salas.auth import authenticate_role
-            
-        try:
-             from .gestion_orden.orden_view import GestionOrdenView
-        except ImportError:
-            import os, sys
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from Hospitalizacion.gestion_orden.orden_view import GestionOrdenView
-
-        rol = authenticate_role(self)
-        if not rol:
-            QMessageBox.warning(self, "Acceso", "Credenciales incorrectas")
-            return
-
-        # Cerrar cualquier otra ventana del módulo (solo una a la vez)
-        for k, v in list(self.ventanas_abiertas.items()):
-            try:
-                if v.isVisible():
-                    v.close()
-            except Exception:
-                pass
-            self.ventanas_abiertas.pop(k, None)
-
-        key = f"gestion_orden_{rol.lower()}"
-        self.ventanas_abiertas[key] = GestionOrdenView(rol, parent=self)
-        self.ventanas_abiertas[key].setWindowTitle(f"Gestión de Orden Médica - {rol}")
-        w = self.ventanas_abiertas[key]
-        w.show()
-        try:
-            w.showMaximized()
-        except Exception:
-            pass
-        w.raise_()
-        w.activateWindow()
-        # Ocultar Hospitalización mientras la subvista está abierta
-        self.hide()
+    def crear_placeholder(self, nombre):
+        view = QWidget()
+        layout = QVBoxLayout(view)
+        lbl = QLabel(f"El módulo de {nombre} requiere integración de base de datos.")
+        lbl.setStyleSheet(f"color: {HospitalPalette.text_secondary};")
+        layout.addWidget(lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+        return view
 
     def closeEvent(self, event):
-        """Al cerrar Hospitalización, volver al menú principal (padre)."""
-        try:
-            if self.padre is not None:
-                self.padre.show()
-                self.padre.raise_()
-                self.padre.activateWindow()
-        except Exception:
-            pass
+        if self.padre: self.padre.show()
         event.accept()
-
-if __name__ == "__main__":
-    # Runner opcional para pruebas rápidas de esta vista
-    import sys
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication(sys.argv)
-    w = HospitalizacionView()
-    w.show()
-    sys.exit(app.exec())
