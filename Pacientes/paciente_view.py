@@ -35,7 +35,7 @@ class PacienteView(QMainWindow):
         # --- HEADER (Encabezado) ---
         header_frame = QFrame()
         # Fondo blanco suave para el header
-        header_frame.setStyleSheet(f"background-color: {AppPalette.bg_sidebar}; border-radius: 8px;") 
+        header_frame.setStyleSheet(f"background-color: {AppPalette.white_01}; border-radius: 8px;") 
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(20, 15, 20, 15)
 
@@ -50,7 +50,7 @@ class PacienteView(QMainWindow):
         lbl_titulo.setObjectName("h1") # Usa el estilo definido en theme.py
         
         lbl_subtitulo = QLabel("Gestión de historias clínicas, datos personales y contacto.")
-        lbl_subtitulo.setStyleSheet(f"color: {AppPalette.text_secondary}; font-size: 14px;")
+        lbl_subtitulo.setStyleSheet(f"color: {AppPalette.black_02}; font-size: 14px;")
         
         title_layout.addWidget(lbl_titulo)
         title_layout.addWidget(lbl_subtitulo)
@@ -75,13 +75,13 @@ class PacienteView(QMainWindow):
         # Agregamos las pestañas al widget
         self.tabs.addTab(
             self.tab_registrar, 
-            get_icon("user-plus.svg", AppPalette.text_secondary), 
+            get_icon("user-plus.svg", AppPalette.black_02), 
             "Registrar Nuevo"
         )
         
         self.tabs.addTab(
             self.tab_consultar, 
-            get_icon("list.svg", AppPalette.text_secondary), 
+            get_icon("list.svg", AppPalette.black_02), 
             "Directorio de Pacientes"
         )
 

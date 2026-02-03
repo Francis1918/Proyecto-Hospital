@@ -102,7 +102,7 @@ class ConsultaExternaView(QWidget):
         layout.addWidget(container_triaje, stretch=40) # 40% del ancho
         
         # Añadir pestaña con icono
-        icon_nurse = get_icon("activity.svg", color=AppPalette.text_secondary)
+        icon_nurse = get_icon("activity.svg", color=AppPalette.black_02)
         self.tabs.addTab(tab, icon_nurse, "Área Enfermería")
 
     # =======================================================
@@ -129,7 +129,7 @@ class ConsultaExternaView(QWidget):
         self.lbl_paciente.setStyleSheet(f"color: {AppPalette.Primary}; font-weight: bold; font-size: 15px;")
         
         btn_hc = QPushButton(" Ver Historia Clínica")
-        btn_hc.setIcon(get_icon("file-text.svg", color=AppPalette.text_secondary))
+        btn_hc.setIcon(get_icon("file-text.svg", color=AppPalette.black_02))
         btn_hc.setStyleSheet(STYLES["btn_icon_ghost"])
         btn_hc.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_hc.clicked.connect(self.ver_hc)
@@ -191,7 +191,7 @@ class ConsultaExternaView(QWidget):
         
         layout.addWidget(btn_final)
 
-        icon_doc = get_icon("clipboard.svg", color=AppPalette.text_secondary)
+        icon_doc = get_icon("clipboard.svg", color=AppPalette.black_02)
         self.tabs.addTab(tab, icon_doc, "Consulta Médica")
 
     # =======================================================

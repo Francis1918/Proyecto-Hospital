@@ -78,14 +78,14 @@ class WidgetConsultar(QWidget):
         lbl_titulo.setObjectName("h1")
 
         self.btn_toggle_panel = QPushButton(" Ocultar Panel")
-        self.btn_toggle_panel.setIcon(utils.get_icon("layout.svg", color=theme.AppPalette.text_secondary))
+        self.btn_toggle_panel.setIcon(utils.get_icon("layout.svg", color=theme.AppPalette.black_02))
         self.btn_toggle_panel.setCheckable(True)
         self.btn_toggle_panel.setChecked(True)
         self.btn_toggle_panel.setStyleSheet(theme.STYLES["btn_icon_ghost"])
         self.btn_toggle_panel.clicked.connect(self.toggle_side_panel)
 
         btn_import = QPushButton(" Importar")
-        btn_import.setIcon(utils.get_icon("upload.svg", color=theme.AppPalette.text_secondary))
+        btn_import.setIcon(utils.get_icon("upload.svg", color=theme.AppPalette.black_02))
         btn_import.setStyleSheet(theme.STYLES["btn_icon_ghost"])
         btn_import.clicked.connect(self.manejar_importacion)
 
@@ -154,7 +154,7 @@ class WidgetConsultar(QWidget):
 
         header_layout = QHBoxLayout()
         lbl_head = QLabel("FILTROS")
-        lbl_head.setStyleSheet(f"color: {theme.AppPalette.text_light}; border: none; background: transparent; font-size: 12px; font-weight: bold;")
+        lbl_head.setStyleSheet(f"color: {theme.AppPalette.black_03}; border: none; background: transparent; font-size: 12px; font-weight: bold;")
         header_layout.addWidget(lbl_head)
         header_layout.addStretch()
         layout.addLayout(header_layout)

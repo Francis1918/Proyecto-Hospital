@@ -27,7 +27,7 @@ class SidebarButton(QPushButton):
         
         # Cargar ícono
         if icon_name:
-            self.setIcon(utils.get_icon(icon_name, AppPalette.text_secondary))
+            self.setIcon(utils.get_icon(icon_name, AppPalette.black_02))
         
         # Aplicar estilo inicial
         self.update_style(False)
@@ -42,8 +42,8 @@ class SidebarButton(QPushButton):
             icon_color = AppPalette.Primary
         else:
             bg_color = "transparent"
-            text_color = AppPalette.text_primary
-            icon_color = AppPalette.text_secondary
+            text_color = AppPalette.black_01
+            icon_color = AppPalette.black_02
         
         # Actualizar ícono con color apropiado
         if self.icon_name:

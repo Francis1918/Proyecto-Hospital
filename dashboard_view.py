@@ -28,10 +28,10 @@ class DashboardView(QWidget):
         # Texto de Bienvenida
         text_layout = QVBoxLayout()
         lbl_saludo = QLabel("¡Bienvenido al Sistema!")
-        lbl_saludo.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {AppPalette.text_primary};")
+        lbl_saludo.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {AppPalette.black_01};")
         
         lbl_sub = QLabel("Gestión Hospitalaria Integral v1.0")
-        lbl_sub.setStyleSheet(f"font-size: 16px; color: {AppPalette.text_secondary};")
+        lbl_sub.setStyleSheet(f"font-size: 16px; color: {AppPalette.black_02};")
         
         text_layout.addWidget(lbl_saludo)
         text_layout.addWidget(lbl_sub)
@@ -99,7 +99,7 @@ class DashboardView(QWidget):
                 background-color: white;
                 border: 1px solid {AppPalette.Border};
                 border-radius: 12px;
-                color: {AppPalette.text_primary};
+                color: {AppPalette.black_01};
                 padding: 15px;
             }}
             QToolButton:hover {{

@@ -86,7 +86,7 @@ class WidgetRegistrar(QWidget):
 
         # Teléfonos (Lógica Dinámica)
         lbl_tel = QLabel("Teléfono(s)")
-        lbl_tel.setStyleSheet(f"border: none; color: {theme.AppPalette.text_secondary}; font-weight: 600;")
+        lbl_tel.setStyleSheet(f"border: none; color: {theme.AppPalette.black_02}; font-weight: 600;")
         layout_contacto.addWidget(lbl_tel)
 
         self.container_telefonos = QVBoxLayout()
@@ -156,10 +156,10 @@ class WidgetRegistrar(QWidget):
 
         # Cabecera de la sección
         lbl_main = QLabel(titulo)
-        lbl_main.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {theme.AppPalette.text_primary}; border: none;")
+        lbl_main.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {theme.AppPalette.black_01}; border: none;")
         
         lbl_sub = QLabel(subtitulo)
-        lbl_sub.setStyleSheet(f"font-size: 12px; color: {theme.AppPalette.text_primary}; margin-bottom: 5px; border: none;")
+        lbl_sub.setStyleSheet(f"font-size: 12px; color: {theme.AppPalette.black_01}; margin-bottom: 5px; border: none;")
 
         # Línea separadora suave
         line = QFrame()
@@ -182,7 +182,7 @@ class WidgetRegistrar(QWidget):
         layout.setSpacing(5)
         
         lbl = QLabel(label_text)
-        lbl.setStyleSheet(f"font-weight: 600; color: {theme.AppPalette.text_secondary}; border: none;")
+        lbl.setStyleSheet(f"font-weight: 600; color: {theme.AppPalette.black_02}; border: none;")
         
         layout.addWidget(lbl)
         layout.addWidget(widget)

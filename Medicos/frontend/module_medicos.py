@@ -40,7 +40,7 @@ class VentanaPrincipal(QMainWindow):
         # =======================================================
         header_frame = QFrame()
         # Fondo suave y bordes redondeados, igual que en Pacientes
-        header_frame.setStyleSheet(f"background-color: {theme.AppPalette.bg_sidebar}; border-radius: 8px;")
+        header_frame.setStyleSheet(f"background-color: {theme.AppPalette.white_01}; border-radius: 8px;")
         
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(20, 15, 20, 15)
@@ -57,7 +57,7 @@ class VentanaPrincipal(QMainWindow):
         lbl_titulo.setObjectName("h1") # Estilo de título grande
         
         lbl_subtitulo = QLabel("Administración del personal médico, especialidades y horarios.")
-        lbl_subtitulo.setStyleSheet(f"color: {theme.AppPalette.text_secondary}; font-size: 14px;")
+        lbl_subtitulo.setStyleSheet(f"color: {theme.AppPalette.black_02}; font-size: 14px;")
         
         title_layout.addWidget(lbl_titulo)
         title_layout.addWidget(lbl_subtitulo)

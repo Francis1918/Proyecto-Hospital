@@ -5,11 +5,11 @@
 # ==========================================
 class AppPalette:
     # --- COLORES DEL SIDEBAR / MAIN (Estilo Folderly) ---
-    bg_main       = "#F7FAFC"   # Fondo general de la app
-    bg_sidebar    = "#FFFFFF"   # Fondo del sidebar
-    text_primary  = "#1F2937"   # Texto principal (Casi negro)
-    text_secondary= "#718096"   # Texto secundario (Gris medio)
-    text_light    = "#A0AEC0"
+    white_01        = "#FFFFFF"   # Fondo del sidebar
+    white_02        = "#F7FAFC"   # Fondo general de la app
+    black_01        = "#1F2937"   # Texto principal (Casi negro)
+    black_02        = "#718096"   # Texto secundario (Gris medio)
+    black_03        = "#A0AEC0"
 
     # --- COLORES INTERNOS / ACCIONES ---
     Primary       = "#00B5D8"   # Cyan/Azul Principal
@@ -38,8 +38,8 @@ def get_sheet() -> str:
        1. CONFIGURACIÓN BASE
        ======================================================= */
     QMainWindow, QWidget {{ 
-        background-color: {c.bg_main}; 
-        color: {c.text_primary}; 
+        background-color: {c.white_02}; 
+        color: {c.black_01}; 
         font-family: "Segoe UI", "Helvetica Neue", sans-serif; 
         font-size: 14px;
     }}
@@ -54,14 +54,14 @@ def get_sheet() -> str:
        2. TIPOGRAFÍA (TÍTULOS)
        ======================================================= */
     QLabel#h1 {{
-        color: {c.text_primary};
+        color: {c.black_01};
         font-size: 24px;
         font-weight: 700;
         margin-bottom: 10px;
     }}
 
     QLabel#h2 {{
-        color: {c.text_secondary};
+        color: {c.black_02};
         font-size: 16px;
         font-weight: 600;
         margin-bottom: 5px;
@@ -76,7 +76,7 @@ def get_sheet() -> str:
         border: 1px solid {c.Border}; 
         border-radius: 6px; 
         padding: 6px 10px; 
-        color: {c.text_primary};
+        color: {c.black_01};
         selection-background-color: {c.Focus};
         selection-color: white;
         font-size: 14px;
@@ -117,15 +117,15 @@ def get_sheet() -> str:
     /* Fondo general */
     QCalendarWidget QWidget {{
         background-color: {c.Bg_Card};
-        alternate-background-color: {c.bg_main};
-        color: {c.text_primary};
+        alternate-background-color: {c.white_02};
+        color: {c.black_01};
     }}
     
     /* BOTONES DE NAVEGACIÓN (Mes anterior/siguiente)
        IMPORTANTE: border: 1px solid transparent (reserva espacio)
     */
     QCalendarWidget QToolButton {{
-        color: {c.text_primary};
+        color: {c.black_01};
         background-color: transparent;
         icon-size: 20px;
         border: 1px solid transparent; 
@@ -146,8 +146,8 @@ def get_sheet() -> str:
        IMPORTANTE: Sobrescribimos el padding global para que no rompa el header
     */
     QCalendarWidget QSpinBox {{
-        background-color: {c.bg_main};
-        color: {c.text_primary};
+        background-color: {c.white_02};
+        color: {c.black_01};
         border: 1px solid {c.Border};
         border-radius: 4px;
         margin: 2px;
@@ -172,7 +172,7 @@ def get_sheet() -> str:
     
     /* La grilla de días */
     QCalendarWidget QAbstractItemView:enabled {{
-        color: {c.text_primary};
+        color: {c.black_01};
         background-color: {c.Bg_Card};
         selection-background-color: {c.Focus}; 
         selection-color: white;
@@ -181,7 +181,7 @@ def get_sheet() -> str:
     }}
     
     QCalendarWidget QAbstractItemView:disabled {{
-        color: {c.text_light};
+        color: {c.black_03};
     }}
 
     /* =======================================================
@@ -189,7 +189,7 @@ def get_sheet() -> str:
        ======================================================= */
     QSpinBox, QDoubleSpinBox {{
         background-color: {c.Bg_Card}; 
-        color: {c.text_primary}; 
+        color: {c.black_01}; 
         border: 1px solid {c.Border};
         border-radius: 6px;
         padding: 6px 10px; 
@@ -241,7 +241,7 @@ def get_sheet() -> str:
     QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
         width: 8px;
         height: 8px;
-        color: {c.text_secondary};
+        color: {c.black_02};
     }}
 
     /* =======================================================
@@ -258,13 +258,13 @@ def get_sheet() -> str:
         top: -1px; 
     }}
     QTabBar::tab {{
-        background: {c.bg_main};
+        background: {c.white_02};
         border: 1px solid {c.Border};
         padding: 8px 20px;
         margin-right: 4px;
         border-top-left-radius: 6px;
         border-top-right-radius: 6px;
-        color: {c.text_secondary};
+        color: {c.black_02};
         font-weight: 600;
     }}
     QTabBar::tab:selected {{
@@ -285,7 +285,7 @@ def get_sheet() -> str:
         border: 1px solid {c.Border};
         border-radius: 8px;
         selection-background-color: {c.Focus_Bg};
-        selection-color: {c.text_primary};
+        selection-color: {c.black_01};
         outline: none;
     }}
     
@@ -301,8 +301,8 @@ def get_sheet() -> str:
     }}
 
     QHeaderView::section {{
-        background-color: {c.bg_main}; 
-        color: {c.text_secondary};
+        background-color: {c.white_02}; 
+        color: {c.black_02};
         text-transform: uppercase;
         font-size: 12px;
         font-weight: bold;
@@ -315,18 +315,18 @@ def get_sheet() -> str:
        7. SCROLLBARS
        ======================================================= */
     QScrollBar:vertical {{
-        background: {c.bg_main};
+        background: {c.white_02};
         width: 8px;
         margin: 0px;
         border-radius: 4px;
     }}
     QScrollBar::handle:vertical {{
-        background: {c.text_light};
+        background: {c.black_03};
         min-height: 20px;
         border-radius: 4px;
     }}
     QScrollBar::handle:vertical:hover {{
-        background: {c.text_secondary};
+        background: {c.black_02};
     }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
         height: 0px;
@@ -339,7 +339,7 @@ def get_sheet() -> str:
         border: 1px solid {AppPalette.Border};
         border-radius: 6px; 
         padding: 6px 12px; 
-        color: {AppPalette.text_primary};
+        color: {AppPalette.black_01};
         font-size: 14px;
     }}
     QComboBox:hover, QComboBox:focus {{ 
@@ -359,7 +359,7 @@ def get_sheet() -> str:
     QComboBox QAbstractItemView::item {{
         min-height: 30px;
         padding: 0px 8px;
-        color: {AppPalette.text_primary};
+        color: {AppPalette.black_01};
         border: 1px solid {AppPalette.Border};
     }}
     QComboBox QAbstractItemView::item:selected {{
@@ -406,7 +406,7 @@ STYLES = {
     "btn_icon_ghost": f"""
         QPushButton {{ 
             background-color: {AppPalette.Bg_Card}; 
-            color: {AppPalette.text_secondary};
+            color: {AppPalette.black_02};
             border: 1px solid {AppPalette.Border}; 
             border-radius: 6px; 
             padding: 6px; 
@@ -422,7 +422,7 @@ STYLES = {
             background-color: {AppPalette.Bg_Card};
             border: 1px solid {AppPalette.Border};
             border-radius: 4px;
-            color: {AppPalette.text_secondary};
+            color: {AppPalette.black_02};
             padding: 8px;
             text-align: left;
             font-size: 13px;
@@ -446,7 +446,7 @@ STYLES = {
         }}
         QMenu::item {{
             padding: 8px 25px 8px 15px;
-            color: {AppPalette.text_primary};
+            color: {AppPalette.black_01};
             border-radius: 4px;
         }}
         QMenu::item:selected {{
@@ -460,7 +460,7 @@ STYLES = {
             border: 1px solid {AppPalette.Border};
             border-radius: 6px; 
             padding: 6px 12px; 
-            color: {AppPalette.text_primary};
+            color: {AppPalette.black_01};
             font-size: 14px;
         }}
         QComboBox:hover, QComboBox:focus {{ 
@@ -480,7 +480,7 @@ STYLES = {
         QComboBox QAbstractItemView::item {{
             min-height: 30px;
             padding: 0px 8px;
-            color: {AppPalette.text_primary};
+            color: {AppPalette.black_01};
             border: 1px solid {AppPalette.Border};
         }}
         QComboBox QAbstractItemView::item:selected {{

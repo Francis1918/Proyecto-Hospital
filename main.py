@@ -32,7 +32,7 @@ class MenuPrincipal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Sistema Hospitalario")
         self.resize(1200, 800)
-        self.setStyleSheet(f"background-color: {HospitalPalette.bg_main};")
+        self.setStyleSheet(f"background-color: {HospitalPalette.white_02};")
 
         self.sidebar_expanded = True
         self.nav_btns = []
@@ -62,7 +62,7 @@ class MenuPrincipal(QMainWindow):
         # Fondo del sidebar un poco más gris para que resalten las tarjetas blancas
         self.sidebar.setStyleSheet(f"""
             QFrame#Sidebar {{
-                background-color: {HospitalPalette.bg_sidebar}; 
+                background-color: {HospitalPalette.white_01}; 
                 border-right: 1px solid #e5e7eb;
             }}
         """)
@@ -79,13 +79,13 @@ class MenuPrincipal(QMainWindow):
         self.header_layout.setContentsMargins(15, 8, 15, 8)
         
         self.lbl_logo = QLabel("Sistema\nHospitalario")
-        self.lbl_logo.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-weight: bold; font-size: 15px;")
+        self.lbl_logo.setStyleSheet(f"color: {HospitalPalette.black_01}; font-weight: bold; font-size: 15px;")
         
         self.icon_app = QLabel()
         self.icon_app.setPixmap(utils.get_icon("activity.svg", HospitalPalette.Primary, 26).pixmap(26, 26))
         
         self.btn_toggle = QPushButton()
-        self.btn_toggle.setIcon(utils.get_icon("menu.svg", HospitalPalette.text_secondary))
+        self.btn_toggle.setIcon(utils.get_icon("menu.svg", HospitalPalette.black_02))
         self.btn_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_toggle.setFixedSize(30, 30)
         self.btn_toggle.setStyleSheet("background: transparent; border: none;")
@@ -156,7 +156,7 @@ class MenuPrincipal(QMainWindow):
         # 3. Agregar Título
         lbl = QLabel(titulo)
         # margin-left para alinearlo con el texto de los botones
-        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.text_secondary}; font-size: 11px; font-weight: 700; margin-left: 12px; margin-bottom: 5px;")
+        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.black_02}; font-size: 11px; font-weight: 700; margin-left: 12px; margin-bottom: 5px;")
         card_layout.addWidget(lbl)
         self.section_labels.append(lbl)
 
@@ -172,7 +172,7 @@ class MenuPrincipal(QMainWindow):
 
     def add_section_label(self, layout, text):
         lbl = QLabel(text)
-        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.text_secondary}; font-size: 11px; font-weight: 700; margin-left: 20px; margin-top: 5px;")
+        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.black_02}; font-size: 11px; font-weight: 700; margin-left: 20px; margin-top: 5px;")
         layout.addWidget(lbl)
         self.section_labels.append(lbl)
 

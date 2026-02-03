@@ -49,7 +49,7 @@ class ConsultarPacienteView(QWidget):
         search_layout.addWidget(self.txt_buscar)
 
         btn_refresh = QPushButton(" Actualizar")
-        btn_refresh.setIcon(get_icon("refresh.svg", AppPalette.text_secondary))
+        btn_refresh.setIcon(get_icon("refresh.svg", AppPalette.black_02))
         btn_refresh.setStyleSheet(STYLES["btn_icon_ghost"])
         btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_refresh.clicked.connect(self.cargar_pacientes)
@@ -93,7 +93,7 @@ class ConsultarPacienteView(QWidget):
         self.btn_detalle.clicked.connect(self.abrir_detalle)
 
         self.btn_historia = QPushButton(" Historia Clínica")
-        self.btn_historia.setIcon(get_icon("activity.svg", AppPalette.text_primary))
+        self.btn_historia.setIcon(get_icon("activity.svg", AppPalette.black_01))
         self.btn_historia.setStyleSheet(STYLES["btn_icon_ghost"])
         self.btn_historia.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_historia.clicked.connect(self.abrir_historia)

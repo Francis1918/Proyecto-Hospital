@@ -46,7 +46,7 @@ class RegistrarPacienteView(QWidget):
         # Opciones Extra (Checkbox)
         self.chk_crear_historia = QCheckBox(" Crear Historia Clínica automáticamente al guardar")
         self.chk_crear_historia.setChecked(True)
-        self.chk_crear_historia.setStyleSheet(f"font-size: 14px; color: {AppPalette.text_primary}; font-weight: bold;")
+        self.chk_crear_historia.setStyleSheet(f"font-size: 14px; color: {AppPalette.black_01}; font-weight: bold;")
         self.layout_content.addWidget(self.chk_crear_historia)
 
         self.layout_content.addStretch() # Empuja todo hacia arriba
@@ -55,13 +55,13 @@ class RegistrarPacienteView(QWidget):
 
         # --- 3. BARRA DE ACCIONES INFERIOR (Fija) ---
         action_bar = QFrame()
-        action_bar.setStyleSheet(f"background-color: {AppPalette.bg_sidebar}; border-top: 1px solid {AppPalette.Border};")
+        action_bar.setStyleSheet(f"background-color: {AppPalette.white_01}; border-top: 1px solid {AppPalette.Border};")
         bar_layout = QHBoxLayout(action_bar)
         bar_layout.setContentsMargins(20, 15, 20, 15)
         
         # Botón Limpiar
         self.btn_limpiar = QPushButton(" Limpiar Formulario")
-        self.btn_limpiar.setIcon(get_icon("refresh.svg", AppPalette.text_secondary))
+        self.btn_limpiar.setIcon(get_icon("refresh.svg", AppPalette.black_02))
         self.btn_limpiar.setStyleSheet(STYLES["btn_icon_ghost"])
         self.btn_limpiar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_limpiar.clicked.connect(self.limpiar_formulario)
