@@ -1,180 +1,95 @@
+# pacientes/paciente_view.py
+
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QMessageBox, QLabel,
-    QFrame, QGridLayout
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QLabel, QTabWidget, QFrame
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
+
+# --- IMPORTACIONES DEL CORE ---
+from Pacientes.views.consultar_view import ConsultarPacienteView
+from Pacientes.views.registrar_view import RegistrarPacienteView
+from core.theme import AppPalette, get_sheet, STYLES
+from core.utils import get_icon
 from .paciente_controller import PacienteController
 
-
 class PacienteView(QMainWindow):
-    """
-    Vista principal del módulo Paciente con PyQt6.
-    Implementa la interfaz gráfica para todos los casos de uso.
-    """
-
     def __init__(self, controller: PacienteController = None):
         super().__init__()
         self.controller = controller or PacienteController()
         self.init_ui()
 
-    def get_styles(self):
-        """Retorna los estilos CSS para la vista de pacientes."""
-        return """
-            QMainWindow {
-                background-color: #e8f4fc;
-            }
-            QWidget#central {
-                background-color: #e8f4fc;
-            }
-            QLabel#titulo {
-                color: #1a365d;
-                font-size: 32px;
-                font-weight: bold;
-                padding: 20px;
-            }
-            QFrame#menu_container {
-                background-color: #e8f4fc;
-                padding: 20px;
-            }
-            QPushButton.menu_btn {
-                background-color: #3182ce;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 20px;
-                font-size: 16px;
-                font-weight: bold;
-                min-height: 70px;
-                min-width: 200px;
-            }
-            QPushButton.menu_btn:hover {
-                background-color: #2c5282;
-            }
-            QPushButton.menu_btn:pressed {
-                background-color: #1a365d;
-            }
-            QPushButton#btn_salir {
-                background-color: #3182ce;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 20px;
-                font-size: 16px;
-                font-weight: bold;
-                min-height: 70px;
-                min-width: 200px;
-            }
-            QPushButton#btn_salir:hover {
-                background-color: #2c5282;
-            }
-            QPushButton#btn_salir:pressed {
-                background-color: #1a365d;
-            }
-        """
-
     def init_ui(self):
-        """Inicializa la interfaz de usuario."""
-        self.setWindowTitle("Sistema de Gestión Clínica - Pacientes")
-        self.setMinimumSize(1000, 600)
-        self.setStyleSheet(self.get_styles())
+        # 1. Configuración base y Tema
+        self.setWindowTitle("Gestión de Pacientes")
+        self.setMinimumSize(1000, 700)
+        self.setStyleSheet(get_sheet())
 
-        central_widget = QWidget()
-        central_widget.setObjectName("central")
-        self.setCentralWidget(central_widget)
+        # 2. Widget Central
+        central = QWidget()
+        self.setCentralWidget(central)
+        
+        # Layout principal (Vertical)
+        main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
 
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(40, 20, 40, 20)
+        # --- HEADER (Encabezado) ---
+        header_frame = QFrame()
+        # Fondo blanco suave para el header
+        header_frame.setStyleSheet(f"background-color: {AppPalette.bg_sidebar}; border-radius: 8px;") 
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
 
-        # Título
-        titulo = QLabel("Sistema de Gestión Clínica")
-        titulo.setObjectName("titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(titulo)
+        # Icono grande
+        icon_lbl = QLabel()
+        icon_pixmap = get_icon("users.svg", color=AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_lbl.setPixmap(icon_pixmap)
+        
+        # Título y Subtítulo
+        title_layout = QVBoxLayout()
+        lbl_titulo = QLabel("Módulo de Pacientes")
+        lbl_titulo.setObjectName("h1") # Usa el estilo definido en theme.py
+        
+        lbl_subtitulo = QLabel("Gestión de historias clínicas, datos personales y contacto.")
+        lbl_subtitulo.setStyleSheet(f"color: {AppPalette.text_secondary}; font-size: 14px;")
+        
+        title_layout.addWidget(lbl_titulo)
+        title_layout.addWidget(lbl_subtitulo)
 
-        # Contenedor del menú de botones
-        menu_container = self.crear_menu_botones()
-        main_layout.addWidget(menu_container)
+        header_layout.addWidget(icon_lbl)
+        header_layout.addSpacing(15)
+        header_layout.addLayout(title_layout)
+        header_layout.addStretch()
 
-        main_layout.addStretch()
+        main_layout.addWidget(header_frame)
 
-    def crear_menu_botones(self):
-        """Crea el contenedor con los botones del menú estilo tarjeta."""
-        container = QFrame()
-        container.setObjectName("menu_container")
+        # --- SISTEMA DE PESTAÑAS (TABS) ---
+        self.tabs = QTabWidget()
+        self.tabs.setIconSize(QSize(20, 20))
+        
+        # PESTAÑA 1: REGISTRAR 
+        # Instanciamos la vista real (Ella sola se construye)
+        self.tab_registrar = RegistrarPacienteView(self.controller)
+        
+        # PESTAÑA 2: CONSULTAR
+        self.tab_consultar = ConsultarPacienteView(self.controller)
+        # Agregamos las pestañas al widget
+        self.tabs.addTab(
+            self.tab_registrar, 
+            get_icon("user-plus.svg", AppPalette.text_secondary), 
+            "Registrar Nuevo"
+        )
+        
+        self.tabs.addTab(
+            self.tab_consultar, 
+            get_icon("list.svg", AppPalette.text_secondary), 
+            "Directorio de Pacientes"
+        )
 
-        grid_layout = QGridLayout(container)
-        grid_layout.setSpacing(20)
-        grid_layout.setContentsMargins(20, 20, 20, 20)
-
-        # Definir los botones del menú de pacientes
-        botones = [
-            ("Registrar Paciente", self.abrir_dialogo_registrar),
-            ("Consultar Paciente", self.abrir_dialogo_consultar),
-            ("Actualizar Datos del Paciente", self.abrir_submenu_actualizar),
-            ("Salir", self.close),
-        ]
-
-        # Crear botones en una cuadrícula 4x2
-        for i, (texto, funcion) in enumerate(botones):
-            btn = QPushButton(texto)
-            if texto == "Salir":
-                btn.setObjectName("btn_salir")
-            else:
-                btn.setProperty("class", "menu_btn")
-            btn.clicked.connect(funcion)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            row = i // 2
-            col = i % 2
-            grid_layout.addWidget(btn, row, col)
-
-        return container
-
-    def abrir_dialogo_consultar(self):
-        """Abre el diálogo para consultar un paciente."""
-        from .dialogs import ConsultarPacienteDialog
-        dialogo = ConsultarPacienteDialog(self.controller, None, self)
-        dialogo.exec()
-
-    def abrir_submenu_actualizar(self):
-        """Abre el submenú para actualizar datos del paciente."""
-        from .dialogs import SubmenuActualizarDialog
-        dialogo = SubmenuActualizarDialog(self.controller, self)
-        dialogo.exec()
-
-    def abrir_actualizar_direccion(self):
-        """Abre el diálogo para actualizar dirección."""
-        from .dialogs import ActualizarDatosDialog
-        dialogo = ActualizarDatosDialog(self.controller, "direccion", self)
-        dialogo.exec()
-
-    def abrir_actualizar_telefono(self):
-        """Abre el diálogo para actualizar teléfono."""
-        from .dialogs import ActualizarDatosDialog
-        dialogo = ActualizarDatosDialog(self.controller, "telefono", self)
-        dialogo.exec()
-
-    def abrir_actualizar_email(self):
-        """Abre el diálogo para actualizar email."""
-        from .dialogs import ActualizarDatosDialog
-        dialogo = ActualizarDatosDialog(self.controller, "email", self)
-        dialogo.exec()
-
-    def abrir_dialogo_registrar(self):
-        """Abre el diálogo para registrar un nuevo paciente."""
-        from .dialogs import RegistrarPacienteDialog
-        dialogo = RegistrarPacienteDialog(self.controller, self)
-        dialogo.exec()
-
-    def abrir_historia_clinica(self):
-        """Abre el diálogo de historia clínica del paciente."""
-        from .dialogs import HistoriaClinicaDialog
-        dialogo = HistoriaClinicaDialog(self.controller, self)
-        dialogo.exec()
-
-    def abrir_actualizar_telefono_referencia(self):
-        """Abre el diálogo para actualizar teléfono de referencia."""
-        from .dialogs import ActualizarDatosDialog
-        dialogo = ActualizarDatosDialog(self.controller, "telefono_referencia", self)
-        dialogo.exec()
+        # CONEXIONES DE SEÑALES (LOGICA)
+        # 1. Cuando se guarde un paciente, recargar la tabla de consultas
+        self.tab_registrar.paciente_registrado_signal.connect(self.tab_consultar.cargar_pacientes)       
+        # 2. (Opcional) Cambiar automáticamente a la pestaña de "Directorio" al guardar
+        self.tab_registrar.paciente_registrado_signal.connect(lambda: self.tabs.setCurrentIndex(1))
+        main_layout.addWidget(self.tabs)

@@ -41,7 +41,7 @@ class VentanaPrincipal(QMainWindow):
         self.pag_registrar = WidgetRegistrar()
         self.pag_consultar = WidgetConsultar()
         
-        icon_add = utils.get_icon("user-add.svg", color=theme.AppPalette.Focus)
+        icon_add = utils.get_icon("user-plus.svg", color=theme.AppPalette.Focus)
         icon_list = utils.get_icon("list.svg", color=theme.AppPalette.Focus)
 
         self.tabs.addTab(self.pag_registrar, icon_add, "Registrar Médico")
