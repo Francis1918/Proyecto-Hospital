@@ -27,8 +27,14 @@ class RegistrarAgendaDialog(QDialog):
         form = QFormLayout()
 
         self.cmb_medico = QComboBox()
-        self.cmb_medico.addItems(self.controller.obtener_todos_medicos())
-        self.cmb_medico.currentTextChanged.connect(self._cargar_actual)
+        # Llenado correcto usando el ID oculto (userData)
+        medicos = self.controller.obtener_todos_medicos()
+        for m in medicos:
+            # Mostramos nombre y especialidad, guardamos el ID
+            texto = f"{m['nombre_completo']} ({m['especialidad']})"
+            self.cmb_medico.addItem(texto, m['id']) 
+        
+        self.cmb_medico.currentIndexChanged.connect(self._cargar_actual)
         form.addRow("Médico:", self.cmb_medico)
 
         self.spin_inicio = QSpinBox()
@@ -60,11 +66,11 @@ class RegistrarAgendaDialog(QDialog):
         self.spin_fin.setValue(fin)
 
     def _guardar(self):
-        medico = self.cmb_medico.currentText().strip()
+        id_medico = self.cmb_medico.currentData() 
+        if id_medico is None: return
         inicio = int(self.spin_inicio.value())
         fin = int(self.spin_fin.value())
-
-        ok, msg = self.controller.registrar_agenda_medico(medico, inicio, fin)
+        ok, msg = self.controller.registrar_agenda_medico(id_medico, inicio, fin)
         if not ok:
             QMessageBox.warning(self, "Agenda", msg)
             return

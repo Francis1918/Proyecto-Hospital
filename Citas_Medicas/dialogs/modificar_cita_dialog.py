@@ -100,7 +100,7 @@ class ModificarCitaDialog(QDialog):
         nueva_fecha = date(qd.year(), qd.month(), qd.day())
 
         self.cmb_hora.clear()
-        horas = self.controller.obtener_horarios_disponibles(cita.medico, nueva_fecha)
+        horas = self.controller.obtener_horarios_disponibles(cita.id_medico, nueva_fecha)
 
         # permitir la hora original si misma fecha
         if nueva_fecha == cita.fecha and cita.hora not in horas:

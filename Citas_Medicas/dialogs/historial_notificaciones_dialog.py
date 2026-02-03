@@ -34,8 +34,8 @@ class HistorialNotificacionesDialog(QDialog):
         btns.addWidget(btn_cerrar)
         layout.addLayout(btns)
 
-        self.tabla = QTableWidget(0, 5)
-        self.tabla.setHorizontalHeaderLabels(["Fecha/Hora", "Destinatario", "Canal", "Estado", "Mensaje"])
+        self.tabla = QTableWidget(0, 6) 
+        self.tabla.setHorizontalHeaderLabels(["Fecha/Hora", "Tipo", "Nombre Destinatario", "ID/Cédula", "Canal", "Mensaje"])
         self.tabla.horizontalHeader().setStretchLastSection(True)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
@@ -49,12 +49,22 @@ class HistorialNotificacionesDialog(QDialog):
         for n in items:
             row = self.tabla.rowCount()
             self.tabla.insertRow(row)
+            
+            # Extraemos los datos del objeto
             vals = [
                 n.enviada_en.strftime("%Y-%m-%d %H:%M"),
+                getattr(n, 'tipo_usuario', 'N/A'),
+                getattr(n, 'nombre_destinatario', 'No encontrado'),
                 n.destinatario,
                 n.canal,
-                n.estado,
                 n.mensaje
             ]
+            
             for col, v in enumerate(vals):
-                self.tabla.setItem(row, col, QTableWidgetItem(str(v)))
+                item = QTableWidgetItem(str(v))
+                # Opcional: Color según el tipo
+                if col == 1: # Columna Tipo
+                    if v == 'Médico': item.setForeground(Qt.GlobalColor.blue)
+                    if v == 'Paciente': item.setForeground(Qt.GlobalColor.darkGreen)
+                
+                self.tabla.setItem(row, col, item)

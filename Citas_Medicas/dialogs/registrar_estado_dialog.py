@@ -1,5 +1,5 @@
 from datetime import time
-
+from PyQt6.QtCore import QTime
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
@@ -17,6 +17,8 @@ class RegistrarEstadoDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(560)
         self._init_ui()
+        self.time_llegada.setTime(QTime.currentTime())
+        
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
