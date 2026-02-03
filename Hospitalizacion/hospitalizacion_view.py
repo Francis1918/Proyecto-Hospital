@@ -170,7 +170,7 @@ class HospitalizacionView(QMainWindow):
         self.hide()
 
     def abrir_visitas_restricciones(self):
-        from Visitas.visitas_view import VisitasView  # Importa la nueva ventana
+        from Hospitalizacion.Visitas.visitas_view import VisitasView  # Importa la nueva ventana
 
         visitas_window = VisitasView(self)
         visitas_window.exec()
