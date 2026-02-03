@@ -30,7 +30,12 @@ class ConsultarAgendaDialog(QDialog):
         form = QFormLayout()
 
         self.cmb_medico = QComboBox()
-        self.cmb_medico.addItems(self.controller.obtener_todos_medicos())
+        # REEMPLAZO: Cargamos los médicos guardando su ID de forma oculta
+        medicos_data = self.controller.obtener_todos_medicos()
+        for m in medicos_data:
+            # addItem(Texto visible, Dato interno)
+            self.cmb_medico.addItem(m["nombre_completo"], m["id"])
+            
         form.addRow("Médico:", self.cmb_medico)
 
         self.date_fecha = QDateEdit()
@@ -57,11 +62,18 @@ class ConsultarAgendaDialog(QDialog):
         layout.addWidget(self.tabla)
 
     def _consultar(self):
-        medico = self.cmb_medico.currentText().strip()
+        id_medico = self.cmb_medico.currentData()
+        
+        if id_medico is None:
+            QMessageBox.warning(self, "Error", "Seleccione un médico válido.")
+            return
+
         qd = self.date_fecha.date()
         fecha = date(qd.year(), qd.month(), qd.day())
 
-        citas = self.controller.consultar_agenda(medico, fecha)
+        # Ahora enviamos el ID al controlador
+        citas = self.controller.consultar_agenda(id_medico, fecha)
+        
         self.tabla.setRowCount(0)
 
         if not citas:
@@ -71,8 +83,9 @@ class ConsultarAgendaDialog(QDialog):
         for c in citas:
             row = self.tabla.rowCount()
             self.tabla.insertRow(row)
+            # Asegúrate de que c.especialidad existe en tu objeto CitaMedica
             vals = [
-                c.hora.strftime("%H:%M"),
+                str(c.hora),
                 c.nombre_paciente,
                 c.especialidad,
                 c.estado,

@@ -2,13 +2,12 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QComboBox, QPushButton, QFrame, QMessageBox, QScrollArea,
-    QSizePolicy, QSpacerItem
+    QComboBox, QPushButton, QFrame, QMessageBox, QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from Medicos.backend.logic_medicos import LogicaMedicos 
-import theme
-import utils
+import core.theme as theme
+import core.utils as utils
 
 class WidgetRegistrar(QWidget):
     medico_guardado = pyqtSignal()
@@ -87,7 +86,7 @@ class WidgetRegistrar(QWidget):
 
         # Teléfonos (Lógica Dinámica)
         lbl_tel = QLabel("Teléfono(s)")
-        lbl_tel.setStyleSheet(f"border: none; color: {theme.Palette.Text_Secondary}; font-weight: 600;")
+        lbl_tel.setStyleSheet(f"border: none; color: {theme.AppPalette.text_secondary}; font-weight: 600;")
         layout_contacto.addWidget(lbl_tel)
 
         self.container_telefonos = QVBoxLayout()
@@ -102,9 +101,9 @@ class WidgetRegistrar(QWidget):
 
         # Botón para agregar teléfono extra
         self.btn_add_tel = QPushButton(" Agregar otro teléfono")
-        self.btn_add_tel.setIcon(utils.get_icon("plus.svg", color=theme.Palette.Primary))
+        self.btn_add_tel.setIcon(utils.get_icon("plus.svg", color=theme.AppPalette.Primary))
         self.btn_add_tel.setStyleSheet(f"""
-            QPushButton {{ color: {theme.Palette.Primary}; border: none; text-align: left; font-weight: bold; background: transparent; }}
+            QPushButton {{ color: {theme.AppPalette.Primary}; border: none; text-align: left; font-weight: bold; background: transparent; }}
             QPushButton:hover {{ text-decoration: underline; }}
         """)
         self.btn_add_tel.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -157,16 +156,16 @@ class WidgetRegistrar(QWidget):
 
         # Cabecera de la sección
         lbl_main = QLabel(titulo)
-        lbl_main.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {theme.Palette.Text_Primary}; border: none;")
+        lbl_main.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {theme.AppPalette.text_primary}; border: none;")
         
         lbl_sub = QLabel(subtitulo)
-        lbl_sub.setStyleSheet(f"font-size: 12px; color: {theme.Palette.Text_Light}; margin-bottom: 5px; border: none;")
+        lbl_sub.setStyleSheet(f"font-size: 12px; color: {theme.AppPalette.text_primary}; margin-bottom: 5px; border: none;")
 
         # Línea separadora suave
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setStyleSheet(f"border: none; background-color: {theme.Palette.Border}; max-height: 1px;")
+        line.setStyleSheet(f"border: none; background-color: {theme.AppPalette.Border}; max-height: 1px;")
 
         l_card.addWidget(lbl_main)
         l_card.addWidget(lbl_sub)
@@ -183,7 +182,7 @@ class WidgetRegistrar(QWidget):
         layout.setSpacing(5)
         
         lbl = QLabel(label_text)
-        lbl.setStyleSheet(f"font-weight: 600; color: {theme.Palette.Text_Secondary}; border: none;")
+        lbl.setStyleSheet(f"font-weight: 600; color: {theme.AppPalette.text_secondary}; border: none;")
         
         layout.addWidget(lbl)
         layout.addWidget(widget)
@@ -216,14 +215,14 @@ class WidgetRegistrar(QWidget):
         
         # Botón Eliminar (Icono Trash)
         btn_del = QPushButton()
-        btn_del.setIcon(utils.get_icon("trash.svg", color=theme.Palette.Danger))
+        btn_del.setIcon(utils.get_icon("trash.svg", color=theme.AppPalette.Danger))
         btn_del.setFixedSize(36, 36)
         btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
         # Estilo rojo suave para el botón de borrar
         btn_del.setStyleSheet(f"""
             QPushButton {{ 
                 background-color: #FFF5F5; 
-                border: 1px solid {theme.Palette.Danger}; 
+                border: 1px solid {theme.AppPalette.Danger}; 
                 border-radius: 6px; 
             }}
             QPushButton:hover {{ background-color: #FFA5A5; }}
@@ -245,7 +244,7 @@ class WidgetRegistrar(QWidget):
     def validar_numeros_visual(self, widget):
         texto = widget.text()
         if texto and not texto.isdigit():
-            widget.setStyleSheet(f"border: 1px solid {theme.Palette.Danger}; color: {theme.Palette.Danger};")
+            widget.setStyleSheet(f"border: 1px solid {theme.AppPalette.Danger}; color: {theme.AppPalette.Danger};")
         else:
             widget.setStyleSheet(theme.STYLES["combobox"].replace("QComboBox", "QLineEdit")) # Restaura estilo default
 

@@ -62,4 +62,4 @@ Thumbs.db
 
 # Misc caches
 *.cache/
-*.db
+hospital.db
