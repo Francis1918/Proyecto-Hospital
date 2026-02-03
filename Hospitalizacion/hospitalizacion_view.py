@@ -8,7 +8,11 @@ try:
 except ImportError:
     # Permitir ejecutar este archivo directamente agregando el directorio padre al sys.path
     import os, sys
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    # Asegurar que la raíz del proyecto esté en sys.path para que
+    # las importaciones absolutas como 'Hospitalizacion...' resuelvan
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if root not in sys.path:
+        sys.path.insert(0, root)
     from Hospitalizacion.camas_y_salas import CamasSalasView
 
 
@@ -110,6 +114,7 @@ class HospitalizacionView(QMainWindow):
             ("Gestión de camas y salas", self.abrir_camas_salas),
             ("Visitas y restricciones", self.abrir_visitas_restricciones),
             ("Gestión de admisión y alta", self.abrir_admision_alta),
+            ("Evolución y cuidados", self.abrir_evolucion_cuidados),
             ("Gestión de orden", self.abrir_orden_evolucion_cuidados),
         ]
 
@@ -174,6 +179,56 @@ class HospitalizacionView(QMainWindow):
 
         visitas_window = VisitasView(self)
         visitas_window.exec()
+
+    def abrir_evolucion_cuidados(self):
+        # Abrir la vista de evolución y cuidados en una ventana independiente
+        try:
+            from .evolucion_cuidados.evolucion_cuidados_view import EvolucionCuidadosView
+        except ImportError:
+            import os, sys
+            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            if root not in sys.path:
+                sys.path.insert(0, root)
+            from Hospitalizacion.evolucion_cuidados.evolucion_cuidados_view import EvolucionCuidadosView
+
+        from PyQt6.QtWidgets import QMainWindow
+
+        key = "evolucion_cuidados"
+
+        # Cerrar ventanas previas del módulo
+        for k, v in list(self.ventanas_abiertas.items()):
+            try:
+                if v.isVisible():
+                    v.close()
+            except Exception:
+                pass
+            self.ventanas_abiertas.pop(k, None)
+
+        win = QMainWindow(self)
+        win.setWindowTitle("Evolución y Cuidados")
+        ev_widget = EvolucionCuidadosView(parent=win)
+        win.setCentralWidget(ev_widget)
+
+        # Cuando la ventana se destruya, volver a mostrar el padre
+        def _on_destroyed(*args, **kwargs):
+            try:
+                self.show()
+                self.raise_()
+                self.activateWindow()
+            except Exception:
+                pass
+
+        win.destroyed.connect(_on_destroyed)
+
+        self.ventanas_abiertas[key] = win
+        win.show()
+        try:
+            win.showMaximized()
+        except Exception:
+            pass
+        win.raise_()
+        win.activateWindow()
+        self.hide()
 
     def abrir_admision_alta(self):
         QMessageBox.information(self, "Hospitalización", "Gestión de admisión y alta - En desarrollo.")
