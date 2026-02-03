@@ -17,7 +17,7 @@ from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
-from database import inicializar_db
+from core.database import inicializar_db
 
 from Medicos.frontend.frontend_medicos import VentanaPrincipal
 

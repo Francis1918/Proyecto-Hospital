@@ -1,6 +1,6 @@
 import sqlite3
 from sqlite3 import Error
-from database import crear_conexion
+from core.database import crear_conexion
 
 class GestorFarmacia:
     def __init__(self):

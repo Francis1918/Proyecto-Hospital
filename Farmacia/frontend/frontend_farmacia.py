@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget, QLabel, QHBoxLayout, QFrame
 from PyQt6.QtCore import QSize, Qt
-from Medicos.frontend import theme 
+from core import theme 
 
 # Ajuste de path para importar módulos hermanos/padres si es necesario
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ class VentanaFarmacia(QMainWindow):
         self.resize(1100, 750)
         
         # Aplicar tema
-        self.setStyleSheet(theme.get_sheet())
+        self.setStyleSheet(get_sheet())
 
         self.initUI()
 
