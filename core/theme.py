@@ -281,6 +281,43 @@ STYLES = {
             background-color: {AppPalette.Focus_Bg};
         }}
     """,
+    "btn_action_dropdown": f"""
+        QPushButton {{
+            background-color: {AppPalette.Bg_Card};
+            border: 1px solid {AppPalette.Border};
+            border-radius: 4px;
+            color: {AppPalette.text_secondary};
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+        }}
+        QPushButton:hover {{
+            border-color: {AppPalette.Focus};
+            color: {AppPalette.Focus};
+        }}
+        QPushButton::menu-indicator {{
+            subcontrol-origin: padding;
+            subcontrol-position: center right;
+            width: 12px;
+        }}
+    """,
+    "menu_dropdown": f"""
+        QMenu {{
+            background-color: {AppPalette.Bg_Card};
+            border: none;
+            border-radius: 6px;
+            padding: 4px;
+        }}
+        QMenu::item {{
+            padding: 8px 25px 8px 15px;
+            color: {AppPalette.text_primary};
+            border-radius: 4px;
+        }}
+        QMenu::item:selected {{
+            background-color: {AppPalette.Focus_Bg};
+            color: {AppPalette.Focus};
+        }}
+    """,
     "combobox": f"""
         /* ESTILO ESPECÍFICO PARA COMBOBOX QUE NECESITAN MAS DETALLE */
         QComboBox {{

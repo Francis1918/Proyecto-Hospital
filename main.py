@@ -19,7 +19,7 @@ from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 from core.database import inicializar_db
-from Medicos.medicos_view import MedicosView
+from Medicos.frontend import module_medicos
 
 class MenuPrincipal(QMainWindow):
     """
@@ -298,7 +298,7 @@ class MenuPrincipal(QMainWindow):
         self.stack.addWidget(self.view_hosp)
 
         # --- 6. Médicos ---
-        self.view_medicos = embed(MedicosView())
+        self.view_medicos = embed(module_medicos.VentanaPrincipal())
         self.stack.addWidget(self.view_medicos)
 
         # Iniciar en la primera opción

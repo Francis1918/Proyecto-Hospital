@@ -160,7 +160,7 @@ class TabConsultarCitas(QWidget):
         }
         if estado in colores:
             item.setForeground(colores[estado])
-            item.setFont(get_sheet()) # Hack para asegurar bold si quisieras
+            item.setFont(get_sheet())
 
     def _get_selected(self):
         row = self.tabla.currentRow()
@@ -193,7 +193,6 @@ class TabConsultarCitas(QWidget):
             dlg._cargar()
             if dlg.exec(): self._buscar()
 
-
 # =======================================================
 # 2. PESTAÑA: CONSULTAR AGENDA
 # =======================================================
@@ -205,7 +204,7 @@ class TabAgenda(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(8, 8, 8, 8)
         
         # Panel superior
         top_frame = QFrame()
@@ -260,7 +259,6 @@ class TabAgenda(QWidget):
         self.tabla.setRowCount(0)
         
         if not citas:
-            # Opcional: Mostrar mensaje en status bar en vez de popup para no ser molesto
             return
 
         for c in citas:
@@ -274,7 +272,6 @@ class TabAgenda(QWidget):
         """Recargar médicos cada vez que se entra a la pestaña"""
         self._cargar_medicos()
         super().showEvent(event)
-
 
 # =======================================================
 # 3. PESTAÑA: HISTORIAL NOTIFICACIONES
@@ -331,7 +328,6 @@ class TabNotificaciones(QWidget):
         self._cargar() # Auto-refresh al entrar
         super().showEvent(event)
 
-
 # =======================================================
 # VISTA PRINCIPAL (CONTIENE LOS TABS)
 # =======================================================
@@ -343,7 +339,6 @@ class CitasMedicasView(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Gestión de Citas Médicas")
-        self.setMinimumSize(1000, 700)
         self.setStyleSheet(get_sheet())
 
         central = QWidget()
@@ -354,7 +349,7 @@ class CitasMedicasView(QMainWindow):
 
         # --- 1. HEADER & TOOLBAR ---
         header = QFrame()
-        header.setStyleSheet(f"background-color: {AppPalette.bg_sidebar};")
+        header.setStyleSheet(f"background-color: {AppPalette.bg_main};")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(20, 15, 20, 15)
 
@@ -365,8 +360,6 @@ class CitasMedicasView(QMainWindow):
         
         header_layout.addStretch()
 
-        # Botones de Acción Global (Solicitar / Configurar)
-        # Usamos botones con color sólido para acciones principales
         btn_solicitar = QPushButton(" Solicitar Nueva Cita")
         btn_solicitar.setIcon(get_icon("plus.svg", color="white"))
         btn_solicitar.setStyleSheet(STYLES["btn_primary"])
@@ -387,7 +380,6 @@ class CitasMedicasView(QMainWindow):
 
         # --- 2. TABS ---
         self.tabs = QTabWidget()
-        # Estilo para que el Tab ocupe el espacio y se vea limpio
         self.tabs.setDocumentMode(True) 
         
         # Instanciamos las pestañas

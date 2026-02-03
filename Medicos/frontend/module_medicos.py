@@ -8,7 +8,7 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget
+    QMainWindow, QWidget, QVBoxLayout, QTabWidget
 )
 from PyQt6.QtCore import QSize
 
@@ -35,14 +35,12 @@ class VentanaPrincipal(QMainWindow):
 
         # --- CREACIÓN DEL SISTEMA DE TABS ---
         self.tabs = QTabWidget()
-        self.tabs.setIconSize(QSize(20, 20)) # Tamaño de iconos en las pestañas
+        self.tabs.setIconSize(QSize(20, 20))
         
         # Instanciamos las páginas
         self.pag_registrar = WidgetRegistrar()
         self.pag_consultar = WidgetConsultar()
         
-        # Agregamos las pestañas con sus Iconos y Títulos
-        # Nota: Usamos utils.get_icon para colorearlos si es necesario
         icon_add = utils.get_icon("user-add.svg", color=theme.AppPalette.Focus)
         icon_list = utils.get_icon("list.svg", color=theme.AppPalette.Focus)
 
@@ -50,11 +48,7 @@ class VentanaPrincipal(QMainWindow):
         self.tabs.addTab(self.pag_consultar, icon_list, "Consultar Base de Datos")
 
         # --- CONEXIÓN DE SEÑALES ---
-        
-        # Cuando se guarda un médico en la pestaña 1:
         self.pag_registrar.medico_guardado.connect(self.al_guardar_medico)
-
-        # Añadimos las tabs al layout
         layout.addWidget(self.tabs)
 
     def al_guardar_medico(self):
@@ -63,6 +57,5 @@ class VentanaPrincipal(QMainWindow):
         """
         # 1. Recargar la tabla de la pestaña consultar
         self.pag_consultar.cargar_datos()
-        
-        # 2. Cambiar automáticamente a la pestaña de consultar (Índice 1)
+        # 2. Cambiar a la pestaña consultar
         self.tabs.setCurrentIndex(1)
