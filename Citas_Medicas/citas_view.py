@@ -13,7 +13,7 @@ from .citas_controller import CitasMedicasController
 from core.theme import AppPalette, get_sheet, STYLES
 from core.utils import get_icon
 
-# Importamos solo los DIÁLOGOS que seguirán siendo ventanas emergentes (Popups)
+# Importamos los diálogos
 from .dialogs import (
     SolicitarCitaDialog, 
     RegistrarAgendaDialog,
@@ -23,7 +23,7 @@ from .dialogs import (
 )
 
 # =======================================================
-# 1. PESTAÑA: CONSULTAR CITAS (Antiguo Dialog)
+# 1. PESTAÑA: CONSULTAR CITAS
 # =======================================================
 class TabConsultarCitas(QWidget):
     def __init__(self, controller):
@@ -32,6 +32,10 @@ class TabConsultarCitas(QWidget):
         self._init_ui()
 
     def _init_ui(self):
+        # --- FIX TRANSPARENCIA: Hacemos que este widget sea transparente 
+        # para que tome el color BLANCO del QTabWidget::pane ---
+        self.setStyleSheet("background-color: transparent;") 
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
@@ -72,23 +76,18 @@ class TabConsultarCitas(QWidget):
         actions_layout = QHBoxLayout()
         actions_layout.addWidget(QLabel("<b>Acciones:</b>"))
         
-        # 1. Botón Modificar
         btn_modificar = QPushButton(" Modificar")
-        # Usamos icono gris oscuro o primario
         btn_modificar.setIcon(get_icon("edit.svg", color=AppPalette.text_primary)) 
         btn_modificar.clicked.connect(self._on_modificar)
         
-        # 2. Botón Cancelar (Icono Rojo para indicar peligro/cuidado)
         btn_cancelar = QPushButton(" Cancelar")
         btn_cancelar.setIcon(get_icon("trash.svg", color=AppPalette.Danger)) 
         btn_cancelar.clicked.connect(self._on_cancelar)
         
-        # 3. Botón Estado (Icono Verde o Azul)
         btn_estado = QPushButton(" Asistencia")
-        btn_estado.setIcon(get_icon("circle-check.svg", color=AppPalette.Success)) # O usa "tag.svg"
+        btn_estado.setIcon(get_icon("circle-check.svg", color=AppPalette.Success))
         btn_estado.clicked.connect(self._on_estado)
 
-        # --- ESTILO UNIFICADO PARA BOTONES DE ACCIÓN (Outlined) ---
         estilo_acciones = f"""
             QPushButton {{
                 background-color: {AppPalette.Bg_Card};
@@ -193,6 +192,7 @@ class TabConsultarCitas(QWidget):
             dlg._cargar()
             if dlg.exec(): self._buscar()
 
+
 # =======================================================
 # 2. PESTAÑA: CONSULTAR AGENDA
 # =======================================================
@@ -203,10 +203,12 @@ class TabAgenda(QWidget):
         self._init_ui()
 
     def _init_ui(self):
+        # --- FIX TRANSPARENCIA ---
+        self.setStyleSheet("background-color: transparent;")
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         
-        # Panel superior
         top_frame = QFrame()
         top_frame.setStyleSheet(STYLES["filter_panel"])
         top_layout = QHBoxLayout(top_frame)
@@ -232,7 +234,6 @@ class TabAgenda(QWidget):
         
         layout.addWidget(top_frame)
 
-        # Tabla
         self.tabla = QTableWidget(0, 5)
         self.tabla.setHorizontalHeaderLabels(["Hora", "Paciente", "Especialidad", "Estado", "Código Cita"])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -269,9 +270,9 @@ class TabAgenda(QWidget):
                 self.tabla.setItem(row, col, QTableWidgetItem(str(v)))
 
     def showEvent(self, event):
-        """Recargar médicos cada vez que se entra a la pestaña"""
         self._cargar_medicos()
         super().showEvent(event)
+
 
 # =======================================================
 # 3. PESTAÑA: HISTORIAL NOTIFICACIONES
@@ -283,16 +284,18 @@ class TabNotificaciones(QWidget):
         self._init_ui()
 
     def _init_ui(self):
+        # --- FIX TRANSPARENCIA ---
+        self.setStyleSheet("background-color: transparent;")
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        # Header con botón refrescar
         top_layout = QHBoxLayout()
         top_layout.addWidget(QLabel("<b>Últimas notificaciones enviadas</b>"))
         top_layout.addStretch()
         
         btn_refresh = QPushButton(" Actualizar")
-        btn_refresh.setIcon(get_icon("refresh.svg", color=AppPalette.text_secondary)) # Asume icono
+        btn_refresh.setIcon(get_icon("refresh.svg", color=AppPalette.text_secondary)) 
         btn_refresh.clicked.connect(self._cargar)
         top_layout.addWidget(btn_refresh)
         layout.addLayout(top_layout)
@@ -325,8 +328,9 @@ class TabNotificaciones(QWidget):
                 self.tabla.setItem(row, col, QTableWidgetItem(str(v)))
     
     def showEvent(self, event):
-        self._cargar() # Auto-refresh al entrar
+        self._cargar() 
         super().showEvent(event)
+
 
 # =======================================================
 # VISTA PRINCIPAL (CONTIENE LOS TABS)
@@ -343,21 +347,40 @@ class CitasMedicasView(QMainWindow):
 
         central = QWidget()
         self.setCentralWidget(central)
+        
         main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(0) 
 
-        # --- 1. HEADER & TOOLBAR ---
-        header = QFrame()
-        header.setStyleSheet(f"background-color: {AppPalette.bg_main};")
-        header_layout = QHBoxLayout(header)
+        # --- 1. HEADER ---
+        header_frame = QFrame()
+        # Se mantiene blanco y redondeado arriba
+        header_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {AppPalette.bg_sidebar}; 
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }}
+        """)
+        
+        header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(20, 15, 20, 15)
 
-        # Título
-        lbl_titulo = QLabel("Gestión de Citas")
-        lbl_titulo.setObjectName("h1")
-        header_layout.addWidget(lbl_titulo)
+        icon_lbl = QLabel()
+        icon_pixmap = get_icon("calendar.svg", color=AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_lbl.setPixmap(icon_pixmap)
         
+        title_layout = QVBoxLayout()
+        lbl_titulo = QLabel("Gestión de Citas Médicas")
+        lbl_titulo.setObjectName("h1")
+        lbl_subtitulo = QLabel("Programación de consultas, control de agenda y asistencia.")
+        lbl_subtitulo.setStyleSheet(f"color: {AppPalette.text_secondary}; font-size: 14px;")
+        title_layout.addWidget(lbl_titulo)
+        title_layout.addWidget(lbl_subtitulo)
+
+        header_layout.addWidget(icon_lbl)
+        header_layout.addSpacing(15)
+        header_layout.addLayout(title_layout)
         header_layout.addStretch()
 
         btn_solicitar = QPushButton(" Solicitar Nueva Cita")
@@ -376,29 +399,59 @@ class CitasMedicasView(QMainWindow):
         header_layout.addSpacing(10)
         header_layout.addWidget(btn_solicitar)
 
-        main_layout.addWidget(header)
+        main_layout.addWidget(header_frame)
 
         # --- 2. TABS ---
         self.tabs = QTabWidget()
-        self.tabs.setDocumentMode(True) 
+        self.tabs.setDocumentMode(True)
         
-        # Instanciamos las pestañas
+        # --- ESTILOS FIX TRANSPARENCIA ---
+        self.tabs.setStyleSheet(f"""
+            /* 1. Fondo blanco para el widget principal (detrás de los botones) */
+            QTabWidget {{
+                background-color: {AppPalette.bg_sidebar}; 
+            }}
+            /* 2. El pane (contenido) blanco y con bordes abajo */
+            QTabWidget::pane {{
+                border: 1px solid {AppPalette.Border};
+                border-top: none; 
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+                background-color: {AppPalette.bg_sidebar}; 
+            }}
+            /* 3. Estilo de los botones de las pestañas */
+            QTabBar::tab {{
+                background: transparent;
+                border: none;
+                border-bottom: 2px solid transparent;
+                margin-right: 15px;
+                padding: 10px 5px;
+                font-weight: 600;
+                color: {AppPalette.text_secondary};
+            }}
+            QTabBar::tab:selected {{
+                color: {AppPalette.Primary};
+                border-bottom: 2px solid {AppPalette.Primary};
+            }}
+            QTabBar::tab:hover {{
+                color: {AppPalette.text_primary};
+            }}
+        """)
+
         self.tab_consultar = TabConsultarCitas(self.controller)
         self.tab_agenda = TabAgenda(self.controller)
         self.tab_notif = TabNotificaciones(self.controller)
 
-        # Agregamos con Iconos
         self.tabs.addTab(self.tab_consultar, get_icon("search.svg", AppPalette.text_secondary), "Buscar Citas")
         self.tabs.addTab(self.tab_agenda, get_icon("calendar.svg", AppPalette.text_secondary), "Agenda Médicos")
         self.tabs.addTab(self.tab_notif, get_icon("inbox.svg", AppPalette.text_secondary), "Notificaciones")
 
         main_layout.addWidget(self.tabs)
 
-    # --- Métodos de Acción (Llaman a los Dialogs flotantes) ---
+    # --- Métodos de Acción ---
     def abrir_solicitar(self):
         dlg = SolicitarCitaDialog(self.controller, self)
         if dlg.exec():
-            # Si se creó una cita, actualizamos las tablas de visualización
             self.tab_consultar._buscar() 
             self.tab_agenda._consultar()
 

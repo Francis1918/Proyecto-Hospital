@@ -21,8 +21,6 @@ class PacienteView(QMainWindow):
 
     def init_ui(self):
         # 1. Configuración base y Tema
-        self.setWindowTitle("Gestión de Pacientes")
-        self.setMinimumSize(1000, 700)
         self.setStyleSheet(get_sheet())
 
         # 2. Widget Central
