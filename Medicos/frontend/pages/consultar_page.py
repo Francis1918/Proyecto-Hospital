@@ -10,8 +10,8 @@ from PyQt6.QtGui import QAction
 
 from Medicos.backend.logic_medicos import LogicaMedicos
 from Medicos.backend.data_services import ServicioDatos
-import theme
-import utils
+import core.theme as theme
+import core.utils as utils
 
 class WidgetConsultar(QWidget):
     def __init__(self):
@@ -78,14 +78,14 @@ class WidgetConsultar(QWidget):
         lbl_titulo.setObjectName("h1")
 
         self.btn_toggle_panel = QPushButton(" Ocultar Panel")
-        self.btn_toggle_panel.setIcon(utils.get_icon("layout.svg", color=theme.Palette.Text_Secondary))
+        self.btn_toggle_panel.setIcon(utils.get_icon("layout.svg", color=theme.AppPalette.text_secondary))
         self.btn_toggle_panel.setCheckable(True)
         self.btn_toggle_panel.setChecked(True)
         self.btn_toggle_panel.setStyleSheet(theme.STYLES["btn_icon_ghost"])
         self.btn_toggle_panel.clicked.connect(self.toggle_side_panel)
 
         btn_import = QPushButton(" Importar")
-        btn_import.setIcon(utils.get_icon("upload.svg", color=theme.Palette.Text_Secondary))
+        btn_import.setIcon(utils.get_icon("upload.svg", color=theme.AppPalette.text_secondary))
         btn_import.setStyleSheet(theme.STYLES["btn_icon_ghost"])
         btn_import.clicked.connect(self.manejar_importacion)
 
@@ -133,7 +133,7 @@ class WidgetConsultar(QWidget):
         self.lbl_page = QLabel("1 / 1")
         self.lbl_page.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_page.setFixedSize(60, 30)
-        self.lbl_page.setStyleSheet(f"background: {theme.Palette.Focus}; color: white; border-radius: 4px; font-weight: bold;")
+        self.lbl_page.setStyleSheet(f"background: {theme.AppPalette.Focus}; color: white; border-radius: 4px; font-weight: bold;")
         
         self.btn_next = QPushButton(">")
         self.btn_next.setFixedSize(30, 30)
@@ -154,7 +154,7 @@ class WidgetConsultar(QWidget):
 
         header_layout = QHBoxLayout()
         lbl_head = QLabel("FILTROS")
-        lbl_head.setStyleSheet(f"color: {theme.Palette.Text_Light}; border: none; background: transparent; font-size: 12px; font-weight: bold;")
+        lbl_head.setStyleSheet(f"color: {theme.AppPalette.text_light}; border: none; background: transparent; font-size: 12px; font-weight: bold;")
         header_layout.addWidget(lbl_head)
         header_layout.addStretch()
         layout.addLayout(header_layout)
@@ -191,7 +191,7 @@ class WidgetConsultar(QWidget):
 
         header = QHBoxLayout()
         lbl_head = QLabel("EDITAR MÉDICO")
-        lbl_head.setStyleSheet(f"color: {theme.Palette.Focus}; font-weight: bold;")
+        lbl_head.setStyleSheet(f"color: {theme.AppPalette.Focus}; font-weight: bold;")
         
         btn_close = QPushButton("✕")
         btn_close.setFixedSize(24, 24)

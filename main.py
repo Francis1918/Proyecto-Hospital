@@ -1,353 +1,381 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QFrame, QGridLayout, QMessageBox
+    QPushButton, QLabel, QFrame, QStackedWidget, QSizePolicy
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent
-from Pacientes import PacienteView, PacienteController
+from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
+
+# --- IMPORTACIONES ---
+import core.utils as utils
+from core.theme import AppPalette as HospitalPalette
+
+# Importamos tus módulos (Asegúrate de que las carpetas existan)
+from Pacientes.paciente_view import PacienteView
+from Pacientes.paciente_controller import PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.ventana_farmacia import VentanaFarmacia
-from Citas_Medicas import CitasMedicasView, CitasMedicasController
-from database import inicializar_db
+from Citas_Medicas.citas_view import CitasMedicasView
+from Citas_Medicas.citas_controller import CitasMedicasController
+from Medicos.frontend.module_medicos import VentanaPrincipal as MedicosView
 
-from Medicos.frontend.frontend_medicos import VentanaPrincipal
+class SidebarButton(QPushButton):
+    """
+    Botón personalizado que imita el estilo de lista de 'Folderly'.
+    """
+    def __init__(self, text, icon_name, page_index, parent=None):
+        super().__init__(text, parent)
+        self.full_text = text
+        self.icon_name = icon_name
+        self.page_index = page_index
+        self.is_active = False
+        self.is_collapsed = False
+        
+        self.setFixedHeight(45)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setIconSize(QSize(20, 20))
+        self.update_style(False)
+
+    def set_collapsed_mode(self, state: bool):
+        self.is_collapsed = state
+        if state:
+            self.setText("")
+            self.setToolTip(self.full_text)
+        else:
+            self.setText(f"  {self.full_text}")
+            self.setToolTip("")
+
+        self.update_style(self.is_active)
+
+    def update_style(self, active):
+        self.is_active = active
+        
+        if active:
+            bg = HospitalPalette.active_bg
+            text_color = HospitalPalette.active_text
+            font_weight = "600"
+            icon_color = HospitalPalette.text_primary
+        else:
+            bg = "transparent"
+            text_color = HospitalPalette.text_secondary
+            font_weight = "400"
+            icon_color = HospitalPalette.text_secondary
+
+        self.setIcon(utils.get_icon(self.icon_name, color=icon_color))
+
+        # --- LÓGICA DE CENTRADO CORREGIDA ---
+        if self.is_collapsed:
+            padding = "0px"
+            text_align = "center"
+        else:
+            padding = "12px"
+            text_align = "left"
+
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg};
+                color: {text_color};
+                text-align: {text_align};
+                padding-left: {padding};
+                border: none;
+                border-radius: 6px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 14px;
+                font-weight: {font_weight};
+                
+            }}
+            QPushButton:hover {{
+                background-color: {HospitalPalette.hover};
+                color: {HospitalPalette.text_primary};
+            }}
+        """)
 
 class MenuPrincipal(QMainWindow):
-    """
-    Menú principal del sistema de gestión hospitalaria.
-    Proporciona acceso a todos los módulos del sistema.
-    """
-
     def __init__(self):
         super().__init__()
-        self.ventanas_abiertas = {}
-        self.init_ui()
+        self.setWindowTitle("Sistema Hospitalario")
+        self.resize(1200, 800)
+        self.setStyleSheet(f"background-color: {HospitalPalette.bg_main};")
 
-    def init_ui(self):
-        """Inicializa la interfaz de usuario del menú principal."""
-        self.setWindowTitle("Sistema de Gestión Hospitalaria")
-        self.setMinimumSize(900, 900)
-        self.setStyleSheet(self.get_styles())
+        self.sidebar_expanded = True
+        self.nav_btns = []
+        self.section_labels = []
 
-        # Widget central
+        # Widget Central y Layout Principal
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        
+        # Layout Horizontal: Sidebar | Contenido
+        self.main_layout = QHBoxLayout(central_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(40, 30, 40, 30)
+        # 1. Crear Sidebar
+        self.setup_sidebar()
+        # 2. Crear Stack de Contenido
+        self.setup_content()
+        # 3. Cargar Módulos
+        self.load_modules()
 
-        # Encabezado con logo e información
-        header = self.crear_header()
-        main_layout.addWidget(header)
+    def setup_sidebar(self):
+        """Configura el panel lateral estilo Folderly con Tarjetas"""
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName("Sidebar")
+        self.sidebar.setFixedWidth(240)
+        # Fondo del sidebar un poco más gris para que resalten las tarjetas blancas
+        self.sidebar.setStyleSheet(f"""
+            QFrame#Sidebar {{
+                background-color: {HospitalPalette.bg_sidebar}; 
+                border-right: 1px solid #e5e7eb;
+            }}
+        """)
+        
+        layout = QVBoxLayout(self.sidebar)
+        # Márgenes externos (espacio entre el borde de la ventana y las tarjetas)
+        layout.setContentsMargins(8, 8, 8, 8) 
+        layout.setSpacing(10)
 
-        # Contenedor de botones del menú
-        menu_container = self.crear_menu_botones()
-        main_layout.addWidget(menu_container)
+        # --- HEADER (Tarjeta 1) ---
+        self.header_widget = QWidget()
+        self.header_widget.setStyleSheet("background: #FFFFFF; border: none; border-radius: 8px;")
+        self.header_layout = QHBoxLayout(self.header_widget)
+        self.header_layout.setContentsMargins(15, 8, 15, 8)
+        
+        self.lbl_logo = QLabel("Hospital\nManager")
+        self.lbl_logo.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-weight: bold; font-size: 15px;")
+        
+        self.icon_app = QLabel()
+        self.icon_app.setPixmap(utils.get_icon("activity.svg", HospitalPalette.Primary, 26).pixmap(26, 26))
+        
+        self.btn_toggle = QPushButton()
+        self.btn_toggle.setIcon(utils.get_icon("menu.svg", HospitalPalette.text_secondary))
+        self.btn_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_toggle.setFixedSize(30, 30)
+        self.btn_toggle.setStyleSheet("background: transparent; border: none;")
+        self.btn_toggle.clicked.connect(self.toggle_sidebar)
+        
+        self.header_layout.addWidget(self.icon_app)
+        self.header_layout.addWidget(self.lbl_logo)
+        self.header_spacer = QWidget()
+        self.header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.header_layout.addWidget(self.header_spacer)
+        self.header_layout.addWidget(self.btn_toggle)
 
-        # Footer
-        footer = self.crear_footer()
-        main_layout.addWidget(footer)
+        layout.addWidget(self.header_widget)
+        
+        # Tarjeta 1: GENERAL
+        self.crear_seccion_menu(layout, "GENERAL", [
+            ("Inicio", "activity.svg", 0),
+            ("Citas Médicas", "calendar.svg", 1),
+            ("Pacientes", "users.svg", 2)
+        ])
 
-    def get_styles(self):
-        """Retorna los estilos CSS para la aplicación."""
-        return """
-            QMainWindow {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #667eea, stop:1 #764ba2
-                );
-            }
-            QWidget#central {
-                background: transparent;
-            }
-            QFrame#header {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 15px;
-                padding: 20px;
-            }
-            QFrame#menu_container {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 15px;
-                padding: 30px;
-            }
-            QLabel#titulo {
-                color: #2d3748;
-                font-size: 28px;
-                font-weight: bold;
-            }
-            QLabel#subtitulo {
-                color: #718096;
-                font-size: 14px;
-            }
-            QPushButton.menu_btn {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #667eea, stop:1 #764ba2
-                );
-                color: white;
-                border: none;
-                border-radius: 12px;
-                padding: 25px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 80px;
-                min-width: 150px;
-            }
-            QPushButton.menu_btn:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #5a67d8, stop:1 #6b46c1
-                );
-            }
-            QPushButton.menu_btn:pressed {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #4c51bf, stop:1 #553c9a
-                );
-            }
-            QPushButton#btn_salir {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #f56565, stop:1 #c53030
-                );
-                color: white;
-                border: none;
-                border-radius: 12px;
-                padding: 25px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 80px;
-                min-width: 150px;
-            }
-            QPushButton#btn_salir:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #e53e3e, stop:1 #9b2c2c
-                );
-            }
-            QFrame#footer {
-                background-color: rgba(255, 255, 255, 0.8);
-                border-radius: 10px;
-                padding: 10px;
-            }
-            QLabel#footer_text {
-                color: #718096;
-                font-size: 12px;
-            }
+        # Tarjeta 2: CLÍNICA
+        self.crear_seccion_menu(layout, "CLÍNICA", [
+            ("Consulta Externa", "clipboard.svg", 3),
+            ("Hospitalización", "home.svg", 5),
+            ("Médicos", "user-doctor.svg", 6)
+        ])
+
+        # Tarjeta 3: ADMINISTRACIÓN
+        self.crear_seccion_menu(layout, "ADMINISTRACIÓN", [
+            ("Farmacia", "pill.svg", 4)
+        ])
+
+        layout.addStretch()
+        
+        # Footer (Este lo dejamos fuera de tarjeta, o puedes meterlo en una si quieres)
+        self.btn_salir = SidebarButton("Cerrar Sesión", "log-out.svg", -1)
+        self.btn_salir.clicked.connect(self.close)
+        self.btn_salir.setStyleSheet(f"""
+            QPushButton {{
+                color: #ef4444; background: transparent; text-align: left; padding-left: 15px; border: none; font-weight: 500; margin: 0 10px;
+            }}
+            QPushButton:hover {{ background-color: #fef2f2; border-radius: 8px; }}
+        """)
+        layout.addWidget(self.btn_salir)
+        
+        self.main_layout.addWidget(self.sidebar)
+
+    def crear_seccion_menu(self, parent_layout, titulo, items):
         """
+        Crea un panel redondeado (tarjeta) que contiene el título y los botones.
+        """
+        # 1. Crear el marco (Card)
+        card_frame = QFrame()
+        card_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 8px;
+                border: none;
+            }
+        """)
+        
+        # 2. Layout interno de la tarjeta
+        card_layout = QVBoxLayout(card_frame)
+        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setSpacing(4)
 
-    def crear_header(self):
-        """Crea el encabezado con título y descripción."""
-        header = QFrame()
-        header.setObjectName("header")
-        header_layout = QVBoxLayout(header)
-        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 3. Agregar Título
+        lbl = QLabel(titulo)
+        # margin-left para alinearlo con el texto de los botones
+        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.text_secondary}; font-size: 11px; font-weight: 700; margin-left: 12px; margin-bottom: 5px;")
+        card_layout.addWidget(lbl)
+        self.section_labels.append(lbl)
 
-        # Icono/Logo
-        icon_label = QLabel("🏥")
-        icon_label.setStyleSheet("font-size: 48px;")
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(icon_label)
+        # 4. Agregar Botones
+        for texto, icono, indice in items:
+            btn = SidebarButton(texto, icono, indice)
+            btn.clicked.connect(lambda ch, b=btn: self.navegar(b))
+            card_layout.addWidget(btn)
+            self.nav_btns.append(btn)
 
-        # Título
-        titulo = QLabel("Sistema de Gestión Hospitalaria")
-        titulo.setObjectName("titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(titulo)
+        # 5. Añadir la tarjeta completa al sidebar
+        parent_layout.addWidget(card_frame)
 
-        # Subtítulo
-        subtitulo = QLabel("Seleccione un módulo para comenzar")
-        subtitulo.setObjectName("subtitulo")
-        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(subtitulo)
+    def add_section_label(self, layout, text):
+        lbl = QLabel(text)
+        lbl.setStyleSheet(f"background: transparent; color: {HospitalPalette.text_secondary}; font-size: 11px; font-weight: 700; margin-left: 20px; margin-top: 5px;")
+        layout.addWidget(lbl)
+        self.section_labels.append(lbl)
 
-        return header
+    def add_nav_btn(self, layout, text, icon, index):
+        btn = SidebarButton(text, icon, index)
+        btn.clicked.connect(lambda: self.navegar(btn))
+        layout.addWidget(btn)
+        self.nav_btns.append(btn)
 
-    def crear_menu_botones(self):
-        """Crea el contenedor con los botones del menú."""
-        container = QFrame()
-        container.setObjectName("menu_container")
+    def setup_content(self):
+        self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background-color: #ffffff;")
+        self.main_layout.addWidget(self.stack)
 
-        grid_layout = QGridLayout(container)
-        grid_layout.setSpacing(20)
-        grid_layout.setContentsMargins(20, 20, 20, 20)
+    def navegar(self, sender_btn):
+        # 1. Cambiar visualmente el activo
+        for btn in self.nav_btns:
+            btn.update_style(btn == sender_btn)
+        # 2. Cambiar página del stack
+        self.stack.setCurrentIndex(sender_btn.page_index)
 
-        # Definir los módulos del menú
-        modulos = [
-            ("📅 Citas\nMédicas", self.abrir_citas_medicas),
-            ("👤 Pacientes", self.abrir_pacientes),
-            ("🩺 Consulta\nExterna", self.abrir_consulta_externa),
-            ("💊 Farmacia", self.abrir_farmacia),
-            ("🏨 Hospitalización", self.abrir_hospitalizacion),
-            ("👨‍⚕️ Médicos", self.abrir_medicos),
-        ]
+    def toggle_sidebar(self):
+        ancho_actual = self.sidebar.width()
+        width_collapsed = 70  # Ancho colapsado
+        width_expanded = 240  # Ancho expandido
+        
+        if self.sidebar_expanded:
+            # --- COLAPSAR ---
+            nuevo_ancho = width_collapsed        
 
-        # Crear botones en una cuadrícula 2x3
-        for i, (texto, funcion) in enumerate(modulos):
-            btn = QPushButton(texto)
-            btn.setProperty("class", "menu_btn")
-            btn.clicked.connect(funcion)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            row = i // 3
-            col = i % 3
-            grid_layout.addWidget(btn, row, col)
+            self.lbl_logo.hide()
+            self.icon_app.hide()
+            self.header_spacer.hide()
 
-        # Botón de salir (fila separada, centrado)
-        btn_salir = QPushButton("🚪 Salir del\nSistema")
-        btn_salir.setObjectName("btn_salir")
-        btn_salir.clicked.connect(self.salir_sistema)
-        btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
-        grid_layout.addWidget(btn_salir, 2, 1)
+            for lbl in self.section_labels: lbl.hide()
+            for btn in self.nav_btns: btn.set_collapsed_mode(True)
+            self.btn_salir.set_collapsed_mode(True)
 
-        return container
+            # Ajustar márgenes del header al colapsar
+            self.header_layout.setContentsMargins(0, 0, 0, 0)
+            self.header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    def crear_footer(self):
-        """Crea el pie de página."""
-        footer = QFrame()
-        footer.setObjectName("footer")
-        footer_layout = QHBoxLayout(footer)
+        else:
+            # --- EXPANDIR ---
+            nuevo_ancho = width_expanded
+            # Restaurar márgenes originales del header
+            self.header_layout.setContentsMargins(20, 0, 15, 0)
+            self.header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        
+        # Animación
+        self.anim_group = QParallelAnimationGroup()
+        
+        anim_min = QPropertyAnimation(self.sidebar, b"minimumWidth")
+        anim_min.setDuration(300)
+        anim_min.setStartValue(ancho_actual)
+        anim_min.setEndValue(nuevo_ancho)
+        anim_min.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
-        footer_text = QLabel("© 2025 Sistema de Gestión Hospitalaria - Todos los derechos reservados")
-        footer_text.setObjectName("footer_text")
-        footer_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        footer_layout.addWidget(footer_text)
+        anim_max = QPropertyAnimation(self.sidebar, b"maximumWidth")
+        anim_max.setDuration(300)
+        anim_max.setStartValue(ancho_actual)
+        anim_max.setEndValue(nuevo_ancho)
+        anim_max.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
-        return footer
-
-    def abrir_citas_medicas(self):
-        if "citas_medicas" not in self.ventanas_abiertas or not self.ventanas_abiertas["citas_medicas"].isVisible():
-            controller = CitasMedicasController()
-            ventana = CitasMedicasView(controller)
-            ventana.setWindowTitle("Citas Médicas - Submódulo")
-            self.ventanas_abiertas["citas_medicas"] = ventana
-            ventana.show()
-            ventana.raise_()
-            ventana.activateWindow()
-
-    def abrir_pacientes(self):
-        """Abre el módulo de gestión de pacientes."""
-        if "pacientes" not in self.ventanas_abiertas or not self.ventanas_abiertas["pacientes"].isVisible():
-            controller = PacienteController()
-            ventana = PacienteView(controller)
-            ventana.setWindowTitle("Gestión de Pacientes - Submódulo")
-            self.ventanas_abiertas["pacientes"] = ventana
-
-        self.ventanas_abiertas["pacientes"].show()
-        self.ventanas_abiertas["pacientes"].raise_()
-        self.ventanas_abiertas["pacientes"].activateWindow()
-
-    def abrir_consulta_externa(self):
-        """Abre el módulo de consulta externa."""
-        if "consulta_externa" not in self.ventanas_abiertas or not self.ventanas_abiertas["consulta_externa"].isVisible():
-            controller = ConsultaExternaController()
-            ventana = ConsultaExternaView(controller)
-            ventana.setWindowTitle("Atención de Consultas Externas")
-            ventana.resize(800, 700) # Tamaño cómodo para formularios
-            self.ventanas_abiertas["consulta_externa"] = ventana
-            self.ventanas_abiertas["hospitalizacion"] = ventana
-
-        w = self.ventanas_abiertas["hospitalizacion"]
-        w.show()
-        try:
-            w.showMaximized()
-        except Exception:
-            pass
-        w.raise_()
-        w.activateWindow()
-        # Ocultar el menú principal mientras Hospitalización está abierta
-        self.hide()
-
-    def abrir_farmacia(self):
-        """Abre el módulo de farmacia."""
-        if "farmacia" not in self.ventanas_abiertas or not self.ventanas_abiertas["farmacia"].isVisible():
-            ventana = VentanaFarmacia()
-            ventana.setWindowTitle("Gestión de Farmacia - Submódulo")
-            self.ventanas_abiertas["farmacia"] = ventana
-
-        self.ventanas_abiertas["farmacia"].show()
-        self.ventanas_abiertas["farmacia"].raise_()
-        self.ventanas_abiertas["farmacia"].activateWindow()
-
-    def abrir_hospitalizacion(self):
-        """Abre el módulo de hospitalización."""
-        if "hospitalizacion" not in self.ventanas_abiertas or not self.ventanas_abiertas["hospitalizacion"].isVisible():
-            ventana = HospitalizacionView(parent=self)
-            ventana.setWindowTitle("Gestión de Hospitalización - Submódulo")
-            self.ventanas_abiertas["hospitalizacion"] = ventana
-
-        w = self.ventanas_abiertas["hospitalizacion"]
-        w.show()
-        try:
-            w.showMaximized()
-        except Exception:
-            pass
-        w.raise_()
-        w.activateWindow()
-        # Ocultar el menú principal mientras Hospitalización está abierta
-        self.hide()
-
-    def abrir_medicos(self):
-        """Abre el módulo de gestión de médicos."""
-        # Verificar si la ventana ya está creada y visible para no abrirla dos veces
-        if "medicos" not in self.ventanas_abiertas or not self.ventanas_abiertas["medicos"].isVisible():
+        self.anim_group.addAnimation(anim_min)
+        self.anim_group.addAnimation(anim_max)
+        
+        # Conectar señal para restaurar textos AL FINAL de la expansión
+        if not self.sidebar_expanded:
+            self.anim_group.finished.connect(self.show_sidebar_text)
             
-            # Instanciar la clase que importamos. 
-            # NOTA: Si tu clase requiere un controlador o argumentos, agrégalos aquí.
-            ventana = VentanaPrincipal() 
-            
-            ventana.setWindowTitle("Gestión de Médicos")
-            self.ventanas_abiertas["medicos"] = ventana
+        self.anim_group.start()
+        self.sidebar_expanded = not self.sidebar_expanded
 
-        # Mostrar la ventana y traerla al frente
-        self.ventanas_abiertas["medicos"].show()
-        self.ventanas_abiertas["medicos"].raise_()
-        self.ventanas_abiertas["medicos"].activateWindow()
+    def show_sidebar_text(self):
+        """Restaura los elementos visibles"""
+        self.lbl_logo.show()
+        self.icon_app.show()
+        self.header_spacer.show()
+        for lbl in self.section_labels: lbl.show()
+        for btn in self.nav_btns: btn.set_collapsed_mode(False)
+        self.btn_salir.set_collapsed_mode(False)
+        
+        # Restaurar estilo salir
+        self.btn_salir.setStyleSheet(f"""
+            QPushButton {{
+                color: #ef4444; background: transparent; text-align: left; padding-left: 15px; border: none; font-weight: 500; margin: 0 10px;
+            }}
+            QPushButton:hover {{ background-color: #fef2f2; border-radius: 8px; }}
+        """)
 
-    def salir_sistema(self):
-        """Confirma y cierra la aplicación."""
-        respuesta = QMessageBox.question(
-            self,
-            "Confirmar Salida",
-            "¿Está seguro de que desea salir del sistema?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+    def load_modules(self):
+        # --- 0. Inicio (Dashboard) ---
+        page_home = QWidget()
+        l = QVBoxLayout(page_home)
+        l.addWidget(QLabel("Dashboard Principal", alignment=Qt.AlignmentFlag.AlignCenter))
+        self.stack.addWidget(page_home)
 
-        if respuesta == QMessageBox.StandardButton.Yes:
-            # Cerrar todas las ventanas abiertas
-            for ventana in self.ventanas_abiertas.values():
-                if ventana.isVisible():
-                    ventana.close()
-            self.close()
+        # --- Helper para cargar ventanas QMainWindow dentro de widgets ---
+        def embed(window):
+            window.setWindowFlags(Qt.WindowType.Widget)
+            window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+            window.show()
+            return window
 
-    def closeEvent(self, a0: QCloseEvent | None) -> None:
-        """Maneja el evento de cierre de la ventana."""
-        # Cerrar todas las ventanas secundarias
-        for ventana in self.ventanas_abiertas.values():
-            if ventana.isVisible():
-                ventana.close()
-        if a0:
-            a0.accept()
+        # --- 1. Citas ---
+        self.view_citas = embed(CitasMedicasView(controller=CitasMedicasController()))
+        self.stack.addWidget(self.view_citas)
 
+        # --- 2. Pacientes ---
+        self.view_pacientes = embed(PacienteView(controller=PacienteController()))
+        self.stack.addWidget(self.view_pacientes)
 
-def main():
-    inicializar_db()
-    
-    app = QApplication(sys.argv)
+        # --- 3. Consulta (Ya es Widget) ---
+        self.view_consulta = ConsultaExternaView(controller=ConsultaExternaController())
+        self.stack.addWidget(self.view_consulta)
 
-    # Configurar el estilo de la aplicación
-    app.setStyle("Fusion")
+        # --- 4. Farmacia ---
+        self.view_farmacia = embed(VentanaFarmacia())
+        self.stack.addWidget(self.view_farmacia)
 
-    # Crear y mostrar el menú principal
-    ventana = MenuPrincipal()
-    ventana.show()
+        # --- 5. Hospitalización ---
+        self.view_hosp = embed(HospitalizacionView(parent=self))
+        self.stack.addWidget(self.view_hosp)
 
-    sys.exit(app.exec())
+        # --- 6. Médicos ---
+        self.view_medicos = embed(MedicosView())
+        self.stack.addWidget(self.view_medicos)
 
+        # Iniciar en la primera opción
+        if self.nav_btns:
+            self.nav_btns[0].click()
 
 if __name__ == '__main__':
-    main()
+    app = QApplication(sys.argv)
+    font = app.font()
+    font.setFamily("Segoe UI")
+    app.setFont(font)
+    
+    window = MenuPrincipal()
+    window.show()
+    sys.exit(app.exec())

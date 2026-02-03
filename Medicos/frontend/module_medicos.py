@@ -11,10 +11,9 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget
 )
 from PyQt6.QtCore import QSize
-from PyQt6.QtGui import QIcon
 
-import theme
-import utils 
+import core.theme as theme
+import core.utils as utils 
 from pages.registrar_page import WidgetRegistrar
 from pages.consultar_page import WidgetConsultar
 
@@ -44,8 +43,8 @@ class VentanaPrincipal(QMainWindow):
         
         # Agregamos las pestañas con sus Iconos y Títulos
         # Nota: Usamos utils.get_icon para colorearlos si es necesario
-        icon_add = utils.get_icon("user-add.svg", color=theme.Palette.Focus)
-        icon_list = utils.get_icon("list.svg", color=theme.Palette.Focus)
+        icon_add = utils.get_icon("user-add.svg", color=theme.AppPalette.Focus)
+        icon_list = utils.get_icon("list.svg", color=theme.AppPalette.Focus)
 
         self.tabs.addTab(self.pag_registrar, icon_add, "Registrar Médico")
         self.tabs.addTab(self.pag_consultar, icon_list, "Consultar Base de Datos")
@@ -67,13 +66,3 @@ class VentanaPrincipal(QMainWindow):
         
         # 2. Cambiar automáticamente a la pestaña de consultar (Índice 1)
         self.tabs.setCurrentIndex(1)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    
-    # Configuramos icono de la app si tienes uno
-    # app.setWindowIcon(utils.get_icon("app_logo.svg"))
-    
-    ventana = VentanaPrincipal()
-    ventana.show()
-    sys.exit(app.exec())
