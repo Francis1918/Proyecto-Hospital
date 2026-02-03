@@ -34,7 +34,9 @@ class AppPalette:
 def get_sheet() -> str:
     c = AppPalette
     return f"""
-    /* --- CONFIGURACIÓN BASE --- */
+    /* =======================================================
+       1. CONFIGURACIÓN BASE
+       ======================================================= */
     QMainWindow, QWidget {{ 
         background-color: {c.bg_main}; 
         color: {c.text_primary}; 
@@ -42,13 +44,15 @@ def get_sheet() -> str:
         font-size: 14px;
     }}
 
-    /* --- CORRECCIÓN DE LABELS (FIX) --- */
+    /* Fix para etiquetas: fondo transparente y sin borde */
     QLabel {{
-        border: none;            /* Quita bordes no deseados */
-        background: transparent; /* Fondo transparente */
+        border: none;
+        background: transparent;
     }}
 
-    /* --- ESTILOS DE TÍTULOS (Ahora funcionan con setObjectName) --- */
+    /* =======================================================
+       2. TIPOGRAFÍA (TÍTULOS)
+       ======================================================= */
     QLabel#h1 {{
         color: {c.text_primary};
         font-size: 24px;
@@ -63,7 +67,89 @@ def get_sheet() -> str:
         margin-bottom: 5px;
     }}
 
-    /* --- PESTAÑAS (TABS) --- */
+    /* =======================================================
+       3. INPUTS Y FORMULARIOS (QLineEdit, QDateEdit, etc.)
+       ======================================================= */
+    QLineEdit, QComboBox, QDateEdit, QDateTimeEdit, QSpinBox {{ 
+        background-color: {c.Bg_Card}; 
+        border: 1px solid {c.Border}; 
+        border-radius: 6px; 
+        padding: 6px 10px; 
+        color: {c.text_primary};
+        selection-background-color: {c.Focus};
+        selection-color: white;
+        font-size: 14px; /* Explícito para evitar herencias raras */
+    }}
+
+    QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDateTimeEdit:focus, QSpinBox:focus {{ 
+        border: 1px solid {c.Focus}; 
+        background-color: {c.Bg_Card}; 
+    }}
+    
+    /* Botón flecha en DateEdit/ComboBox */
+    QDateEdit::drop-down, QComboBox::drop-down {{
+        subcontrol-origin: padding;
+        subcontrol-position: top right;
+        width: 30px; 
+        border-left-width: 0px;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+    }}
+
+    /* =======================================================
+       4. CALENDARIO (QCalendarWidget) - FIX CRÍTICO APLICADO
+       ======================================================= */
+    /* Fondo general del popup */
+    QCalendarWidget QWidget {{
+        background-color: {c.Bg_Card};
+        alternate-background-color: {c.bg_main};
+        color: {c.text_primary};
+    }}
+    
+    /* Barra de navegación superior (Mes, Año, Flechas) */
+    /* IMPORTANTE: font-size explícito evita el error 'Point size <= 0' */
+    QCalendarWidget QToolButton {{
+        color: {c.text_primary};
+        background-color: transparent;
+        icon-size: 20px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin: 2px;
+        font-size: 14px;  /* <--- ESTA LÍNEA ARREGLA EL ERROR */
+    }}
+    QCalendarWidget QToolButton:hover {{
+        background-color: {c.hover};
+        border: 1px solid {c.Border};
+    }}
+    
+    /* Input del año (SpinBox dentro del calendario) */
+    QCalendarWidget QSpinBox {{
+        background-color: {c.bg_main};
+        color: {c.text_primary};
+        border: 1px solid {c.Border};
+        border-radius: 4px;
+        font-size: 14px;  /* <--- ESTA TAMBIÉN ES NECESARIA */
+        selection-background-color: {c.Focus};
+    }}
+    
+    /* La cuadrícula de días */
+    QCalendarWidget QAbstractItemView:enabled {{
+        color: {c.text_primary};
+        background-color: {c.Bg_Card};
+        selection-background-color: {c.Focus}; 
+        selection-color: white;
+        border: none;
+        outline: 0;
+    }}
+    
+    /* Días deshabilitados (otro mes) */
+    QCalendarWidget QAbstractItemView:disabled {{
+        color: {c.text_light};
+    }}
+
+    /* =======================================================
+       5. PESTAÑAS (QTabWidget)
+       ======================================================= */
     QTabWidget::pane {{
         border: 1px solid {c.Border};
         background: {c.Bg_Card};
@@ -89,23 +175,12 @@ def get_sheet() -> str:
         background: {c.Border};
     }}
 
-    /* --- INPUTS & COMBOS --- */
-    QLineEdit, QComboBox {{ 
-        background-color: {c.Bg_Card}; 
-        border: 1px solid {c.Border}; 
-        border-radius: 6px; 
-        padding: 6px 10px; 
-        color: {c.text_primary};
-    }}
-    QLineEdit:focus, QComboBox:focus {{ 
-        border: 1px solid {c.Focus}; 
-        background-color: {c.Bg_Card}; 
-    }}
-
-    /* --- TABLA --- */
+    /* =======================================================
+       6. TABLAS (QTableWidget)
+       ======================================================= */
     QTableWidget {{
         background-color: {c.Bg_Card};
-        gridline-color: transparent; 
+        gridline-color: {c.hover}; /* Líneas sutiles */
         border: 1px solid {c.Border};
         border-radius: 8px;
         selection-background-color: {c.Focus_Bg};
@@ -135,8 +210,9 @@ def get_sheet() -> str:
         padding: 12px 6px;
     }}
 
-
-    /* --- SCROLLBARS (Opcional, igual que antes) --- */
+    /* =======================================================
+       7. SCROLLBARS
+       ======================================================= */
     QScrollBar:vertical {{
         background: {c.bg_main};
         width: 8px;
@@ -173,7 +249,6 @@ STYLES = {
             background-color: {AppPalette.Bg_Card};
             border-left: 1px solid {AppPalette.Border};
         }}
-        /* Selector específico para evitar conflictos */
         QFrame QLabel {{
             border: none;
             background: transparent;
@@ -206,45 +281,8 @@ STYLES = {
             background-color: {AppPalette.Focus_Bg};
         }}
     """,
-    "btn_action_dropdown": f"""
-        QPushButton {{
-            background-color: {AppPalette.Bg_Card};
-            border: 1px solid {AppPalette.Border};
-            border-radius: 4px;
-            color: {AppPalette.text_secondary};
-            padding: 8px;
-            text-align: left;
-            font-size: 13px;
-        }}
-        QPushButton:hover {{
-            border-color: {AppPalette.Focus};
-            color: {AppPalette.Focus};
-        }}
-        QPushButton::menu-indicator {{
-            subcontrol-origin: padding;
-            subcontrol-position: center right;
-            width: 12px;
-        }}
-    """,
-    "menu_dropdown": f"""
-        QMenu {{
-            background-color: {AppPalette.Bg_Card};
-            border: none;
-            border-radius: 6px;
-            padding: 4px;
-        }}
-        QMenu::item {{
-            padding: 8px 25px 8px 15px;
-            color: {AppPalette.text_primary};
-            border-radius: 4px;
-        }}
-        QMenu::item:selected {{
-            background-color: {AppPalette.Focus_Bg};
-            color: {AppPalette.Focus};
-        }}
-    """,
     "combobox": f"""
-        /* 1. INPUT PRINCIPAL */
+        /* ESTILO ESPECÍFICO PARA COMBOBOX QUE NECESITAN MAS DETALLE */
         QComboBox {{
             background-color: {AppPalette.Bg_Card}; 
             border: 1px solid {AppPalette.Border};
@@ -253,47 +291,28 @@ STYLES = {
             color: {AppPalette.text_primary};
             font-size: 14px;
         }}
-        
         QComboBox:hover, QComboBox:focus {{ 
             border: 1px solid {AppPalette.Focus}; 
-            background-color: {AppPalette.Bg_Card};
         }}
+        QComboBox::drop-down {{ border: none; width: 30px; }}
         
-        QComboBox::drop-down {{ 
-            border: none; 
-            width: 30px; 
-        }}
-        
-        /* 2. EL CONTENEDOR DE la LISTA (EL POPUP) */
+        /* Popup desplegable */
         QComboBox QAbstractItemView {{
             background-color: {AppPalette.Bg_Card};
             border: 1px solid {AppPalette.Border};
             border-radius: 6px; 
             selection-background-color: {AppPalette.Focus_Bg};
             selection-color: {AppPalette.Focus};
-            outline: none;   /* Quita la línea de foco punteada */
-            padding: 4px;    /* Espacio interno general */
+            outline: none;
+            padding: 4px;
         }}
-
-        /* --- AQUÍ ESTÁ EL TRUCO PARA QUITAR BORDES NEGROS --- */
-        /* El viewport es el área interna donde viven los items */
-        QComboBox QAbstractItemView::viewport {{
-            border: none;
-            background-color: transparent;
-        }}
-
-        /* 3. LOS ITEMS INDIVIDUALES */
         QComboBox QAbstractItemView::item {{
             min-height: 30px;
             padding: 0px 8px;
-            border-radius: 4px;
             color: {AppPalette.text_primary};
-            border: none; /* Asegura que no tengan borde individual */
+            border: none;
         }}
-        
-        /* Hover y Selección */
-        QComboBox QAbstractItemView::item:selected, 
-        QComboBox QAbstractItemView::item:hover {{
+        QComboBox QAbstractItemView::item:selected {{
             background-color: {AppPalette.Focus_Bg};
             color: {AppPalette.Focus};
         }}

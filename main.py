@@ -307,10 +307,6 @@ class MenuPrincipal(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    font = app.font()
-    font.setFamily("Segoe UI")
-    app.setFont(font)
-    
     window = MenuPrincipal()
     window.show()
     sys.exit(app.exec())
