@@ -1,0 +1,79 @@
+# Medicos/frontend/frontend_medicos.py
+
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget
+)
+from PyQt6.QtCore import QSize
+from PyQt6.QtGui import QIcon
+
+import theme
+import utils 
+from pages.registrar_page import WidgetRegistrar
+from pages.consultar_page import WidgetConsultar
+
+class VentanaPrincipal(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sistema Médico - Gestión Hospitalaria")
+        self.resize(1100, 750)
+        # Aplicamos el tema actualizado
+        self.setStyleSheet(theme.get_sheet())
+
+        # Widget Central
+        central = QWidget()
+        self.setCentralWidget(central)
+        
+        # Layout Principal (Vertical)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(15, 15, 15, 15) # Un poco de margen alrededor
+
+        # --- CREACIÓN DEL SISTEMA DE TABS ---
+        self.tabs = QTabWidget()
+        self.tabs.setIconSize(QSize(20, 20)) # Tamaño de iconos en las pestañas
+        
+        # Instanciamos las páginas
+        self.pag_registrar = WidgetRegistrar()
+        self.pag_consultar = WidgetConsultar()
+        
+        # Agregamos las pestañas con sus Iconos y Títulos
+        # Nota: Usamos utils.get_icon para colorearlos si es necesario
+        icon_add = utils.get_icon("user-add.svg", color=theme.Palette.Focus)
+        icon_list = utils.get_icon("list.svg", color=theme.Palette.Focus)
+
+        self.tabs.addTab(self.pag_registrar, icon_add, "Registrar Médico")
+        self.tabs.addTab(self.pag_consultar, icon_list, "Consultar Base de Datos")
+
+        # --- CONEXIÓN DE SEÑALES ---
+        
+        # Cuando se guarda un médico en la pestaña 1:
+        self.pag_registrar.medico_guardado.connect(self.al_guardar_medico)
+
+        # Añadimos las tabs al layout
+        layout.addWidget(self.tabs)
+
+    def al_guardar_medico(self):
+        """
+        Se ejecuta cuando WidgetRegistrar emite la señal 'medico_guardado'
+        """
+        # 1. Recargar la tabla de la pestaña consultar
+        self.pag_consultar.cargar_datos()
+        
+        # 2. Cambiar automáticamente a la pestaña de consultar (Índice 1)
+        self.tabs.setCurrentIndex(1)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    
+    # Configuramos icono de la app si tienes uno
+    # app.setWindowIcon(utils.get_icon("app_logo.svg"))
+    
+    ventana = VentanaPrincipal()
+    ventana.show()
+    sys.exit(app.exec())

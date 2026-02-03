@@ -11,8 +11,9 @@ from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.ventana_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
+from database import inicializar_db
 
-from Medicos.medicos import VentanaPrincipal
+from Medicos.frontend.frontend_medicos import VentanaPrincipal
 
 class MenuPrincipal(QMainWindow):
     """
@@ -334,6 +335,8 @@ class MenuPrincipal(QMainWindow):
 
 
 def main():
+    inicializar_db()
+    
     app = QApplication(sys.argv)
 
     # Configurar el estilo de la aplicación
