@@ -23,8 +23,9 @@ class VentanaFarmacia(QMainWindow):
         self.setWindowTitle("Sistema Hospitalario - Módulo de Farmacia")
         self.resize(1100, 750)
         
+        
         # Aplicar tema
-        self.setStyleSheet(get_sheet())
+        self.setStyleSheet(theme.get_sheet())
 
         self.initUI()
 

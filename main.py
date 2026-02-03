@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelA
 # --- IMPORTACIONES ---
 import core.utils as utils
 from core.theme import AppPalette as HospitalPalette
+from core.widgets import SidebarButton
 
 # Importamos tus módulos (Asegúrate de que las carpetas existan)
 from Pacientes.paciente_view import PacienteView
@@ -18,8 +19,7 @@ from Hospitalizacion.hospitalizacion_view import HospitalizacionView
 from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 from core.database import inicializar_db
-
-from Medicos.frontend.frontend_medicos import VentanaPrincipal
+from Medicos.medicos_view import MedicosView
 
 class MenuPrincipal(QMainWindow):
     """
