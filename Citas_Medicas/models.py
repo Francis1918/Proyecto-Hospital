@@ -20,6 +20,7 @@ class CitaMedica:
     actualizada_en: datetime = field(default_factory=datetime.now)
     comentario: str = ""
     hora_llegada: Optional[time] = None
+    id_medico: int = 0
 
     def fecha_hora(self) -> datetime:
         return datetime.combine(self.fecha, self.hora)
