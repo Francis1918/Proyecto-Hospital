@@ -2,7 +2,8 @@ import sys
 import os
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget, QLabel, QHBoxLayout, QFrame
 from PyQt6.QtCore import QSize, Qt
-from core import theme 
+from core import theme
+from core.utils import get_icon 
 
 # Ajuste de path para importar módulos hermanos/padres si es necesario
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,10 +21,6 @@ from Farmacia.frontend.pages.page_caducidad import WidgetCaducidad
 class VentanaFarmacia(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Sistema Hospitalario - Módulo de Farmacia")
-        self.resize(1100, 750)
-        
-        
         # Aplicar tema
         self.setStyleSheet(theme.get_sheet())
 
@@ -33,16 +30,49 @@ class VentanaFarmacia(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(15, 15, 15, 15)
-
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
         # Header
-        header = QFrame()
-        header.setStyleSheet("background-color: white; border-radius: 10px; padding: 10px;")
-        header_layout = QHBoxLayout(header)
-        title = QLabel("💊  Gestión de Farmacia")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #2d3748;")
-        header_layout.addWidget(title)
-        layout.addWidget(header)
+        header_frame = QFrame()
+        header_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {theme.AppPalette.white_01}; 
+                border-radius: 8px;
+            }}
+        """)
+        
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        # Icono Representativo (Caja/Paquete para farmacia)
+        icon_lbl = QLabel()
+        icon_pixmap = get_icon("pill.svg", color=theme.AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_lbl.setPixmap(icon_pixmap)
+        
+        # Títulos
+        title_container = QWidget()
+        title_container.setStyleSheet("background: transparent;")
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(2)
+        
+        lbl_titulo = QLabel("Gestión de Farmacia")
+        lbl_titulo.setObjectName("h1") # Estilo grande y negrita
+        
+        lbl_sub = QLabel("Control de inventario, recepción de pedidos y caducidad de insumos.")
+        lbl_sub.setStyleSheet(f"color: {theme.AppPalette.black_02}; font-size: 14px;")
+        
+        title_layout.addWidget(lbl_titulo)
+        title_layout.addWidget(lbl_sub)
+
+        # Ensamblaje Header
+        header_layout.addWidget(icon_lbl)
+        header_layout.addSpacing(15)
+        header_layout.addWidget(title_container)
+        header_layout.addStretch()
+
+        layout.addWidget(header_frame)
 
         # Tabs
         self.tabs = QTabWidget()
