@@ -24,6 +24,169 @@ class RegistrarPacienteDialog(QDialog):
         self.controller = controller
         self.init_ui()
 
+    def get_styles(self):
+        """Retorna los estilos CSS para el diálogo."""
+        return """
+            QDialog {
+                background-color: #e8f4fc;
+            }
+            QLabel#titulo {
+                color: #1a365d;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 15px;
+            }
+            QLabel {
+                color: #1a365d;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 2px;
+            }
+            QTabWidget::pane {
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QTabBar::tab {
+                background-color: #e2e8f0;
+                color: #1a365d;
+                padding: 10px 20px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background-color: #3182ce;
+                color: white;
+            }
+            QLineEdit, QTextEdit {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+                color: #2d3748;
+            }
+            QLineEdit:focus, QTextEdit:focus {
+                border-color: #2c5282;
+            }
+            QDateEdit {
+                padding: 8px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+                color: #2d3748;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: right center;
+                width: 30px;
+                border-left: 1px solid #3182ce;
+                background-color: #3182ce;
+            }
+            QDateEdit::down-arrow {
+                image: none;
+                width: 16px;
+                height: 16px;
+            }
+            QDateEdit::drop-down:hover {
+                background-color: #2c5282;
+            }
+            QCalendarWidget {
+                background-color: white;
+            }
+            QCalendarWidget QToolButton {
+                color: black;
+                background-color: #e8f4fc;
+                border-radius: 4px;
+                padding: 5px;
+                font-weight: bold;
+            }
+            QCalendarWidget QToolButton:hover {
+                background-color: #3182ce;
+                color: white;
+            }
+            QCalendarWidget QMenu {
+                background-color: white;
+                color: black;
+            }
+            QCalendarWidget QMenu::item:selected {
+                background-color: #3182ce;
+                color: white;
+            }
+            QCalendarWidget QSpinBox {
+                color: black;
+                background-color: white;
+                selection-background-color: #3182ce;
+                selection-color: white;
+            }
+            QCalendarWidget QWidget#qt_calendar_navigationbar {
+                background-color: #e8f4fc;
+            }
+            QCalendarWidget QAbstractItemView:enabled {
+                color: black;
+                background-color: white;
+                selection-background-color: #3182ce;
+                selection-color: white;
+            }
+            QCalendarWidget QAbstractItemView:disabled {
+                color: #a0a0a0;
+            }
+            QPushButton {
+                background-color: #3182ce;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2c5282;
+            }
+            QPushButton:pressed {
+                background-color: #1a365d;
+            }
+            QPushButton#btn_cancelar {
+                background-color: #718096;
+            }
+            QPushButton#btn_cancelar:hover {
+                background-color: #4a5568;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #3182ce;
+                border-radius: 8px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                color: #1a365d;
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 15px;
+                top: 5px;
+                padding: 0 8px;
+                background-color: white;
+                font-size: 14px;
+            }
+            QCheckBox {
+                font-size: 14px;
+                color: #2d3748;
+                font-weight: normal;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+            }
+            QWidget#tab_widget {
+                background-color: white;
+            }
+        """
+
     def init_ui(self):
         """Inicializa la interfaz del diálogo."""
         self.setWindowTitle("Registrar Nuevo Paciente")
@@ -117,10 +280,71 @@ class RegistrarPacienteDialog(QDialog):
         self.date_nacimiento.setCalendarPopup(True)  # Habilitar popup de calendario
         self.date_nacimiento.setDisplayFormat("dd/MM/yyyy")
         self.date_nacimiento.setDate(QDate.currentDate())
+        self.date_nacimiento.setStyleSheet("""
+            QDateEdit {
+                padding: 8px;
+                padding-right: 30px;
+                border: 2px solid #3182ce;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: white;
+                color: #2d3748;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: border;
+                subcontrol-position: center right;
+                width: 28px;
+                border: none;
+                background-color: #3182ce;
+                border-top-right-radius: 4px;
+                border-bottom-right-radius: 4px;
+            }
+            QDateEdit::down-arrow {
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 8px solid white;
+            }
+            QDateEdit::drop-down:hover {
+                background-color: #2c5282;
+            }
+        """)
 
         # Configurar el calendario con estilos mejorados
         calendario = QCalendarWidget()
         calendario.setGridVisible(True)
+        calendario.setStyleSheet("""
+            QCalendarWidget QWidget {
+                color: black;
+            }
+            QCalendarWidget QToolButton {
+                color: black;
+                background-color: #e8f4fc;
+                border-radius: 4px;
+                padding: 5px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QCalendarWidget QToolButton:hover {
+                background-color: #3182ce;
+                color: white;
+            }
+            QCalendarWidget QMenu {
+                background-color: white;
+                color: black;
+            }
+            QCalendarWidget QSpinBox {
+                color: black;
+                background-color: white;
+            }
+            QCalendarWidget QAbstractItemView:enabled {
+                color: black;
+                background-color: white;
+                selection-background-color: #3182ce;
+                selection-color: white;
+            }
+        """)
         self.date_nacimiento.setCalendarWidget(calendario)
         form_personal.addRow(lbl_fecha_nac, self.date_nacimiento)
 
