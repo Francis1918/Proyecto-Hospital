@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QParallelA
 # --- IMPORTACIONES ---
 import core.utils as utils
 from core.theme import AppPalette as HospitalPalette
+from core.widgets import SidebarButton
 
 # Importamos tus módulos (Asegúrate de que las carpetas existan)
 from Pacientes.paciente_view import PacienteView
@@ -15,83 +16,17 @@ from Pacientes.paciente_controller import PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
-from Farmacia.ventana_farmacia import VentanaFarmacia
-from Citas_Medicas.citas_view import CitasMedicasView
-from Citas_Medicas.citas_controller import CitasMedicasController
-from Medicos.frontend.module_medicos import VentanaPrincipal as MedicosView
-
-class SidebarButton(QPushButton):
-    """
-    Botón personalizado que imita el estilo de lista de 'Folderly'.
-    """
-    def __init__(self, text, icon_name, page_index, parent=None):
-        super().__init__(text, parent)
-        self.full_text = text
-        self.icon_name = icon_name
-        self.page_index = page_index
-        self.is_active = False
-        self.is_collapsed = False
-        
-        self.setFixedHeight(45)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setIconSize(QSize(20, 20))
-        self.update_style(False)
-
-    def set_collapsed_mode(self, state: bool):
-        self.is_collapsed = state
-        if state:
-            self.setText("")
-            self.setToolTip(self.full_text)
-        else:
-            self.setText(f"  {self.full_text}")
-            self.setToolTip("")
-
-        self.update_style(self.is_active)
-
-    def update_style(self, active):
-        self.is_active = active
-        
-        if active:
-            bg = HospitalPalette.active_bg
-            text_color = HospitalPalette.active_text
-            font_weight = "600"
-            icon_color = HospitalPalette.text_primary
-        else:
-            bg = "transparent"
-            text_color = HospitalPalette.text_secondary
-            font_weight = "400"
-            icon_color = HospitalPalette.text_secondary
-
-        self.setIcon(utils.get_icon(self.icon_name, color=icon_color))
-
-        # --- LÓGICA DE CENTRADO CORREGIDA ---
-        if self.is_collapsed:
-            padding = "0px"
-            text_align = "center"
-        else:
-            padding = "12px"
-            text_align = "left"
-
-        self.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {bg};
-                color: {text_color};
-                text-align: {text_align};
-                padding-left: {padding};
-                border: none;
-                border-radius: 6px;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 14px;
-                font-weight: {font_weight};
-                
-            }}
-            QPushButton:hover {{
-                background-color: {HospitalPalette.hover};
-                color: {HospitalPalette.text_primary};
-            }}
-        """)
+from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
+from Citas_Medicas import CitasMedicasView, CitasMedicasController
+from core.database import inicializar_db
+from Medicos.medicos_view import MedicosView
 
 class MenuPrincipal(QMainWindow):
+    """
+    Menú principal del sistema de gestión hospitalaria.
+    Proporciona acceso a todos los módulos del sistema.
+    """
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sistema Hospitalario")
