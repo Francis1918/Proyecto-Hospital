@@ -20,7 +20,7 @@ class EvolucionWidget(QWidget):
         card_layout.setSpacing(15)
 
         lbl_instruccion = QLabel("Resumen de Evolución Clínica")
-        lbl_instruccion.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-size: 16px; font-weight: bold; border: none;")
+        lbl_instruccion.setStyleSheet(f"color: {HospitalPalette.black_01}; font-size: 16px; font-weight: bold; border: none;")
         
         self.txt_evolucion = QTextEdit()
         self.txt_evolucion.setPlaceholderText("Ingrese observaciones, diagnósticos y cambios en el tratamiento...")

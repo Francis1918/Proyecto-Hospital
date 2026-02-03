@@ -25,10 +25,43 @@ class ConsultaExternaView(QWidget):
         self.layout_principal.setContentsMargins(20, 20, 20, 20)
         self.layout_principal.setSpacing(15)
 
-        # Encabezado del Módulo
-        header = QLabel("Consulta Externa")
-        header.setObjectName("h1")
-        self.layout_principal.addWidget(header)
+        # --- HEADER (Estilo Tarjeta) ---
+        header_frame = QFrame()
+        header_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {AppPalette.white_02}; 
+                border-radius: 8px;
+            }}
+        """)
+        
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        icon_lbl = QLabel()
+        icon_pixmap = get_icon("clipboard.svg", color=AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_lbl.setPixmap(icon_pixmap)
+        
+        title_container = QWidget()
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(2)
+        
+        lbl_titulo = QLabel("Consulta Externa")
+        lbl_titulo.setObjectName("h1")
+        
+        lbl_sub = QLabel("Atención ambulatoria, triaje y diagnóstico médico.")
+        lbl_sub.setStyleSheet(f"color: {AppPalette.black_02}; font-size: 14px;")
+        
+        title_layout.addWidget(lbl_titulo)
+        title_layout.addWidget(lbl_sub)
+
+        # 3. Ensamblaje
+        header_layout.addWidget(icon_lbl)
+        header_layout.addSpacing(15)
+        header_layout.addWidget(title_container)
+        header_layout.addStretch()
+
+        self.layout_principal.addWidget(header_frame)
 
         # 2. CONFIGURACIÓN DE PESTAÑAS CON ICONOS
         self.tabs = QTabWidget()

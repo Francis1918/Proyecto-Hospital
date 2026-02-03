@@ -110,7 +110,7 @@ class MenuPrincipal(QMainWindow):
         # Tarjeta 2: CLÍNICA
         self.crear_seccion_menu(layout, "CLÍNICA", [
             ("Consulta Externa", "clipboard.svg", 3),
-            ("Hospitalización", "home.svg", 5),
+            ("Hospitalización", "building-hospital.svg", 5),
             ("Médicos", "user-doctor.svg", 6)
         ])
 

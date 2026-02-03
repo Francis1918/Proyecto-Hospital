@@ -32,8 +32,8 @@ class VentanaPrincipal(QMainWindow):
         
         # Layout Principal (Vertical)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(20, 20, 20, 20) # Aumenté un poco el margen para que respire mejor
-        layout.setSpacing(15) # Espacio entre el header y los tabs
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
 
         # =======================================================
         # 1. HEADER (ENCABEZADO)
@@ -46,15 +46,14 @@ class VentanaPrincipal(QMainWindow):
         header_layout.setContentsMargins(20, 15, 20, 15)
 
         # -- Icono --
-        # Usamos 'activity.svg' (o 'user-check.svg') para diferenciar de Pacientes
         icon_lbl = QLabel()
-        icon_pixmap = utils.get_icon("activity.svg", color=theme.AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_pixmap = utils.get_icon("user-doctor.svg", color=theme.AppPalette.Primary, size=40).pixmap(40, 40)
         icon_lbl.setPixmap(icon_pixmap)
         
         # -- Textos --
         title_layout = QVBoxLayout()
         lbl_titulo = QLabel("Gestión de Médicos")
-        lbl_titulo.setObjectName("h1") # Estilo de título grande
+        lbl_titulo.setObjectName("h1")
         
         lbl_subtitulo = QLabel("Administración del personal médico, especialidades y horarios.")
         lbl_subtitulo.setStyleSheet(f"color: {theme.AppPalette.black_02}; font-size: 14px;")

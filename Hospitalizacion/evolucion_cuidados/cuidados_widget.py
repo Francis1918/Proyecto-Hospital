@@ -14,7 +14,7 @@ class CuidadosWidget(QWidget):
         grid.setSpacing(20)
 
         # Estilo común para etiquetas e inputs
-        lbl_style = f"color: {HospitalPalette.text_secondary}; font-weight: bold; border: none;"
+        lbl_style = f"color: {HospitalPalette.black_01}; font-weight: bold; border: none;"
         input_style = "padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; color: #2d3748;"
 
         campos = [

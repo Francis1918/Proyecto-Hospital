@@ -21,14 +21,14 @@ class EvolucionCuidadosView(QWidget):
 
         # Título de sección con color oscuro para evitar letras blancas
         lbl_seccion = QLabel("Gestión de Evolución Médica y Cuidados")
-        lbl_seccion.setStyleSheet(f"color: {HospitalPalette.text_primary}; font-size: 20px; font-weight: bold;")
+        lbl_seccion.setStyleSheet(f"color: {HospitalPalette.black_01}; font-size: 20px; font-weight: bold;")
         layout.addWidget(lbl_seccion)
 
         # Sistema de Pestañas
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet(f"""
             QTabWidget::pane {{ border: 1px solid {HospitalPalette.Border}; border-radius: 8px; background: white; }}
-            QTabBar::tab {{ padding: 12px 25px; background: #edf2f7; color: {HospitalPalette.text_secondary}; }}
+            QTabBar::tab {{ padding: 12px 25px; background: #edf2f7; color: {HospitalPalette.black_02}; }}
             QTabBar::tab:selected {{ background: white; color: {HospitalPalette.Primary}; font-weight: bold; }}
         """)
         
