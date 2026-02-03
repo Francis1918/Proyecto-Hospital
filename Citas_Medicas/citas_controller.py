@@ -6,7 +6,7 @@ import sqlite3
 import random
 import string
 
-from database import crear_conexion
+from core.database import crear_conexion
 from Pacientes import PacienteController
 from .models import CitaMedica, Notificacion
 
