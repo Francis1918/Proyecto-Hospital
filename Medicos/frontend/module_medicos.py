@@ -8,7 +8,8 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QTabWidget
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QTabWidget, QLabel, QFrame
 )
 from PyQt6.QtCore import QSize
 
@@ -31,9 +32,47 @@ class VentanaPrincipal(QMainWindow):
         
         # Layout Principal (Vertical)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(15, 15, 15, 15) # Un poco de margen alrededor
+        layout.setContentsMargins(20, 20, 20, 20) # Aumenté un poco el margen para que respire mejor
+        layout.setSpacing(15) # Espacio entre el header y los tabs
 
-        # --- CREACIÓN DEL SISTEMA DE TABS ---
+        # =======================================================
+        # 1. HEADER (ENCABEZADO)
+        # =======================================================
+        header_frame = QFrame()
+        # Fondo suave y bordes redondeados, igual que en Pacientes
+        header_frame.setStyleSheet(f"background-color: {theme.AppPalette.bg_sidebar}; border-radius: 8px;")
+        
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        # -- Icono --
+        # Usamos 'activity.svg' (o 'user-check.svg') para diferenciar de Pacientes
+        icon_lbl = QLabel()
+        icon_pixmap = utils.get_icon("activity.svg", color=theme.AppPalette.Primary, size=40).pixmap(40, 40)
+        icon_lbl.setPixmap(icon_pixmap)
+        
+        # -- Textos --
+        title_layout = QVBoxLayout()
+        lbl_titulo = QLabel("Gestión de Médicos")
+        lbl_titulo.setObjectName("h1") # Estilo de título grande
+        
+        lbl_subtitulo = QLabel("Administración del personal médico, especialidades y horarios.")
+        lbl_subtitulo.setStyleSheet(f"color: {theme.AppPalette.text_secondary}; font-size: 14px;")
+        
+        title_layout.addWidget(lbl_titulo)
+        title_layout.addWidget(lbl_subtitulo)
+
+        header_layout.addWidget(icon_lbl)
+        header_layout.addSpacing(15)
+        header_layout.addLayout(title_layout)
+        header_layout.addStretch()
+
+        # Agregamos el header al layout principal antes de los tabs
+        layout.addWidget(header_frame)
+
+        # =======================================================
+        # 2. SISTEMA DE TABS
+        # =======================================================
         self.tabs = QTabWidget()
         self.tabs.setIconSize(QSize(20, 20))
         
