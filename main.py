@@ -9,7 +9,7 @@ from Pacientes import PacienteView, PacienteController
 from Consulta_Externa.consulta_controller import ConsultaExternaController
 from Consulta_Externa.consulta_view import ConsultaExternaView
 from Hospitalizacion.hospitalizacion_view import HospitalizacionView
-from Farmacia.ventana_farmacia import VentanaFarmacia
+from Farmacia.frontend.frontend_farmacia import VentanaFarmacia
 from Citas_Medicas import CitasMedicasView, CitasMedicasController
 from database import inicializar_db
 
