@@ -56,6 +56,7 @@ def inicializar_db():
                 dni TEXT UNIQUE NOT NULL, -- Usado como FK en citas
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
+                fecha_nacimiento TEXT, -- Nueva columna requerida
                 direccion TEXT,
                 telefono TEXT, -- Nombre único según corrección
                 email TEXT,
@@ -69,6 +70,7 @@ def inicializar_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS medicos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cedula TEXT UNIQUE NOT NULL,  -- <--- ESTA COLUMNA FALTABA
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
                 especialidad TEXT NOT NULL,
@@ -96,10 +98,26 @@ def inicializar_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero TEXT UNIQUE NOT NULL,
                 tipo TEXT NOT NULL,
+                estado TEXT DEFAULT 'Disponible',
+                ubicacion TEXT,
+                capacidad INTEGER
+            )
+        """)
+
+        # Tabla Camas para gestión detallada
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS camas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE NOT NULL,
+                habitacion_numero TEXT NOT NULL,
+                estado TEXT DEFAULT 'disponible',
+                higiene_ok INTEGER DEFAULT 1,
+                nombre_clave TEXT
                 estado TEXT DEFAULT 'Disponible'
             )
         """)
 
+        
         # --- NIVEL 2: TABLAS DEPENDIENTES (Relaciones) ---
 
         # 5. Inventario (Depende de Proveedores)
