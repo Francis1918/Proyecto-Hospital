@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from ..paciente_controller import PacienteController
 from .submenu_actualizar_dialog import VentanaOpcionesActualizar
+from .actualizar_datos_dialog import ActualizarDatosDialog
 
 
 class ConsultarPacienteDialog(QDialog):
@@ -601,25 +602,43 @@ class DetallePacienteDialog(QDialog):
         group_referencia.setLayout(form_referencia)
         layout.addWidget(group_referencia)
 
-        # Botones de consulta específica
+        # Botones de actualización
         buttons_layout = QHBoxLayout()
 
-        btn_consultar_dir = QPushButton("Consultar Solo Dirección")
-        btn_consultar_dir.clicked.connect(self.consultar_direccion)
-        buttons_layout.addWidget(btn_consultar_dir)
+        btn_act_dir = QPushButton("Modificar Dirección")
+        btn_act_dir.clicked.connect(lambda: self.abrir_actualizar_dato("direccion"))
+        buttons_layout.addWidget(btn_act_dir)
 
-        btn_consultar_tel = QPushButton("Consultar Solo Teléfono")
-        btn_consultar_tel.clicked.connect(self.consultar_telefono)
-        buttons_layout.addWidget(btn_consultar_tel)
+        btn_act_tel = QPushButton("Modificar Teléfono")
+        btn_act_tel.clicked.connect(lambda: self.abrir_actualizar_dato("telefono"))
+        buttons_layout.addWidget(btn_act_tel)
+        
+        btn_act_email = QPushButton("Modificar Email")
+        btn_act_email.clicked.connect(lambda: self.abrir_actualizar_dato("email"))
+        buttons_layout.addWidget(btn_act_email)
 
-        btn_consultar_tel_ref = QPushButton("Consultar Tel. Referencia")
-        btn_consultar_tel_ref.clicked.connect(self.consultar_telefono_referencia)
-        buttons_layout.addWidget(btn_consultar_tel_ref)
+        btn_act_ref = QPushButton("Modificar Tel. Ref")
+        btn_act_ref.clicked.connect(lambda: self.abrir_actualizar_dato("telefono_referencia"))
+        buttons_layout.addWidget(btn_act_ref)
 
         layout.addLayout(buttons_layout)
         layout.addStretch()
 
         return widget
+
+    def abrir_actualizar_dato(self, tipo_campo: str):
+        """Abre el diálogo para actualizar un dato específico."""
+        dialogo = ActualizarDatosDialog(self.controller, tipo_campo, self, self.paciente)
+        dialogo.datos_actualizados.connect(self.actualizar_info_ui)
+        dialogo.exec()
+
+    def actualizar_info_ui(self):
+        """Refresca la información mostrada en el diálogo."""
+        # Recargar paciente desde DB para asegurar datos frescos
+        paciente_actualizado = self.controller.consultar_paciente(self.paciente.cc)
+        if paciente_actualizado:
+            self.paciente = paciente_actualizado
+            self.cargar_datos_paciente()
 
     def crear_tab_anamnesis(self) -> QWidget:
         """Crea la pestaña de anamnesis."""
