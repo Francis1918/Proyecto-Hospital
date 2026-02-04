@@ -1,6 +1,6 @@
 from typing import Dict, Optional, List
 import sqlite3
-from core.database import crear_conexion
+from core.database import crear_conexion, inicializar_db
 from .models import Habitacion, Cama, Sala, Infraestructura, Paciente, PedidoHospitalizacion, Historial
 
 # Nombres griegos para salas (en español)
@@ -499,6 +499,11 @@ class DbBackedRepository(MemoryRepository):
     """
     def __init__(self):
         super().__init__()
+        # Asegurar esquema de BD antes de cargar datos
+        try:
+            inicializar_db()
+        except Exception:
+            pass
         self.conn = crear_conexion()
         try:
             self._load_from_db()

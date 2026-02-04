@@ -313,6 +313,11 @@ class MenuPrincipal(QMainWindow):
             self.nav_btns[0].click()
 
 if __name__ == '__main__':
+    # Inicializar/actualizar esquema de BD antes de cargar módulos
+    try:
+        inicializar_db()
+    except Exception as e:
+        print(f"Aviso: no se pudo inicializar BD: {e}")
     app = QApplication(sys.argv)
     window = MenuPrincipal()
     window.show()
