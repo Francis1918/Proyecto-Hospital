@@ -417,43 +417,6 @@ STYLES = {
             background-color: {AppPalette.Focus_Bg};
         }}
     """,
-    "btn_action_dropdown": f"""
-        QPushButton {{
-            background-color: {AppPalette.Bg_Card};
-            border: 1px solid {AppPalette.Border};
-            border-radius: 4px;
-            color: {AppPalette.black_02};
-            padding: 8px;
-            text-align: left;
-            font-size: 13px;
-        }}
-        QPushButton:hover {{
-            border-color: {AppPalette.Focus};
-            color: {AppPalette.Focus};
-        }}
-        QPushButton::menu-indicator {{
-            subcontrol-origin: padding;
-            subcontrol-position: center right;
-            width: 12px;
-        }}
-    """,
-    "menu_dropdown": f"""
-        QMenu {{
-            background-color: {AppPalette.Bg_Card};
-            border: none;
-            border-radius: 6px;
-            padding: 4px;
-        }}
-        QMenu::item {{
-            padding: 8px 25px 8px 15px;
-            color: {AppPalette.black_01};
-            border-radius: 4px;
-        }}
-        QMenu::item:selected {{
-            background-color: {AppPalette.Focus_Bg};
-            color: {AppPalette.Focus};
-        }}
-    """,
     "combobox": f"""
         QComboBox {{
             background-color: {AppPalette.Bg_Card}; 

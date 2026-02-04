@@ -40,6 +40,7 @@ def inicializar_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS medicos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cedula TEXT UNIQUE NOT NULL,  -- <--- ESTA COLUMNA FALTABA
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
                 especialidad TEXT NOT NULL,

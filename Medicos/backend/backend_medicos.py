@@ -20,17 +20,19 @@ class GestorMedicos:
     # El método inicializar_db se puede conservar como seguridad, 
     # pero database.py es quien manda ahora.
 
-    def registrar_medico(self, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
+    def registrar_medico(self, cedula, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
         conn = self.conectar()
         cursor = conn.cursor()
         try:
-            # Nota: database.py define 'telefono1' y 'telefono2', asegúrate de usar esos nombres
             cursor.execute('''
-                INSERT INTO medicos (nombres, apellidos, especialidad, telefono1, telefono2, direccion, estado)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (nombres, apellidos, especialidad, tel1, tel2, direccion, estado))
+                INSERT INTO medicos (cedula, nombres, apellidos, especialidad, telefono1, telefono2, direccion, estado)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (cedula, nombres, apellidos, especialidad, tel1, tel2, direccion, estado))
             conn.commit()
             return True, "Médico registrado correctamente."
+        except sqlite3.IntegrityError:
+            # Capturamos si la cédula ya existe (si la pusiste como UNIQUE en la BD)
+            return False, "Error: Ya existe un médico con esa cédula."
         except sqlite3.Error as e:
             return False, f"Error al guardar en BD: {e}"
         finally:
@@ -61,15 +63,15 @@ class GestorMedicos:
         conn.close()
         return resultados
 
-    def actualizar_medico(self, id_medico, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
+    def actualizar_medico(self, id_medico, cedula, nombres, apellidos, especialidad, tel1, tel2, direccion, estado):
         conn = self.conectar()
         cursor = conn.cursor()
         try:
             cursor.execute('''
                 UPDATE medicos 
-                SET nombres=?, apellidos=?, especialidad=?, telefono1=?, telefono2=?, direccion=?, estado=?
+                SET cedula=?, nombres=?, apellidos=?, especialidad=?, telefono1=?, telefono2=?, direccion=?, estado=?
                 WHERE id=?
-            ''', (nombres, apellidos, especialidad, tel1, tel2, direccion, estado, id_medico))
+            ''', (cedula, nombres, apellidos, especialidad, tel1, tel2, direccion, estado, id_medico))
             conn.commit()
             return True, "Datos actualizados correctamente."
         except sqlite3.Error as e:
