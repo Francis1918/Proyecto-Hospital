@@ -171,7 +171,7 @@ class SolicitarCitaDialog(QDialog):
             # Usar el nuevo diálogo estilizado
             resp = mostrar_error_paciente_no_encontrado(cc, self)
             
-            if resp == QMessageBox.Yes:
+            if resp == QMessageBox.StandardButton.Yes:
                 # Abrimos el diálogo que importaste al inicio
                 dlg = RegistrarPacienteDialog(self.controller.pacientes, self)
                 dlg.exec()
