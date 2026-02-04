@@ -14,14 +14,62 @@ class PacienteController:
         Inicializa el controlador.
         db_connection: Conexión a la base de datos (ajustar según tu implementación)
         """
-        # Importar función de conexión
-        from core.database import crear_conexion
-        self.crear_conexion = crear_conexion
-        
-        # Ya no usamos almacenamiento en memoria
-        # Los datos ahora se leen directamente de la base de datos
+        self.db = db_connection
+        # Almacenamiento en memoria (temporal, hasta que se implemente BD)
+        self._pacientes_memoria: dict[str, Paciente] = {}  # cc -> Paciente
+        self._anamnesis_memoria: dict[str, dict] = {}  # cc -> datos_anamnesis
+        self._historias_clinicas: dict[str, dict] = {}  # cc -> historia_clinica
 
+        # Cargar datos de ejemplo
+        self._cargar_datos_ejemplo()
 
+    def _cargar_datos_ejemplo(self):
+        """Carga pacientes de ejemplo para pruebas."""
+        pacientes_ejemplo = [
+            Paciente(
+                cc="1234567890",
+                nombre="Juan Carlos",
+                apellido="Pérez García",
+                direccion="Av. Principal #123, Quito",
+                telefono="0991234567",
+                email="juan.perez@email.com",
+                fecha_nacimiento=date(1985, 5, 15),
+                telefono_referencia="0987654321"
+            ),
+            Paciente(
+                cc="0987654321",
+                nombre="María Elena",
+                apellido="González López",
+                direccion="Calle Secundaria #456, Guayaquil",
+                telefono="0998765432",
+                email="maria.gonzalez@email.com",
+                fecha_nacimiento=date(1990, 8, 22),
+                telefono_referencia="0991122334"
+            ),
+            Paciente(
+                cc="1122334455",
+                nombre="Carlos Alberto",
+                apellido="Rodríguez Martínez",
+                direccion="Urbanización Los Pinos, Casa 10, Cuenca",
+                telefono="0976543210",
+                email="carlos.rodriguez@email.com",
+                fecha_nacimiento=date(1978, 12, 3),
+                telefono_referencia="0965432109"
+            ),
+        ]
+
+        # Registrar cada paciente
+        for paciente in pacientes_ejemplo:
+            self._pacientes_memoria[paciente.cc] = paciente
+
+        # Agregar anamnesis de ejemplo para el primer paciente
+        self._anamnesis_memoria["1234567890"] = {
+            'motivo_consulta': 'Dolor de cabeza frecuente',
+            'enfermedad_actual': 'Cefalea tensional de 2 semanas de evolución',
+            'antecedentes_personales': 'Hipertensión arterial controlada',
+            'antecedentes_familiares': 'Padre con diabetes tipo 2',
+            'alergias': 'Penicilina'
+        }
 
     def registrar_paciente(self, paciente: Paciente) -> tuple[bool, str]:
         """
@@ -44,20 +92,12 @@ class PacienteController:
             if self.consultar_paciente(paciente.cc):
                 return False, "El paciente con esta cédula ya existe"
 
-            # Guardar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO pacientes (dni, nombres, apellidos, direccion, telefono, email, telefono_referencia)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (paciente.cc, paciente.nombre, paciente.apellido, paciente.direccion, 
-                  paciente.telefono, paciente.email, paciente.telefono_referencia))
-            
-            conn.commit()
-            conn.close()
+            # Guardar en memoria (temporal)
+            self._pacientes_memoria[paciente.cc] = paciente
+
+            # Aquí iría la lógica para guardar en la base de datos
+            # if self.db:
+            #     self.db.insert('pacientes', paciente.to_dict())
 
             return True, "Paciente registrado exitosamente"
         except Exception as e:
@@ -74,24 +114,12 @@ class PacienteController:
             if not paciente:
                 return False, "El paciente no existe"
 
-            # Convertir dict a texto si es necesario
-            if isinstance(datos_anamnesis, dict):
-                anamnesis_texto = "\n".join([f"{k}: {v}" for k, v in datos_anamnesis.items()])
-            else:
-                anamnesis_texto = str(datos_anamnesis)
+            # Guardar en memoria (temporal)
+            self._anamnesis_memoria[cc_paciente] = datos_anamnesis
 
-            # Guardar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET anamnesis = ? WHERE dni = ?
-            """, (anamnesis_texto, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Aquí iría la lógica para guardar la anamnesis
+            # if self.db:
+            #     self.db.insert('anamnesis', datos_anamnesis)
 
             return True, "Anamnesis registrada exitosamente"
         except Exception as e:
@@ -107,24 +135,27 @@ class PacienteController:
             if not paciente:
                 return False, "El paciente no existe"
 
+            # Verificar si ya tiene historia clínica
+            if cc_paciente in self._historias_clinicas:
+                return False, "El paciente ya tiene historia clínica"
+
             # Crear historia clínica con datos iniciales
             from datetime import datetime
             numero_historia = f"HC-{cc_paciente}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-            historia_texto = f"Historia Clínica: {numero_historia}\nFecha Creación: {datetime.now()}\nEstado: Activa"
+            historia = {
+                'numero_historia': numero_historia,
+                'cc_paciente': cc_paciente,
+                'fecha_creacion': datetime.now(),
+                'estado': 'Activa',
+                'observaciones': '',
+                'consultas': [],
+                'diagnosticos': [],
+                'tratamientos': []
+            }
 
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET historia_clinica = ? WHERE dni = ?
-            """, (historia_texto, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Guardar en memoria
+            self._historias_clinicas[cc_paciente] = historia
 
             return True, f"Historia clínica {numero_historia} creada exitosamente"
         except Exception as e:
@@ -135,18 +166,8 @@ class PacienteController:
         Consulta la historia clínica del paciente.
         """
         try:
-            conn = self.crear_conexion()
-            if not conn:
-                return None
-            
-            cursor = conn.cursor()
-            cursor.execute("SELECT historia_clinica FROM pacientes WHERE dni = ?", (cc_paciente,))
-            
-            resultado = cursor.fetchone()
-            conn.close()
-            
-            if resultado and resultado[0]:
-                return {'historia_clinica': resultado[0]}
+            if cc_paciente in self._historias_clinicas:
+                return self._historias_clinicas[cc_paciente]
             return None
         except Exception as e:
             print(f"Error al consultar historia clínica: {str(e)}")
@@ -157,28 +178,13 @@ class PacienteController:
         Actualiza la historia clínica del paciente.
         """
         try:
-            # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            if cc_paciente not in self._historias_clinicas:
                 return False, "El paciente no tiene historia clínica"
 
-            # Convertir datos a texto si es necesario
-            if isinstance(datos, dict):
-                historia_texto = "\n".join([f"{k}: {v}" for k, v in datos.items()])
-            else:
-                historia_texto = str(datos)
-            
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET historia_clinica = ? WHERE dni = ?
-            """, (historia_texto, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Actualizar los campos proporcionados
+            for key, value in datos.items():
+                if key in self._historias_clinicas[cc_paciente]:
+                    self._historias_clinicas[cc_paciente][key] = value
 
             return True, "Historia clínica actualizada exitosamente"
         except Exception as e:
@@ -193,22 +199,16 @@ class PacienteController:
             if not nueva_direccion:
                 return False, "La dirección no puede estar vacía"
 
-            # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
 
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET direccion = ? WHERE dni = ?
-            """, (nueva_direccion, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].direccion = nueva_direccion
+
+            # Aquí iría la lógica para actualizar en la base de datos
+            # if self.db:
+            #     self.db.update('pacientes', {'direccion': nueva_direccion}, {'cc': cc_paciente})
 
             return True, "Dirección actualizada exitosamente"
         except Exception as e:
@@ -223,22 +223,16 @@ class PacienteController:
             if not nuevo_telefono or len(nuevo_telefono) < 7:
                 return False, "El teléfono debe tener al menos 7 dígitos"
 
-            # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
 
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET telefono = ? WHERE dni = ?
-            """, (nuevo_telefono, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].telefono = nuevo_telefono
+
+            # Aquí iría la lógica para actualizar en la base de datos
+            # if self.db:
+            #     self.db.update('pacientes', {'telefono': nuevo_telefono}, {'cc': cc_paciente})
 
             return True, "Teléfono actualizado exitosamente"
         except Exception as e:
@@ -253,22 +247,16 @@ class PacienteController:
             if nuevo_email and '@' not in nuevo_email:
                 return False, "El email no es válido"
 
-            # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
 
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET email = ? WHERE dni = ?
-            """, (nuevo_email, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].email = nuevo_email
+
+            # Aquí iría la lógica para actualizar en la base de datos
+            # if self.db:
+            #     self.db.update('pacientes', {'email': nuevo_email}, {'cc': cc_paciente})
 
             return True, "Email actualizado exitosamente"
         except Exception as e:
@@ -280,22 +268,16 @@ class PacienteController:
         Actualiza el teléfono de referencia del paciente.
         """
         try:
-            # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            # Verificar que el paciente existe en memoria
+            if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
 
-            # Actualizar en la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE pacientes SET telefono_referencia = ? WHERE dni = ?
-            """, (nuevo_telefono_ref, cc_paciente))
-            
-            conn.commit()
-            conn.close()
+            # Actualizar en memoria
+            self._pacientes_memoria[cc_paciente].telefono_referencia = nuevo_telefono_ref
+
+            # Aquí iría la lógica para actualizar en la base de datos
+            # if self.db:
+            #     self.db.update('pacientes', {'telefono_referencia': nuevo_telefono_ref}, {'cc': cc_paciente})
 
             return True, "Teléfono de referencia actualizado exitosamente"
         except Exception as e:
@@ -307,19 +289,23 @@ class PacienteController:
         """
         try:
             # Verificar que el paciente existe
-            if not self.consultar_paciente(cc_paciente):
+            if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
 
-            # Eliminar de la base de datos
-            conn = self.crear_conexion()
-            if not conn:
-                return False, "Error de conexión a la base de datos"
-            
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM pacientes WHERE dni = ?", (cc_paciente,))
-            
-            conn.commit()
-            conn.close()
+            # Eliminar paciente de memoria
+            del self._pacientes_memoria[cc_paciente]
+
+            # Eliminar anamnesis si existe
+            if cc_paciente in self._anamnesis_memoria:
+                del self._anamnesis_memoria[cc_paciente]
+
+            # Eliminar historia clínica si existe
+            if cc_paciente in self._historias_clinicas:
+                del self._historias_clinicas[cc_paciente]
+
+            # Aquí iría la lógica para eliminar de la base de datos
+            # if self.db:
+            #     self.db.delete('pacientes', {'cc': cc_paciente})
 
             return True, "Paciente eliminado exitosamente"
         except Exception as e:
@@ -331,29 +317,16 @@ class PacienteController:
         Consulta un paciente por su cédula.
         """
         try:
-            conn = self.crear_conexion()
-            if not conn:
-                return None
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia
-                FROM pacientes WHERE dni = ?
-            """, (cc_paciente,))
-            
-            resultado = cursor.fetchone()
-            conn.close()
-            
-            if resultado:
-                return Paciente(
-                    cc=resultado[0],
-                    nombre=resultado[1],
-                    apellido=resultado[2],
-                    direccion=resultado[3],
-                    telefono=resultado[4],
-                    email=resultado[5],
-                    telefono_referencia=resultado[6]
-                )
+            # Buscar en memoria primero
+            if cc_paciente in self._pacientes_memoria:
+                return self._pacientes_memoria[cc_paciente]
+
+            # Aquí iría la lógica para consultar en la base de datos
+            # if self.db:
+            #     resultado = self.db.query('pacientes', {'cc': cc_paciente})
+            #     if resultado:
+            #         return Paciente.from_dict(resultado)
+
             return None
         except Exception as e:
             print(f"Error al consultar paciente: {str(e)}")
@@ -385,31 +358,13 @@ class PacienteController:
         Obtiene la lista de todos los pacientes registrados.
         """
         try:
-            conn = self.crear_conexion()
-            if not conn:
-                return []
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia
-                FROM pacientes
-            """)
-            
-            resultados = cursor.fetchall()
-            conn.close()
-            
-            pacientes = []
-            for row in resultados:
-                pacientes.append(Paciente(
-                    cc=row[0],
-                    nombre=row[1],
-                    apellido=row[2],
-                    direccion=row[3],
-                    telefono=row[4],
-                    email=row[5],
-                    telefono_referencia=row[6]
-                ))
-            return pacientes
+            # Retornar todos los pacientes en memoria
+            return list(self._pacientes_memoria.values())
+
+            # Aquí iría la lógica para consultar en la base de datos
+            # if self.db:
+            #     resultados = self.db.query_all('pacientes')
+            #     return [Paciente.from_dict(r) for r in resultados]
         except Exception as e:
             print(f"Error al obtener pacientes: {str(e)}")
             return []
@@ -444,21 +399,14 @@ class PacienteController:
         Consulta la anamnesis del paciente.
         """
         try:
-            conn = self.crear_conexion()
-            if not conn:
-                return None
-            
-            cursor = conn.cursor()
-            cursor.execute("SELECT anamnesis FROM pacientes WHERE dni = ?", (cc_paciente,))
-            
-            resultado = cursor.fetchone()
-            conn.close()
-            
-            if resultado and resultado[0]:
-                # Convertir texto a dict si es posible
-                anamnesis_texto = resultado[0]
-                if anamnesis_texto:
-                    return {'anamnesis': anamnesis_texto}
+            # Buscar en memoria primero
+            if cc_paciente in self._anamnesis_memoria:
+                return self._anamnesis_memoria[cc_paciente]
+
+            # Aquí iría la lógica para consultar la anamnesis
+            # if self.db:
+            #     return self.db.query('anamnesis', {'cc_paciente': cc_paciente})
+
             return None
         except Exception as e:
             print(f"Error al consultar anamnesis: {str(e)}")
@@ -468,5 +416,16 @@ class PacienteController:
         """
         Lista todos los pacientes registrados.
         """
-        # Usa el mismo método que obtener_todos_pacientes
-        return self.obtener_todos_pacientes()
+        try:
+            # Retornar pacientes de memoria
+            pacientes = list(self._pacientes_memoria.values())
+
+            # Aquí iría la lógica para listar todos los pacientes
+            # if self.db:
+            #     resultados = self.db.query_all('pacientes')
+            #     return [Paciente.from_dict(r) for r in resultados]
+
+            return pacientes
+        except Exception as e:
+            print(f"Error al listar pacientes: {str(e)}")
+            return []
