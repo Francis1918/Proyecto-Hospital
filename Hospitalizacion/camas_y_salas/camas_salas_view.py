@@ -244,11 +244,8 @@ class CamasSalasView(QMainWindow):
             except Exception:
                 cc_sel, nombre_sel = None, item.text()
             selected_cc = cc_sel
-            # Obtener ID de repositorio ya mapeado; no crear si no existe
-            pid_mapped = repo.get_pid_por_cc(cc_sel)
-            if not pid_mapped:
-                QMessageBox.critical(dlg, "Error", "El paciente no está mapeado en hospitalización"); return
-            selected_pid = pid_mapped
+            # Asegurar mapeo en repositorio (crear si no existe)
+            selected_pid = repo.ensure_repo_patient(cc_sel, nombre_sel)
             paciente_label.setText(f"Paciente: {nombre_sel} ({selected_pid})")
             # Bloquear selección
             paciente_search.setEnabled(False); paciente_list.setEnabled(False)

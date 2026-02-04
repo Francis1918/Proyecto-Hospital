@@ -1,6 +1,7 @@
 from typing import Optional, List
 from datetime import date
 from .paciente import Paciente
+from core.database import crear_conexion
 
 
 class PacienteController:
@@ -95,9 +96,34 @@ class PacienteController:
             # Guardar en memoria (temporal)
             self._pacientes_memoria[paciente.cc] = paciente
 
-            # Aquí iría la lógica para guardar en la base de datos
-            # if self.db:
-            #     self.db.insert('pacientes', paciente.to_dict())
+            # Persistir en base de datos integrada (hospital.db)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        """
+                        INSERT OR IGNORE INTO pacientes (
+                            dni, nombres, apellidos, direccion, telefono, email, telefono_referencia, historia_clinica, anamnesis
+                        ) VALUES (?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            paciente.cc,
+                            paciente.nombre,
+                            paciente.apellido,
+                            paciente.direccion,
+                            paciente.telefono,
+                            paciente.email,
+                            paciente.telefono_referencia or "",
+                            "",
+                            ""
+                        )
+                    )
+                    conn.commit()
+                    conn.close()
+            except Exception:
+                # No interrumpir si DB falla; se mantiene en memoria
+                pass
 
             return True, "Paciente registrado exitosamente"
         except Exception as e:
@@ -358,13 +384,30 @@ class PacienteController:
         Obtiene la lista de todos los pacientes registrados.
         """
         try:
-            # Retornar todos los pacientes en memoria
-            return list(self._pacientes_memoria.values())
-
-            # Aquí iría la lógica para consultar en la base de datos
-            # if self.db:
-            #     resultados = self.db.query_all('pacientes')
-            #     return [Paciente.from_dict(r) for r in resultados]
+            # Cargar desde BD si disponible y fusionar con memoria
+            pacientes: dict[str, Paciente] = dict(self._pacientes_memoria)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    rows = cur.execute(
+                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia FROM pacientes"
+                    ).fetchall()
+                    for dni, nombres, apellidos, direccion, telefono, email, tel_ref in rows:
+                        if dni not in pacientes:
+                            pacientes[dni] = Paciente(
+                                cc=dni,
+                                nombre=nombres or "",
+                                apellido=apellidos or "",
+                                direccion=direccion or "",
+                                telefono=telefono or "",
+                                email=email or "",
+                                telefono_referencia=tel_ref or None
+                            )
+                    conn.close()
+            except Exception:
+                pass
+            return list(pacientes.values())
         except Exception as e:
             print(f"Error al obtener pacientes: {str(e)}")
             return []
