@@ -67,7 +67,21 @@ def inicializar_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero TEXT UNIQUE NOT NULL,
                 tipo TEXT NOT NULL,
-                estado TEXT DEFAULT 'Disponible'
+                estado TEXT DEFAULT 'Disponible',
+                ubicacion TEXT,
+                capacidad INTEGER
+            )
+        """)
+
+        # Tabla Camas para gestión detallada
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS camas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE NOT NULL,
+                habitacion_numero TEXT NOT NULL,
+                estado TEXT DEFAULT 'disponible',
+                higiene_ok INTEGER DEFAULT 1,
+                nombre_clave TEXT
             )
         """)
 
@@ -211,6 +225,16 @@ def inicializar_db():
                 FOREIGN KEY (pedido_id) REFERENCES pedidos_farmacia (id)
             )
         """)
+
+        # Intento de upgrade suave: asegurar columnas nuevas
+        try:
+            cursor.execute("ALTER TABLE salas_habitaciones ADD COLUMN ubicacion TEXT")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE salas_habitaciones ADD COLUMN capacidad INTEGER")
+        except Exception:
+            pass
 
         conn.commit()
         conn.close()

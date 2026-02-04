@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QLabel, QGridLayout, QFrame, QPushButton, QMessageBox
+    QMainWindow, QWidget, QVBoxLayout, QGridLayout, QFrame, QPushButton, QMessageBox, QScrollArea
 )
 from PyQt6.QtCore import Qt
+from core.theme import get_sheet, STYLES
 from .repository import repo
 
 class CamasSalasView(QMainWindow):
@@ -11,32 +12,25 @@ class CamasSalasView(QMainWindow):
         self.padre = parent
         self.init_ui()
 
-    def get_styles(self):
-        return """
-            QMainWindow { background-color: #e8f4fc; }
-            QWidget#central { background-color: #e8f4fc; }
-            QLabel#titulo { color: #1a365d; font-size: 26px; font-weight: bold; padding: 12px; }
-            QFrame#menu_container { background-color: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; }
-            QPushButton.menu_btn { background-color: #3182ce; color: white; border: none; border-radius: 8px; padding: 16px; font-size: 14px; font-weight: bold; min-height: 56px; min-width: 220px; }
-            QPushButton.menu_btn:hover { background-color: #2c5282; }
-            QPushButton.menu_btn:pressed { background-color: #1a365d; }
-        """
-
     def init_ui(self):
         self.setWindowTitle("Gestión de Camas y Salas")
         self.setMinimumSize(1000, 700)
-        self.setStyleSheet(self.get_styles())
-        central = QWidget(); central.setObjectName("central")
+        self.setStyleSheet(get_sheet())
+        central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setSpacing(20); layout.setContentsMargins(40,20,40,20)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
 
-        titulo = QLabel("Camas y Salas")
-        titulo.setObjectName("titulo"); titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(titulo)
-
-        container = QFrame(); container.setObjectName("menu_container")
-        grid = QGridLayout(container); grid.setSpacing(16); grid.setContentsMargins(16,16,16,16)
+        # Contenedor con scroll para acomodar más acciones si es necesario
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QFrame()
+        inner.setStyleSheet(STYLES["card"]) 
+        grid = QGridLayout(inner)
+        grid.setHorizontalSpacing(6)
+        grid.setVerticalSpacing(6)
+        grid.setContentsMargins(8, 8, 8, 8)
 
         acciones_jefe = [
             ("Registrar Infraestructura", self.registrar_infraestructura),
@@ -51,13 +45,22 @@ class CamasSalasView(QMainWindow):
             ("Consultar Estado de Paciente", self.consultar_estado_paciente),
             ("Autorizar Alta de Paciente", self.autorizar_alta_paciente),
         ]
-        acciones = acciones_jefe if self.rol == "JEFE" else acciones_medico
+        # Mostrar todas las acciones sin restricción por rol
+        acciones = acciones_jefe + acciones_medico
         for i, (texto, fn) in enumerate(acciones):
-            btn = QPushButton(texto); btn.setProperty("class","menu_btn")
-            btn.setCursor(Qt.CursorShape.PointingHandCursor); btn.clicked.connect(fn)
-            grid.addWidget(btn, i//2, i%2)
+            btn = QPushButton(texto)
+            # Estilo compacto para agrupar botones más cercanos
+            btn.setStyleSheet(
+                STYLES["btn_primary"] + "\n" +
+                "QPushButton{padding:6px 12px; font-size:13px; min-height:40px; min-width:140px;}"
+            )
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.clicked.connect(fn)
+            # Distribución en tres columnas para reducir separación
+            grid.addWidget(btn, i // 3, i % 3)
 
-        layout.addWidget(container)
+        scroll.setWidget(inner)
+        layout.addWidget(scroll)
 
         # (Se eliminó botón de regreso redundante; la navegación la controla la vista padre)
 
@@ -69,8 +72,7 @@ class CamasSalasView(QMainWindow):
 
     # Handlers con login y formularios rápidos via QMessageBox + inputs simples
     def registrar_infraestructura(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout, QListWidget
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Infraestructura")
         form = QFormLayout(dlg)
@@ -189,8 +191,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_pedido_hosp(self):
-        if self.rol != "MEDICO":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import (
             QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
         )
@@ -309,8 +310,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_hospitalizacion(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import (
             QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout,
             QListWidget, QLabel, QListWidgetItem
@@ -324,17 +324,20 @@ class CamasSalasView(QMainWindow):
         info = QLabel("Seleccione un paciente para ver detalles")
         info.setWordWrap(True)
 
-        # Construir lista SOLO de pedidos pendientes
+        # Construir lista de autorizaciones: pedidos pendientes y pacientes con cama sin autorización
         def build_items(q: str = ""):
             listw.clear()
             ql = (q or "").strip().lower()
-            for pid, ped in repo.pedidos.items():
-                if ped.estado != "pendiente":
-                    continue
+            try:
+                ids = repo.listar_para_autorizar()
+            except Exception:
+                # Fallback si el método no existe: solo pendientes
+                ids = [pid for pid, ped in getattr(repo, 'pedidos', {}).items() if ped.estado == 'pendiente']
+            for pid in ids:
                 pac = repo.pacientes.get(pid)
                 nombre = pac.nombre if pac else pid
                 display = f"{pid} — {nombre}"
-                if not ql or ql in nombre.lower() or ql in pid.lower():
+                if not ql or ql in (nombre or '').lower() or ql in (pid or '').lower():
                     item = QListWidgetItem(display)
                     item.setData(Qt.ItemDataRole.UserRole, pid)
                     listw.addItem(item)
@@ -403,8 +406,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do_autorizar); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def consultar_estado_habitacion(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
         dlg = QDialog(self); dlg.setWindowTitle("Consultar Estado de Habitación")
         form = QFormLayout(dlg)
@@ -475,8 +477,7 @@ class CamasSalasView(QMainWindow):
         cerrar.clicked.connect(dlg.reject); dlg.exec()
 
     def actualizar_estado_habitacion(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout, QListWidget
         dlg = QDialog(self); dlg.setWindowTitle("Actualizar Estado de Habitación")
         form = QFormLayout(dlg)
@@ -506,8 +507,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def asignar_habitacion(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel
         dlg = QDialog(self); dlg.setWindowTitle("Asignar Habitación")
         form = QFormLayout(dlg)
@@ -670,8 +670,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def registrar_hospitalizacion_paciente(self):
-        if self.rol != "JEFE":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QDateEdit, QTimeEdit
         from PyQt6.QtCore import QDate, QTime
         dlg = QDialog(self); dlg.setWindowTitle("Registrar Hospitalización de Paciente")
@@ -758,8 +757,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def consultar_estado_paciente(self):
-        if self.rol != "MEDICO":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import (
             QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
         )
@@ -816,8 +814,7 @@ class CamasSalasView(QMainWindow):
         ok.clicked.connect(do); cancel.clicked.connect(dlg.reject); dlg.exec()
 
     def autorizar_alta_paciente(self):
-        if self.rol != "MEDICO":
-            QMessageBox.warning(self, "Acceso", "Acción no permitida para su rol"); return
+        # Acceso permitido para todos los roles
         from PyQt6.QtWidgets import (
             QDialog, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QListWidget, QLabel, QListWidgetItem
         )

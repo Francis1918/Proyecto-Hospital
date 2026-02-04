@@ -1,4 +1,6 @@
 from typing import Dict, Optional, List
+import sqlite3
+from core.database import crear_conexion
 from .models import Habitacion, Cama, Sala, Infraestructura, Paciente, PedidoHospitalizacion, Historial
 
 # Nombres griegos para salas (en español)
@@ -290,14 +292,15 @@ class MemoryRepository:
 
     def autorizar_hospitalizacion(self, id_paciente: str) -> str:
         ped = self.pedidos.get(id_paciente)
-        if not ped:
-            return "Solicitud de hospitalización no encontrada"
-        if ped.estado == "autorizado":
-            return "Solicitud ya autorizada"
-        ped.estado = "autorizado"
         pac = self.pacientes.get(id_paciente)
-        if not pac:
+        if pac is None:
             return "Paciente no registrado"
+        # Si ya estaba autorizada, evitar duplicar
+        if ped and ped.estado == "autorizado":
+            return "Solicitud ya autorizada"
+        # Autorizar aun sin 'pedido' si el paciente está en flujo (p.ej., cama asignada o registrado)
+        if ped:
+            ped.estado = "autorizado"
         pac.estado = "hospitalización autorizada"
         self.historial.registrar(f"Hospitalización autorizada para paciente {id_paciente}")
         return "OK"
@@ -489,5 +492,166 @@ class MemoryRepository:
                 pass
         return None
 
-# Repositorio global simple (podría reemplazarse por DB en el futuro)
-repo = MemoryRepository()
+class DbBackedRepository(MemoryRepository):
+    """Repositorio que sincroniza datos con la BD SQLite interna.
+    - Carga inicial desde BD a memoria
+    - Persiste cambios claves (infraestructura, estados, hospitalizaciones)
+    """
+    def __init__(self):
+        super().__init__()
+        self.conn = crear_conexion()
+        try:
+            self._load_from_db()
+        except Exception:
+            # Si falla la carga, continuar con memoria
+            pass
+
+    def _load_from_db(self):
+        if not self.conn:
+            return
+        cur = self.conn.cursor()
+        # Cargar salas y habitaciones
+        try:
+            for numero, tipo, estado, ubicacion, capacidad in cur.execute(
+                "SELECT numero, tipo, estado, COALESCE(ubicacion,''), COALESCE(capacidad, 5) FROM salas_habitaciones"
+            ).fetchall():
+                if tipo == "sala":
+                    self.salas[numero] = Sala(numero, activa=(estado.lower() != "inactiva"), ubicacion=ubicacion or "Planta Baja", capacidad=capacidad)
+                elif tipo == "habitacion":
+                    self.habitaciones[numero] = Habitacion(numero, estado=estado or "disponible", ubicacion=ubicacion or "Planta Baja")
+        except Exception:
+            pass
+        # Cargar camas
+        try:
+            for codigo, hab_num, estado, higiene_ok, nombre_clave in cur.execute(
+                "SELECT codigo, habitacion_numero, estado, higiene_ok, COALESCE(nombre_clave,'') FROM camas"
+            ).fetchall():
+                self.camas[codigo] = Cama(codigo, hab_num, estado or "disponible", bool(higiene_ok), nombre_clave or None)
+        except Exception:
+            pass
+
+    def registrar_infraestructura(self, infra: Infraestructura) -> Optional[str]:
+        assigned = super().registrar_infraestructura(infra)
+        if not assigned or not self.conn:
+            return assigned
+        try:
+            cur = self.conn.cursor()
+            if infra.tipo == "sala":
+                cur.execute(
+                    "INSERT OR IGNORE INTO salas_habitaciones (numero, tipo, estado, ubicacion, capacidad) VALUES (?,?,?,?,?)",
+                    (assigned, "sala", "Disponible", infra.ubicacion, infra.capacidad if infra.capacidad else 5)
+                )
+            elif infra.tipo == "habitacion":
+                cur.execute(
+                    "INSERT OR IGNORE INTO salas_habitaciones (numero, tipo, estado, ubicacion) VALUES (?,?,?,?)",
+                    (assigned, "habitacion", "Disponible", infra.ubicacion)
+                )
+            elif infra.tipo == "cama":
+                cur.execute(
+                    "INSERT OR IGNORE INTO camas (codigo, habitacion_numero, estado, higiene_ok, nombre_clave) VALUES (?,?,?,?,?)",
+                    (assigned, infra.ubicacion, "disponible", 1, None)
+                )
+            self.conn.commit()
+        except Exception:
+            # No romper si la persistencia falla
+            pass
+        return assigned
+
+    def actualizar_estado_habitacion(self, numero: str, estado: str) -> bool:
+        ok = super().actualizar_estado_habitacion(numero, estado)
+        if ok and self.conn:
+            try:
+                cur = self.conn.cursor()
+                cur.execute("UPDATE salas_habitaciones SET estado=? WHERE numero=?", (estado, numero))
+                self.conn.commit()
+            except Exception:
+                pass
+        return ok
+
+    def registrar_hospitalizacion(self, id_paciente: str, fecha: str, sala: str, id_cama: str, motivo: str) -> str:
+        res = super().registrar_hospitalizacion(id_paciente, fecha, sala, id_cama, motivo)
+        if res == "OK" and self.conn:
+            try:
+                cur = self.conn.cursor()
+                # Resolver paciente_id real mediante cédula (si estuviera mapeada)
+                cc = self.get_cc_por_pid(id_paciente)
+                paciente_id = None
+                if cc:
+                    row = cur.execute("SELECT id FROM pacientes WHERE dni=?", (cc,)).fetchone()
+                    paciente_id = row[0] if row else None
+                # Resolver sala_id por numero
+                sala_row = cur.execute("SELECT id FROM salas_habitaciones WHERE numero=? AND tipo='sala'", (sala,)).fetchone()
+                sala_id = sala_row[0] if sala_row else None
+                if paciente_id and sala_id:
+                    cur.execute(
+                        "INSERT INTO hospitalizaciones (paciente_id, sala_id, fecha_ingreso, estado_paciente) VALUES (?,?,?,?)",
+                        (paciente_id, sala_id, fecha, "hospitalizado")
+                    )
+                    self.conn.commit()
+            except Exception:
+                pass
+        return res
+
+    def registrar_hospitalizacion_solo_sala(self, id_paciente: str, fecha: str, sala: str, motivo: str) -> str:
+        res = super().registrar_hospitalizacion_solo_sala(id_paciente, fecha, sala, motivo)
+        if res == "OK" and self.conn:
+            try:
+                cur = self.conn.cursor()
+                cc = self.get_cc_por_pid(id_paciente)
+                paciente_id = None
+                if cc:
+                    row = cur.execute("SELECT id FROM pacientes WHERE dni=?", (cc,)).fetchone()
+                    paciente_id = row[0] if row else None
+                sala_row = cur.execute("SELECT id FROM salas_habitaciones WHERE numero=? AND tipo='sala'", (sala,)).fetchone()
+                sala_id = sala_row[0] if sala_row else None
+                if paciente_id and sala_id:
+                    cur.execute(
+                        "INSERT INTO hospitalizaciones (paciente_id, sala_id, fecha_ingreso, estado_paciente) VALUES (?,?,?,?)",
+                        (paciente_id, sala_id, fecha, "hospitalizado")
+                    )
+                    self.conn.commit()
+            except Exception:
+                pass
+        return res
+
+    def registrar_hospitalizacion_sin_sala(self, id_paciente: str, fecha: str, motivo: str) -> str:
+        res = super().registrar_hospitalizacion_sin_sala(id_paciente, fecha, motivo)
+        if res == "OK" and self.conn:
+            try:
+                cur = self.conn.cursor()
+                cc = self.get_cc_por_pid(id_paciente)
+                paciente_id = None
+                if cc:
+                    row = cur.execute("SELECT id FROM pacientes WHERE dni=?", (cc,)).fetchone()
+                    paciente_id = row[0] if row else None
+                if paciente_id:
+                    cur.execute(
+                        "INSERT INTO hospitalizaciones (paciente_id, sala_id, fecha_ingreso, estado_paciente) VALUES (?,?,?,?)",
+                        (paciente_id, None, fecha, "hospitalizado")
+                    )
+                    self.conn.commit()
+            except Exception:
+                pass
+        return res
+
+    def autorizar_hospitalizacion(self, id_paciente: str) -> str:
+        res = super().autorizar_hospitalizacion(id_paciente)
+        if res == "OK" and self.conn:
+            try:
+                cur = self.conn.cursor()
+                cc = self.get_cc_por_pid(id_paciente)
+                if cc:
+                    row = cur.execute("SELECT id FROM pacientes WHERE dni=?", (cc,)).fetchone()
+                    pid = row[0] if row else None
+                    if pid:
+                        cur.execute(
+                            "UPDATE hospitalizaciones SET estado_paciente=? WHERE paciente_id=?",
+                            ("hospitalización autorizada", pid)
+                        )
+                        self.conn.commit()
+            except Exception:
+                pass
+        return res
+
+# Repositorio global conectado a BD
+repo = DbBackedRepository()
