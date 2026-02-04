@@ -2,7 +2,7 @@ from datetime import date
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLineEdit, QLabel, QMessageBox,
-    QCheckBox, QDateEdit, QScrollArea, QFrame
+    QCheckBox, QDateEdit, QScrollArea, QFrame, QTextEdit
 )
 from PyQt6.QtCore import Qt, QDate, pyqtSignal
 
@@ -43,11 +43,11 @@ class RegistrarPacienteView(QWidget):
         self.setup_datos_personales()
         self.setup_contacto()
 
-        # Opciones Extra (Checkbox)
-        self.chk_crear_historia = QCheckBox(" Crear Historia Clínica automáticamente al guardar")
-        self.chk_crear_historia.setChecked(True)
-        self.chk_crear_historia.setStyleSheet(f"font-size: 14px; color: {AppPalette.black_01}; font-weight: bold;")
-        self.layout_content.addWidget(self.chk_crear_historia)
+        # --- 4. SECCIÓN ANAMNESIS (Integrada) ---
+        self.setup_anamnesis()
+
+
+
 
         self.layout_content.addStretch() # Empuja todo hacia arriba
         scroll.setWidget(content_widget)
@@ -139,6 +139,23 @@ class RegistrarPacienteView(QWidget):
         self.date_nacimiento.setFixedWidth(160)
         
         row_fecha.addWidget(QLabel("Fecha de Nacimiento *: "))
+        
+        # Configuración forzada del calendario interno
+        calendar = self.date_nacimiento.calendarWidget()
+        calendar.setVerticalHeaderFormat(calendar.VerticalHeaderFormat.NoVerticalHeader)
+        calendar.setNavigationBarVisible(True)
+
+        # Estilo específico inyectado para corregir calendario (Hardcoded Styles)
+        self.date_nacimiento.setStyleSheet("""
+            QDateEdit {
+                color: #2d3748;
+                font-weight: bold;
+                padding: 5px;
+            }
+            QCalendarWidget QWidget {
+                alternate-background-color: #f7fafc; 
+            }
+        """)
         row_fecha.addWidget(self.date_nacimiento)
         row_fecha.addStretch()
         
@@ -169,21 +186,83 @@ class RegistrarPacienteView(QWidget):
         l.addLayout(form)
         self.layout_content.addWidget(frame)
 
+    def setup_anamnesis(self):
+        """Crea la sección de anamnesis en el formulario principal."""
+        frame = QFrame()
+        frame.setStyleSheet(STYLES["card"])
+        l = QVBoxLayout(frame)
+        l.setContentsMargins(20, 20, 20, 20)
+        l.setSpacing(15)
+        
+        l.addWidget(QLabel("Antecedentes (Anamnesis)", objectName="h2"))
+        
+        # Campos de texto multilínea
+        self.txt_motivo = QTextEdit()
+        self.txt_motivo.setPlaceholderText("Motivo de consulta...")
+        self.txt_motivo.setMinimumHeight(60)
+        l.addWidget(QLabel("Motivo de Consulta:"))
+        l.addWidget(self.txt_motivo)
+        
+        self.txt_enfermedad = QTextEdit()
+        self.txt_enfermedad.setPlaceholderText("Enfermedad actual...")
+        self.txt_enfermedad.setMinimumHeight(60)
+        l.addWidget(QLabel("Enfermedad Actual:"))
+        l.addWidget(self.txt_enfermedad)
+        
+        # Grid para antecedentes
+        grid = QHBoxLayout()
+        
+        v1 = QVBoxLayout()
+        v1.addWidget(QLabel("Ant. Personales:"))
+        self.txt_ant_personales = QTextEdit()
+        self.txt_ant_personales.setMinimumHeight(60)
+        v1.addWidget(self.txt_ant_personales)
+        
+        v2 = QVBoxLayout()
+        v2.addWidget(QLabel("Ant. Familiares:"))
+        self.txt_ant_familiares = QTextEdit()
+        self.txt_ant_familiares.setMinimumHeight(60)
+        v2.addWidget(self.txt_ant_familiares)
+        
+        grid.addLayout(v1)
+        grid.addLayout(v2)
+        l.addLayout(grid)
+        
+        self.txt_alergias = QTextEdit()
+        self.txt_alergias.setPlaceholderText("Alergias conocidas...")
+        self.txt_alergias.setMinimumHeight(50)
+        l.addWidget(QLabel("Alergias:"))
+        l.addWidget(self.txt_alergias)
+
+        self.layout_content.addWidget(frame)
+
     # --- LÓGICA DE NEGOCIO ---
     def guardar_paciente(self):
         # 1. Validaciones
         cc = self.txt_cc.text().strip()
         nombre = self.txt_nombre.text().strip()
         apellido = self.txt_apellido.text().strip()
-
-        if not cc or not nombre or not apellido:
-            QMessageBox.warning(self, "Campos Incompletos", "Los campos Cédula, Nombre y Apellido son obligatorios.")
-            self.txt_cc.setFocus()
-            return
-
-        # 2. Crear Objeto
-        fecha_nac = self.date_nacimiento.date().toPyDate()
         
+        # Validar Anamnesis Obligatoria (Antes de guardar nada)
+        motivo = self.txt_motivo.toPlainText().strip()
+        enfermedad = self.txt_enfermedad.toPlainText().strip()
+        ant_personales = self.txt_ant_personales.toPlainText().strip()
+        ant_familiares = self.txt_ant_familiares.toPlainText().strip()
+        alergias = self.txt_alergias.toPlainText().strip()
+
+        if not motivo or not enfermedad or not ant_personales or not ant_familiares or not alergias:
+             QMessageBox.warning(self, "Anamnesis Incompleta", 
+                                 "Todos los campos de la Anamnesis son obligatorios:\n"
+                                 "- Motivo de Consulta\n- Enfermedad Actual\n"
+                                 "- Antecedentes (Personales/Familiares)\n- Alergias")
+             return
+
+        # 2. Crear Objeto Paciente
+        # Se omite pre-validación manual para delegar todo a paciente.validar_datos()
+
+
+        # 2. Crear Objeto Paciente
+        fecha_nac = self.date_nacimiento.date().toPyDate()
         paciente = Paciente(
             cc=cc,
             nombre=nombre,
@@ -195,45 +274,48 @@ class RegistrarPacienteView(QWidget):
             telefono_referencia=self.txt_telefono_ref.text().strip() or None
         )
 
-        # 3. Guardar en Base de Datos (Controller)
+        # 3. Guardar Paciente (Insertar BD)
+        # Nota: registrar_paciente llama internamente a validaciones de lógica de negocio (regex, edad, etc)
         exito, mensaje = self.controller.registrar_paciente(paciente)
 
         if not exito:
-            QMessageBox.warning(self, "Error", mensaje)
+            QMessageBox.warning(self, "Error al Registrar", mensaje)
             return
 
-        # 4. Procesos opcionales (Historia Clínica)
-        msg_extra = ""
-        if self.chk_crear_historia.isChecked():
-            ok_hist, txt_hist = self.controller.crear_historia_clinica(paciente.cc)
-            if ok_hist:
-                msg_extra = f"\n- {txt_hist}"
-            else:
-                msg_extra = f"\n- (Ojo) {txt_hist}"
+        # 4. Crear Historia Clínica (Obligatorio)
+        exito_hc, msg_hc = self.controller.crear_historia_clinica(paciente.cc)
+        if not exito_hc:
+            # ROLLBACK: Borrar paciente recién creado si falla la HC
+            self.controller.eliminar_paciente(paciente.cc)
+            QMessageBox.critical(self, "Error Crítico", 
+                               f"No se pudo crear la historia clínica.\nError: {msg_hc}\n\n"
+                               "La operación ha sido cancelada y el paciente no se guardó.")
+            return
 
-        # 5. Confirmación Exitosa
+        # 5. Registrar Anamnesis (Si hay datos ingresados)
+        # 5. Registrar Anamnesis (Obligatorio)
+        datos_anamnesis = {
+            'cc_paciente': paciente.cc,
+            'motivo_consulta': motivo,
+            'enfermedad_actual': enfermedad,
+            'antecedentes_personales': ant_personales,
+            'antecedentes_familiares': ant_familiares,
+            'alergias': alergias
+        }
+        
+        exito_ana, msg_ana = self.controller.registrar_anamnesis(paciente.cc, datos_anamnesis)
+        if not exito_ana:
+             # Si falla anamnesis, advertimos (Aunque el paciente ya se guardó con HC, esto es un error parcial)
+             QMessageBox.warning(self, "Advertencia", 
+                               f"Paciente guardado e HC creada, pero hubo un error al guardar anamnesis: {msg_ana}")
+
+        # 6. Confirmación y Limpieza
         QMessageBox.information(self, "Registro Exitoso", 
-                              f"Paciente {nombre} {apellido} guardado correctamente.{msg_extra}")
+                              f"PACIENTE REGISTRADO CORRECTAMENTE.\n\n"
+                              f"• Datos Personales: OK\n"
+                              f"• Historia Clínica: Creada ({msg_hc})")
         
-        # 6. Emitir señal para actualizar otras vistas
         self.paciente_registrado_signal.emit()
-
-        # 7. Preguntar por Anamnesis (Flujo original)
-        resp = QMessageBox.question(
-            self, "Registrar Anamnesis",
-            "¿Desea registrar los antecedentes (Anamnesis) ahora?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
-        )
-        
-        if resp == QMessageBox.StandardButton.Yes:
-            # Abrimos el diálogo de anamnesis existente (Pop-up)
-            dlg = RegistrarAnamnesisDilaog(self.controller, self)
-            dlg.txt_cc.setText(paciente.cc)
-            dlg.buscar_paciente() # Auto-buscar
-            dlg.exec()
-        
-        # Limpiamos todo para el siguiente
         self.limpiar_formulario()
 
     def limpiar_formulario(self):
@@ -245,4 +327,13 @@ class RegistrarPacienteView(QWidget):
         self.txt_email.clear()
         self.txt_telefono_ref.clear()
         self.date_nacimiento.setDate(QDate.currentDate())
+        
+        # Limpiar Anamnesis
+        if hasattr(self, 'txt_motivo'):
+            self.txt_motivo.clear()
+            self.txt_enfermedad.clear()
+            self.txt_ant_personales.clear()
+            self.txt_ant_familiares.clear()
+            self.txt_alergias.clear()
+            
         self.txt_cc.setFocus()
