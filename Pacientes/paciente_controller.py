@@ -152,20 +152,25 @@ class PacienteController:
             # Guardar en memoria
             self._historias_clinicas[cc_paciente] = historia
 
-            # Persistencia en Base de Datos (Historia Clínica)
+            # Persistencia en Base de Datos (Historia Clínica como JSON)
             try:
                 conn = crear_conexion()
                 if conn:
+                    import json
+                    # Preparar dict para JSON con fechas como strings
+                    historia_db = historia.copy()
+                    historia_db['fecha_creacion'] = historia['fecha_creacion'].isoformat()
+                    # Si hubiera fecha_modificacion también
+
                     cur = conn.cursor()
                     cur.execute(
                         "UPDATE pacientes SET historia_clinica = ? WHERE dni = ?",
-                        (numero_historia, cc_paciente)
+                        (json.dumps(historia_db), cc_paciente)
                     )
                     conn.commit()
                     conn.close()
             except Exception as e:
                 print(f"Error persistiendo HC: {e}")
-                # No fallamos la operación global si falla la DB, para mantener UX, pero se loguea.
 
             return True, f"Historia clínica {numero_historia} creada exitosamente"
         except Exception as e:
@@ -180,7 +185,7 @@ class PacienteController:
             if cc_paciente in self._historias_clinicas:
                 return self._historias_clinicas[cc_paciente]
 
-            # 2. Buscar en Base de Datos (persistimos al menos el número de historia)
+            # 2. Buscar en Base de Datos
             try:
                 conn = crear_conexion()
                 if conn:
@@ -192,18 +197,38 @@ class PacienteController:
                     conn.close()
 
                     if row and row[0]:
-                        numero_historia = str(row[0]).strip()
-                        if not numero_historia:
-                            return None
+                        raw_data = row[0]
+                        import json
+                        from datetime import datetime
+                        
+                        try:
+                            # Intentar parsear como JSON
+                            historia_data = json.loads(raw_data)
+                            
+                            # Recuperar fechas desde string
+                            if 'fecha_creacion' in historia_data and historia_data['fecha_creacion']:
+                                try:
+                                    historia_data['fecha_creacion'] = datetime.fromisoformat(historia_data['fecha_creacion'])
+                                except ValueError:
+                                    pass # Dejar como string o None
+                                    
+                            self._historias_clinicas[cc_paciente] = historia_data
+                            return historia_data
+                            
+                        except json.JSONDecodeError:
+                            # LEGACY: Si falla, es porque antes solo guardábamos el ID como texto plano
+                            numero_historia = str(raw_data).strip()
+                            if not numero_historia:
+                                return None
 
-                        historia = {
-                            'numero_historia': numero_historia,
-                            'cc_paciente': cc_paciente,
-                            # En esta versión el estado no se persiste; asumimos activa.
-                            'estado': 'Activa',
-                        }
-                        self._historias_clinicas[cc_paciente] = historia
-                        return historia
+                            historia = {
+                                'numero_historia': numero_historia,
+                                'cc_paciente': cc_paciente,
+                                'estado': 'Activa',
+                                'fecha_creacion': None # No disponible en legacy
+                            }
+                            self._historias_clinicas[cc_paciente] = historia
+                            return historia
             except Exception as e:
                 print(f"Error consultando HC DB: {e}")
 
@@ -225,6 +250,29 @@ class PacienteController:
                 if key in self._historias_clinicas[cc_paciente]:
                     self._historias_clinicas[cc_paciente][key] = value
 
+            # Persistencia en Base de Datos (Historia Clínica como JSON)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    import json
+                    # Obtener la historia completa actualizada
+                    historia_actual = self._historias_clinicas[cc_paciente]
+                    
+                    # Preparar dict para JSON
+                    historia_db = historia_actual.copy()
+                    if hasattr(historia_actual['fecha_creacion'], 'isoformat'):
+                        historia_db['fecha_creacion'] = historia_actual['fecha_creacion'].isoformat()
+                    
+                    cur = conn.cursor()
+                    cur.execute(
+                        "UPDATE pacientes SET historia_clinica = ? WHERE dni = ?",
+                        (json.dumps(historia_db), cc_paciente)
+                    )
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error persistiendo actualización HC: {e}")
+
             return True, "Historia clínica actualizada exitosamente"
         except Exception as e:
             return False, f"Error al actualizar historia clínica: {str(e)}"
@@ -235,8 +283,8 @@ class PacienteController:
         Actualiza la dirección del paciente.
         """
         try:
-            if not nueva_direccion:
-                return False, "La dirección no puede estar vacía"
+            if not nueva_direccion or len(nueva_direccion) < 5:
+                return False, "La dirección debe tener al menos 5 caracteres"
 
             # Verificar que el paciente existe en memoria
             if cc_paciente not in self._pacientes_memoria:
@@ -245,9 +293,17 @@ class PacienteController:
             # Actualizar en memoria
             self._pacientes_memoria[cc_paciente].direccion = nueva_direccion
 
-            # Aquí iría la lógica para actualizar en la base de datos
-            # if self.db:
-            #     self.db.update('pacientes', {'direccion': nueva_direccion}, {'cc': cc_paciente})
+            # Actualizar en Base de Datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE pacientes SET direccion = ? WHERE dni = ?", (nueva_direccion, cc_paciente))
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error DB updating address: {e}")
+                # Log only, memory is updated
 
             return True, "Dirección actualizada exitosamente"
         except Exception as e:
@@ -259,8 +315,12 @@ class PacienteController:
         Actualiza el teléfono del paciente.
         """
         try:
-            if not nuevo_telefono or len(nuevo_telefono) < 7:
-                return False, "El teléfono debe tener al menos 7 dígitos"
+            # Validación estricta: solo números, longitud 7-15
+            if not nuevo_telefono or not nuevo_telefono.isdigit():
+                 return False, "El teléfono debe contener solo números (sin guiones ni espacios)"
+            
+            if not (7 <= len(nuevo_telefono) <= 15):
+                return False, "El teléfono debe tener entre 7 y 15 dígitos"
 
             # Verificar que el paciente existe en memoria
             if cc_paciente not in self._pacientes_memoria:
@@ -269,9 +329,16 @@ class PacienteController:
             # Actualizar en memoria
             self._pacientes_memoria[cc_paciente].telefono = nuevo_telefono
 
-            # Aquí iría la lógica para actualizar en la base de datos
-            # if self.db:
-            #     self.db.update('pacientes', {'telefono': nuevo_telefono}, {'cc': cc_paciente})
+            # Actualizar en Base de Datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE pacientes SET telefono = ? WHERE dni = ?", (nuevo_telefono, cc_paciente))
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error DB updating phone: {e}")
 
             return True, "Teléfono actualizado exitosamente"
         except Exception as e:
@@ -283,8 +350,10 @@ class PacienteController:
         Actualiza el email del paciente.
         """
         try:
-            if nuevo_email and '@' not in nuevo_email:
-                return False, "El email no es válido"
+            import re
+            patron_email = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not nuevo_email or not re.match(patron_email, nuevo_email):
+                return False, "El email no tiene un formato válido"
 
             # Verificar que el paciente existe en memoria
             if cc_paciente not in self._pacientes_memoria:
@@ -293,9 +362,16 @@ class PacienteController:
             # Actualizar en memoria
             self._pacientes_memoria[cc_paciente].email = nuevo_email
 
-            # Aquí iría la lógica para actualizar en la base de datos
-            # if self.db:
-            #     self.db.update('pacientes', {'email': nuevo_email}, {'cc': cc_paciente})
+            # Actualizar en Base de Datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE pacientes SET email = ? WHERE dni = ?", (nuevo_email, cc_paciente))
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error DB updating email: {e}")
 
             return True, "Email actualizado exitosamente"
         except Exception as e:
@@ -307,6 +383,13 @@ class PacienteController:
         Actualiza el teléfono de referencia del paciente.
         """
         try:
+            # Validación estricta: solo números, longitud 7-15
+            if not nuevo_telefono_ref or not nuevo_telefono_ref.isdigit():
+                 return False, "El teléfono de referencia debe contener solo números"
+            
+            if not (7 <= len(nuevo_telefono_ref) <= 15):
+                return False, "El teléfono de referencia debe tener entre 7 y 15 dígitos"
+
             # Verificar que el paciente existe en memoria
             if cc_paciente not in self._pacientes_memoria:
                 return False, "El paciente no existe"
@@ -314,9 +397,16 @@ class PacienteController:
             # Actualizar en memoria
             self._pacientes_memoria[cc_paciente].telefono_referencia = nuevo_telefono_ref
 
-            # Aquí iría la lógica para actualizar en la base de datos
-            # if self.db:
-            #     self.db.update('pacientes', {'telefono_referencia': nuevo_telefono_ref}, {'cc': cc_paciente})
+            # Actualizar en Base de Datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE pacientes SET telefono_referencia = ? WHERE dni = ?", (nuevo_telefono_ref, cc_paciente))
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error DB updating ref phone: {e}")
 
             return True, "Teléfono de referencia actualizado exitosamente"
         except Exception as e:
@@ -408,13 +498,28 @@ class PacienteController:
                 if conn:
                     cur = conn.cursor()
                     # Nota: Asumiendo columnas estándar. Ajustar si fecha_nacimiento falta en DB
+                    # Se agrega fecha_nacimiento al SELECT
                     row = cur.execute(
-                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia FROM pacientes WHERE dni = ?", 
+                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia, fecha_nacimiento FROM pacientes WHERE dni = ?", 
                         (cc_paciente,)
                     ).fetchone()
                     conn.close()
                     
                     if row:
+                        # Parsear fecha si existe
+                        fecha_nac = None
+                        if row[7]:
+                            try:
+                                from datetime import datetime
+                                # Ajustar formato según cómo se guarde. ISO es lo estándar.
+                                # Intentamos both YYYY-MM-DD y YYYY-MM-DD HH:MM:SS
+                                if ' ' in row[7]:
+                                    fecha_nac = datetime.strptime(row[7], '%Y-%m-%d %H:%M:%S').date()
+                                else:
+                                    fecha_nac = datetime.strptime(row[7], '%Y-%m-%d').date()
+                            except ValueError:
+                                pass # Dejar None si falla parseo
+
                         paciente = Paciente(
                             cc=row[0],
                             nombre=row[1] or "",
@@ -422,8 +527,8 @@ class PacienteController:
                             direccion=row[3] or "",
                             telefono=row[4] or "",
                             email=row[5] or "",
-                            telefono_referencia=row[6] or None
-                            # Fecha nacimiento no parece estar en la tabla pacientes según registrar_paciente
+                            telefono_referencia=row[6] or None,
+                            fecha_nacimiento=fecha_nac
                         )
                         # Cachear en memoria
                         self._pacientes_memoria[paciente.cc] = paciente
@@ -469,10 +574,22 @@ class PacienteController:
                 if conn:
                     cur = conn.cursor()
                     rows = cur.execute(
-                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia FROM pacientes"
+                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia, fecha_nacimiento FROM pacientes"
                     ).fetchall()
-                    for dni, nombres, apellidos, direccion, telefono, email, tel_ref in rows:
+                    for dni, nombres, apellidos, direccion, telefono, email, tel_ref, fecha_nac_str in rows:
                         if dni not in pacientes:
+                            # Parsear fecha si existe
+                            fecha_nac = None
+                            if fecha_nac_str:
+                                try:
+                                    from datetime import datetime
+                                    if ' ' in fecha_nac_str:
+                                        fecha_nac = datetime.strptime(fecha_nac_str, '%Y-%m-%d %H:%M:%S').date()
+                                    else:
+                                        fecha_nac = datetime.strptime(fecha_nac_str, '%Y-%m-%d').date()
+                                except ValueError:
+                                    pass
+
                             pacientes[dni] = Paciente(
                                 cc=dni,
                                 nombre=nombres or "",
@@ -480,7 +597,8 @@ class PacienteController:
                                 direccion=direccion or "",
                                 telefono=telefono or "",
                                 email=email or "",
-                                telefono_referencia=tel_ref or None
+                                telefono_referencia=tel_ref or None,
+                                fecha_nacimiento=fecha_nac
                             )
                     conn.close()
             except Exception:
