@@ -27,6 +27,7 @@ def inicializar_db():
                 dni TEXT UNIQUE NOT NULL, -- Usado como FK en citas
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
+                fecha_nacimiento TEXT, -- Nueva columna requerida
                 direccion TEXT,
                 telefono TEXT, -- Nombre único según corrección
                 email TEXT,
@@ -40,6 +41,7 @@ def inicializar_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS medicos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cedula TEXT UNIQUE NOT NULL,  -- <--- ESTA COLUMNA FALTABA
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
                 especialidad TEXT NOT NULL,
@@ -227,6 +229,12 @@ def inicializar_db():
         """)
 
         # Intento de upgrade suave: asegurar columnas nuevas
+        try:
+            cursor.execute("ALTER TABLE pacientes ADD COLUMN fecha_nacimiento TEXT")
+            print("Columna fecha_nacimiento agregada a pacientes.")
+        except Exception:
+            pass # Ya existe o error irrelevante
+
         try:
             cursor.execute("ALTER TABLE salas_habitaciones ADD COLUMN ubicacion TEXT")
         except Exception:

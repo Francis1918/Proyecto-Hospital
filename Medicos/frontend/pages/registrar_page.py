@@ -1,5 +1,6 @@
 # Medicos/frontend/pages/registrar_page.py
 
+import re
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QComboBox, QPushButton, QFrame, QMessageBox, QScrollArea
@@ -15,38 +16,48 @@ class WidgetRegistrar(QWidget):
     def __init__(self):
         super().__init__()
         self.logic = LogicaMedicos()
-        self.input_tel2 = None     # Guardará la referencia al campo de texto extra
-        self.widget_tel2 = None    # Guardará la referencia al contenedor (input + botón borrar)
+        self.input_tel2 = None     # Referencia al campo extra
+        self.widget_tel2 = None    # Referencia al contenedor extra
 
         # --- LAYOUT PRINCIPAL CON SCROLL ---
-        # Usamos ScrollArea por si la pantalla es pequeña, ya que el formulario es moderno y espacioso
         layout_main = QVBoxLayout(self)
         layout_main.setContentsMargins(0,0,0,0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent;") # Para que herede el color de fondo
+        scroll.setStyleSheet("background: transparent;") 
 
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setSpacing(30) # Espacio entre secciones
+        self.content_layout.setSpacing(30) 
         self.content_layout.setContentsMargins(30, 30, 30, 30)
 
         # ---------------------------------------------
         # 1. SECCIÓN: INFORMACIÓN PERSONAL
         # ---------------------------------------------
-        # Fila 1: Nombres y Apellidos
+        
+        # --- A) CÉDULA (NUEVO CAMPO) ---
+        self.txt_cedula = self.crear_campo_input("Ej. 1712345678")
+        # Conectamos validación de números (rojo si letras o length > 10)
+        self.txt_cedula.textChanged.connect(lambda: self.validar_numeros_visual(self.txt_cedula))
+
+        # --- B) NOMBRES Y APELLIDOS ---
         row_nombres = QHBoxLayout()
         row_nombres.setSpacing(20)
         
         self.txt_nombres = self.crear_campo_input("Nombres")
+        # Conectamos validación de texto (rojo si números o símbolos)
+        self.txt_nombres.textChanged.connect(lambda: self.validar_texto_visual(self.txt_nombres))
+        
         self.txt_apellidos = self.crear_campo_input("Apellidos")
+        # Conectamos validación de texto
+        self.txt_apellidos.textChanged.connect(lambda: self.validar_texto_visual(self.txt_apellidos))
         
         row_nombres.addWidget(self.crear_grupo_input("Nombre(s)", self.txt_nombres))
         row_nombres.addWidget(self.crear_grupo_input("Apellido(s)", self.txt_apellidos))
 
-        # Fila 2: Especialidad y Estado
+        # --- C) ESPECIALIDAD Y ESTADO ---
         row_profesional = QHBoxLayout()
         row_profesional.setSpacing(20)
 
@@ -61,15 +72,17 @@ class WidgetRegistrar(QWidget):
         row_profesional.addWidget(self.crear_grupo_input("Especialidad", self.cb_especialidad))
         row_profesional.addWidget(self.crear_grupo_input("Estado Actual", self.cb_estado))
 
-        # Crear la sección visual
+        # --- ARMADO VISUAL SECCIÓN 1 ---
         layout_personal = QVBoxLayout()
+        layout_personal.addWidget(self.crear_grupo_input("Cédula / DNI", self.txt_cedula)) # La cédula va primero
+        layout_personal.addSpacing(10)
         layout_personal.addLayout(row_nombres)
         layout_personal.addSpacing(10)
         layout_personal.addLayout(row_profesional)
 
         self.content_layout.addWidget(self.crear_seccion(
             "Perfil del Médico", 
-            "Información básica e identificación.", 
+            "Identificación e información profesional.", 
             layout_personal
         ))
 
@@ -78,13 +91,13 @@ class WidgetRegistrar(QWidget):
         # ---------------------------------------------
         layout_contacto = QVBoxLayout()
         
-        # Dirección (Ancho completo)
+        # Dirección
         self.txt_direccion = self.crear_campo_input("Dirección domiciliaria")
         layout_contacto.addWidget(self.crear_grupo_input("Dirección", self.txt_direccion))
         
         layout_contacto.addSpacing(15)
 
-        # Teléfonos (Lógica Dinámica)
+        # Teléfonos
         lbl_tel = QLabel("Teléfono(s)")
         lbl_tel.setStyleSheet(f"border: none; color: {theme.AppPalette.black_02}; font-weight: 600;")
         layout_contacto.addWidget(lbl_tel)
@@ -99,7 +112,7 @@ class WidgetRegistrar(QWidget):
 
         layout_contacto.addLayout(self.container_telefonos)
 
-        # Botón para agregar teléfono extra
+        # Botón agregar teléfono
         self.btn_add_tel = QPushButton(" Agregar otro teléfono")
         self.btn_add_tel.setIcon(utils.get_icon("plus.svg", color=theme.AppPalette.Primary))
         self.btn_add_tel.setStyleSheet(f"""
@@ -117,10 +130,10 @@ class WidgetRegistrar(QWidget):
             layout_contacto
         ))
 
-        self.content_layout.addStretch() # Empujar todo hacia arriba
+        self.content_layout.addStretch() 
 
         # ---------------------------------------------
-        # BOTÓN GUARDAR (FLOTANTE O AL FINAL)
+        # BOTÓN GUARDAR
         # ---------------------------------------------
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -129,22 +142,19 @@ class WidgetRegistrar(QWidget):
         btn_guardar.setIcon(utils.get_icon("save.svg", color="white"))
         btn_guardar.setStyleSheet(theme.STYLES["btn_primary"])
         btn_guardar.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_guardar.setFixedWidth(200) # Un poco más ancho
+        btn_guardar.setFixedWidth(200)
         btn_guardar.clicked.connect(self.guardar_datos)
         
         btn_layout.addWidget(btn_guardar)
         
-        # Agregamos layouts al widget principal
         self.content_layout.addLayout(btn_layout)
         
         scroll.setWidget(self.content_widget)
         layout_main.addWidget(scroll)
 
-
     # ==========================================
     # MÉTODOS DE DISEÑO (HELPERS)
     # ==========================================
-    
     def crear_seccion(self, titulo, subtitulo, layout_contenido):
         """Crea una tarjeta visual estilo 'Settings'."""
         card = QFrame()
@@ -196,7 +206,6 @@ class WidgetRegistrar(QWidget):
     # ==========================================
     # LÓGICA DE TELÉFONOS (AGREGAR / QUITAR)
     # ==========================================
-    
     def agregar_telefono_extra(self):
         # Limitamos a máximo 2 teléfonos (1 principal + 1 extra)
         if self.widget_tel2 is not None:
@@ -237,21 +246,30 @@ class WidgetRegistrar(QWidget):
 
     def eliminar_telefono_extra(self):
         if self.widget_tel2:
-            self.widget_tel2.deleteLater() # Borra el widget de la UI
+            self.widget_tel2.deleteLater()
             self.widget_tel2 = None
             self.input_tel2 = None
 
     def validar_numeros_visual(self, widget):
         texto = widget.text()
-        if texto and not texto.isdigit():
+        es_invalido = (texto and not texto.isdigit()) or len(texto) > 10
+
+        if es_invalido:
+            # Borde Rojo y texto rojo
             widget.setStyleSheet(f"border: 1px solid {theme.AppPalette.Danger}; color: {theme.AppPalette.Danger};")
+
+            if len(texto) > 10:
+                widget.setToolTip("Máximo 10 dígitos permitidos")
+            else:
+                widget.setToolTip("Solo se permiten números")
         else:
-            widget.setStyleSheet(theme.STYLES["combobox"].replace("QComboBox", "QLineEdit")) # Restaura estilo default
+            # Estilo original (limpio)
+            widget.setStyleSheet(theme.STYLES["combobox"].replace("QComboBox", "QLineEdit"))
+            widget.setToolTip("")
 
     # ==========================================
     # GUARDADO Y LIMPIEZA
     # ==========================================
-
     def guardar_datos(self):
         # Obtenemos valor del tel 2 si existe
         tel2_val = ""
@@ -259,6 +277,7 @@ class WidgetRegistrar(QWidget):
             tel2_val = self.input_tel2.text()
 
         exito, msg = self.logic.crear_medico(
+            self.txt_cedula.text().strip(),  # <--- NUEVO
             self.txt_nombres.text().strip(),
             self.txt_apellidos.text().strip(),
             self.cb_especialidad.currentText(),
@@ -276,12 +295,26 @@ class WidgetRegistrar(QWidget):
             QMessageBox.warning(self, "Atención", msg)
 
     def limpiar_formulario(self):
+        self.txt_cedula.clear()
         self.txt_nombres.clear()
         self.txt_apellidos.clear()
         self.txt_tel1.clear()
         self.txt_direccion.clear()
         self.cb_especialidad.setCurrentIndex(0)
         self.cb_estado.setCurrentIndex(0)
-        
-        # Eliminar el teléfono extra si existe
+
         self.eliminar_telefono_extra()
+
+    def validar_texto_visual(self, widget):
+        texto = widget.text()
+        patron = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$'
+        
+        if not re.match(patron, texto):
+            # Si NO coincide (tiene números o símbolos) -> Rojo
+            widget.setStyleSheet(f"border: 1px solid {theme.AppPalette.Danger}; color: {theme.AppPalette.Danger};")
+            widget.setToolTip("Solo se permiten letras y espacios")
+        else:
+            # Si coincide -> Normal
+            widget.setStyleSheet(theme.STYLES["combobox"].replace("QComboBox", "QLineEdit"))
+            widget.setToolTip("")
+    

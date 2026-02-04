@@ -438,7 +438,7 @@ class CitasMedicasController:
                 estado="Confirmada",
                 id_medico=id_medico
             )
-            
+            self._notificar_cita_programada(cita)
             return True, f"Cita {codigo} agendada con éxito.", cita
         except Exception as e:
             return False, f"Error técnico al agendar cita: {str(e)}", None

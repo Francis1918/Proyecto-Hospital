@@ -1,7 +1,8 @@
 # Medicos/frontend/pages/consultar_page.py
 
+import re
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+    QAbstractItemView, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QComboBox, QPushButton, QFrame, QTableWidget, QTableWidgetItem, 
     QHeaderView, QMessageBox, QMenu, QStackedWidget, QFormLayout, QFileDialog
 )
@@ -104,20 +105,53 @@ class WidgetConsultar(QWidget):
 
     def setup_tabla(self, layout):
         self.tabla = QTableWidget()
-        self.columnas = ["Nombres", "Apellidos", "Especialidad", "Teléfono", "Estado", "Acciones"]
+        
+        # Columnas
+        self.columnas = ["Cédula", "Nombres", "Apellidos", "Especialidad", "Teléfono", "Tel. Alt.", "Estado", "Acciones"]
         self.tabla.setColumnCount(len(self.columnas))
         self.tabla.setHorizontalHeaderLabels(self.columnas)
-        
         self.tabla.verticalHeader().setVisible(False)
-        self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabla.setShowGrid(False)
-        self.tabla.setAlternatingRowColors(False)
         
+        # =======================================================
+        # 1. SELECCIÓN DE FILA COMPLETA
+        # =======================================================
+        # Esto hace que al dar clic en una celda, se pinte toda la fila
+        self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tabla.verticalHeader().setDefaultSectionSize(48)
+        # =======================================================
+        # 2. LÓGICA DE ESTIRAMIENTO INTELIGENTE
+        # =======================================================
         header = self.tabla.horizontalHeader()
+        
+        # A) Por defecto, que todas las columnas se ESTIREN para llenar el hueco
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed) 
+        self.tabla.setColumnWidth(0, 100) # Cédula fija
+        # Teléfono 1 (Index 3)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        self.tabla.setColumnWidth(3, 110)
+
+        # Teléfono 2 (Index 4)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        self.tabla.setColumnWidth(4, 110)
+
+        # Estado (Index 5)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        self.tabla.setColumnWidth(5, 110)
+        self.tabla.setColumnWidth(5, 100)
+
+        # Acciones (Index 6)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        self.tabla.setColumnWidth(6, 100)
+
+        # C) SCROLL HORIZONTAL DE EMERGENCIA
+        header.setMinimumSectionSize(100) 
+
+        # Estética extra
+        self.tabla.setAlternatingRowColors(True)
+        self.tabla.setShowGrid(False)
+        self.tabla.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         layout.addWidget(self.tabla)
 
@@ -204,14 +238,22 @@ class WidgetConsultar(QWidget):
         header.addWidget(btn_close)
         layout.addLayout(header)
 
+        self.edit_cedula = QLineEdit() # <--- Nuevo campo
+        self.edit_cedula.textChanged.connect(lambda: self.validar_numeros_visual(self.edit_cedula))
+        
         self.edit_nombres = QLineEdit()
+        self.edit_nombres.textChanged.connect(lambda: self.validar_texto_visual(self.edit_nombres))
+        
         self.edit_apellidos = QLineEdit()
+        self.edit_apellidos.textChanged.connect(lambda: self.validar_texto_visual(self.edit_apellidos))
         self.edit_especialidad = QComboBox()
         self.edit_especialidad.setStyleSheet(theme.STYLES["combobox"])
         self.edit_especialidad.addItems(["Medicina General", "Cardiología", "Pediatría", "Dermatología", "Neurología"])
         
         self.edit_tel1 = QLineEdit()
+        self.edit_tel1.textChanged.connect(lambda: self.validar_numeros_visual(self.edit_tel1))
         self.edit_tel2 = QLineEdit()
+        self.edit_tel2.textChanged.connect(lambda: self.validar_numeros_visual(self.edit_tel2))
         self.edit_direccion = QLineEdit()
         self.edit_estado = QComboBox()
         self.edit_estado.setStyleSheet(theme.STYLES["combobox"])
@@ -219,6 +261,7 @@ class WidgetConsultar(QWidget):
 
         form = QFormLayout()
         form.setVerticalSpacing(10)
+        form.addRow("Cédula:", self.edit_cedula) # <--- Agregar al form
         form.addRow("Nombres:", self.edit_nombres)
         form.addRow("Apellidos:", self.edit_apellidos)
         form.addRow("Especialidad:", self.edit_especialidad)
@@ -244,7 +287,6 @@ class WidgetConsultar(QWidget):
         layout.addStretch()
 
     # --- LÓGICA DE UI Y DATOS ---
-
     def toggle_side_panel(self):
         visible = self.btn_toggle_panel.isChecked()
         if visible:
@@ -259,7 +301,6 @@ class WidgetConsultar(QWidget):
         self.stack_lateral.setCurrentIndex(0)
 
     def cargar_datos(self):
-        # Actualiza búsqueda en backend y resetea a página 1
         self.logic.actualizar_busqueda(
             buscar=self.txt_buscar.text(), 
             filtro_esp=self.filtro_esp.currentText(),
@@ -273,23 +314,39 @@ class WidgetConsultar(QWidget):
 
     def mostrar_pagina_actual(self):
         self.tabla.setRowCount(0)
-        
         datos_pagina = self.logic.obtener_pagina_actual_items()
         
         for i, row in enumerate(datos_pagina):
             self.tabla.insertRow(i)
+            
+            # Mapeo correcto basado en la nueva estructura (9 columnas)
             id_medico = row[0]
-            # [id, nombre, apellido, especialidad, tel1, tel2, dir, estado]
-            valores_visuales = [row[1], row[2], row[3], row[4], row[7]]
+            cedula = row[1]
+            nombres = row[2]
+            apellidos = row[3]
+            especialidad = row[4]
+            tel1 = row[5]
+            tel2 = row[6] if row[6] else "" # Validación por si es None
+            # direccion = row[7] (No la mostramos en tabla, pero existe)
+            estado = row[7]
+
+            # Lista visual para las columnas de la tabla
+            # Orden columnas: [Cédula, Nombres, Apellidos, Especialidad, Teléfono, Tel. Alt., Estado, Acciones]
+            valores_visuales = [cedula, nombres, apellidos, especialidad, tel1, tel2, estado]
 
             for col_idx, valor in enumerate(valores_visuales):
                 item = QTableWidgetItem(str(valor))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+                
+                # Guardamos el ID oculto en la columna 0
                 if col_idx == 0: 
                     item.setData(Qt.ItemDataRole.UserRole, id_medico)
+                
                 self.tabla.setItem(i, col_idx, item)
-
-            self.crear_boton_acciones(i, id_medico, f"{row[1]} {row[2]}")
+            
+            # El botón de acciones va en la última columna (índice 7 si hay 8 columnas en total)
+            indice_acciones = len(self.columnas) - 1
+            self.crear_boton_acciones(i, id_medico, f"{nombres} {apellidos}")
 
         # Actualizar UI paginación
         pag, total = self.logic.get_info_paginacion()
@@ -298,28 +355,64 @@ class WidgetConsultar(QWidget):
         self.btn_next.setEnabled(pag < total)
 
     def crear_boton_acciones(self, row, id_medico, nombre_completo):
+        # Contenedor para los botones
         container = QWidget()
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(2, 0, 2, 0)
+        # Márgenes cero y espacio pequeño entre botones
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(5) 
         
-        btn_action = QPushButton(" Acciones")
-        btn_action.setStyleSheet(theme.STYLES["btn_action_dropdown"])
-        btn_action.setCursor(Qt.CursorShape.PointingHandCursor)
+        # --- BOTÓN EDITAR (Lápiz) ---
+        btn_edit = QPushButton()
+        # Asegúrate de tener un icono "edit.svg" o "pen.svg"
+        btn_edit.setIcon(utils.get_icon("edit.svg", color=theme.AppPalette.Primary)) 
+        btn_edit.setFixedSize(32, 32)
+        btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_edit.setToolTip("Editar Médico")
         
-        menu = QMenu()
-        menu.setStyleSheet(theme.STYLES["menu_dropdown"])
-        
-        action_edit = QAction("Editar Médico", self)
-        action_edit.triggered.connect(lambda: self.cargar_formulario_en_panel(id_medico))
-        menu.addAction(action_edit)
+        # Estilo "Ghost" (sin fondo hasta hover) o suave
+        btn_edit.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {theme.AppPalette.white_01};
+                border: 1px solid {theme.AppPalette.Border};
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #E3F2FD; /* Azul muy suave */
+                border: 1px solid {theme.AppPalette.Primary};
+            }}
+        """)
+        btn_edit.clicked.connect(lambda: self.cargar_formulario_en_panel(id_medico))
 
-        action_del = QAction("Eliminar", self)
-        action_del.triggered.connect(lambda: self.eliminar_medico(id_medico, nombre_completo))
-        menu.addAction(action_del)
-        
-        btn_action.setMenu(menu)
-        layout.addWidget(btn_action)
-        self.tabla.setCellWidget(row, 5, container)
+        # --- BOTÓN ELIMINAR (Basura) ---
+        btn_del = QPushButton()
+        # Asegúrate de tener un icono "trash.svg"
+        btn_del.setIcon(utils.get_icon("trash.svg", color=theme.AppPalette.Danger))
+        btn_del.setFixedSize(32, 32)
+        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_del.setToolTip("Eliminar Médico")
+
+        btn_del.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {theme.AppPalette.white_01};
+                border: 1px solid {theme.AppPalette.Border};
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #FFEBEE; /* Rojo muy suave */
+                border: 1px solid {theme.AppPalette.Danger};
+            }}
+        """)
+        btn_del.clicked.connect(lambda: self.eliminar_medico(id_medico, nombre_completo))
+
+        # Agregar botones al layout
+        layout.addWidget(btn_edit)
+        layout.addWidget(btn_del)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter) # Centrar los botones en la celda
+
+        # Insertar en la columna correcta (la última)
+        indice_acciones = self.tabla.columnCount() - 1
+        self.tabla.setCellWidget(row, indice_acciones, container)
 
     def cargar_formulario_en_panel(self, id_medico):
         filas = self.logic.obtener_todos_sin_paginar()
@@ -328,13 +421,14 @@ class WidgetConsultar(QWidget):
         if not medico: return
         self.id_seleccionado = id_medico
         
-        self.edit_nombres.setText(medico[1])
-        self.edit_apellidos.setText(medico[2])
-        self.edit_especialidad.setCurrentText(medico[3])
-        self.edit_tel1.setText(medico[4])
-        self.edit_tel2.setText(medico[5])
-        self.edit_direccion.setText(medico[6])
-        self.edit_estado.setCurrentText(medico[7])
+        self.edit_cedula.setText(medico[1]) # Asumiendo índice 1
+        self.edit_nombres.setText(medico[2])
+        self.edit_apellidos.setText(medico[3])
+        self.edit_especialidad.setCurrentText(medico[4])
+        self.edit_tel1.setText(medico[5])
+        self.edit_tel2.setText(medico[6])
+        self.edit_direccion.setText(medico[7])
+        self.edit_estado.setCurrentText(medico[8])
 
         self.side_panel_container.show()
         self.btn_toggle_panel.setChecked(True)
@@ -346,6 +440,7 @@ class WidgetConsultar(QWidget):
 
         exito, msg = self.logic.modificar_medico(
             self.id_seleccionado,
+            self.edit_cedula.text().strip(), # <--- Enviar cedula
             self.edit_nombres.text().strip(),
             self.edit_apellidos.text().strip(),
             self.edit_especialidad.currentText(),
@@ -405,3 +500,26 @@ class WidgetConsultar(QWidget):
             
         self.cargar_datos()
         QMessageBox.information(self, "Importación", f"Proceso finalizado.\nImportados: {exitos}\nFallidos: {errores}")
+
+    def validar_numeros_visual(self, widget):
+        texto = widget.text()
+        es_invalido = (texto and not texto.isdigit()) or len(texto) > 10
+
+        if es_invalido:
+            widget.setStyleSheet(f"border: 1px solid {theme.AppPalette.Danger}; color: {theme.AppPalette.Danger};")
+            if len(texto) > 10: widget.setToolTip("Máximo 10 dígitos")
+        else:
+            # Estilo por defecto para inputs (asumiendo que no usas estilos complejos aquí, si no, usa el theme)
+            widget.setStyleSheet("") 
+            widget.setToolTip("")
+
+    def validar_texto_visual(self, widget):
+        texto = widget.text()
+        patron = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$'
+        
+        if not re.match(patron, texto):
+            widget.setStyleSheet(f"border: 1px solid {theme.AppPalette.Danger}; color: {theme.AppPalette.Danger};")
+            widget.setToolTip("No se admiten números ni símbolos especiales")
+        else:
+            widget.setStyleSheet("") # O el estilo default que uses
+            widget.setToolTip("")

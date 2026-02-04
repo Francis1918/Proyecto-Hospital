@@ -102,7 +102,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         self.setWindowTitle("Registrar Anamnesis")
         self.setModal(True)
         # Aumenté un poco la altura total de la ventana para acomodar los campos más grandes
-        self.setMinimumSize(700, 850) 
+        self.setMinimumSize(600, 550) 
         self.setStyleSheet(self.get_styles())
 
         # Layout principal
@@ -172,7 +172,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_motivo)
         self.txt_motivo_consulta = QTextEdit()
         self.txt_motivo_consulta.setPlaceholderText("Describa el motivo de la consulta...")
-        self.txt_motivo_consulta.setMinimumHeight(120) # Mínimo 120px de alto
+        self.txt_motivo_consulta.setMinimumHeight(80) 
         form_anamnesis.addWidget(self.txt_motivo_consulta)
 
         # Enfermedad actual
@@ -180,7 +180,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_enfermedad)
         self.txt_enfermedad_actual = QTextEdit()
         self.txt_enfermedad_actual.setPlaceholderText("Describa la enfermedad actual...")
-        self.txt_enfermedad_actual.setMinimumHeight(120) # Mínimo 120px de alto
+        self.txt_enfermedad_actual.setMinimumHeight(80) 
         form_anamnesis.addWidget(self.txt_enfermedad_actual)
 
         # Antecedentes personales
@@ -188,7 +188,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_ant_personales)
         self.txt_antecedentes_personales = QTextEdit()
         self.txt_antecedentes_personales.setPlaceholderText("Antecedentes médicos personales...")
-        self.txt_antecedentes_personales.setMinimumHeight(100)
+        self.txt_antecedentes_personales.setMinimumHeight(60)
         form_anamnesis.addWidget(self.txt_antecedentes_personales)
 
         # Antecedentes familiares
@@ -196,7 +196,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_ant_familiares)
         self.txt_antecedentes_familiares = QTextEdit()
         self.txt_antecedentes_familiares.setPlaceholderText("Antecedentes médicos familiares...")
-        self.txt_antecedentes_familiares.setMinimumHeight(100)
+        self.txt_antecedentes_familiares.setMinimumHeight(60)
         form_anamnesis.addWidget(self.txt_antecedentes_familiares)
 
         # Alergias (Convertido a QTextEdit para que sea grande también)
@@ -204,7 +204,7 @@ class RegistrarAnamnesisDilaog(QDialog):
         form_anamnesis.addWidget(lbl_alergias)
         self.txt_alergias = QTextEdit() # Antes era QLineEdit
         self.txt_alergias.setPlaceholderText("Alergias conocidas...")
-        self.txt_alergias.setMinimumHeight(80) 
+        self.txt_alergias.setMinimumHeight(50) 
         form_anamnesis.addWidget(self.txt_alergias)
 
         self.group_anamnesis.setLayout(form_anamnesis)
