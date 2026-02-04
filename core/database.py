@@ -12,6 +12,35 @@ def crear_conexion():
         print(f"Error de conexión: {e}")
         return None
 
+def migrar_columnas_signos_vitales(conn):
+    """Agrega las nuevas columnas a pacienteSignosVitales si no existen."""
+    try:
+        cursor = conn.cursor()
+        
+        # Verificar columnas existentes
+        cursor.execute("PRAGMA table_info(pacienteSignosVitales)")
+        columnas_existentes = [columna[1] for columna in cursor.fetchall()]
+        
+        # Agregar columnas nuevas si no existen
+        columnas_nuevas = {
+            'codigo_cie10': 'TEXT',
+            'observaciones': 'TEXT',
+            'plan_tratamiento': 'TEXT',
+            'fecha_actualizacion_medica': 'TIMESTAMP'
+        }
+        
+        # for columna, tipo in columnas_nuevas.items():
+        #     if columna not in columnas_existentes:
+        #         try:
+        #             cursor.execute(f"ALTER TABLE pacienteSignosVitales ADD COLUMN {columna} {tipo}")
+        #             print(f"✓ Columna '{columna}' agregada a pacienteSignosVitales")
+        #         except Error as e:
+        #             print(f"Advertencia al agregar columna '{columna}': {e}")
+        
+        # conn.commit()
+    except Exception as e:
+        print(f"Error en migración de columnas: {e}")
+
 def inicializar_db():
     """Crea todas las tablas del sistema hospitalario integrado."""
     conn = crear_conexion()
@@ -27,7 +56,6 @@ def inicializar_db():
                 dni TEXT UNIQUE NOT NULL, -- Usado como FK en citas
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
-                fecha_nacimiento TEXT, -- Nueva columna requerida
                 direccion TEXT,
                 telefono TEXT, -- Nombre único según corrección
                 email TEXT,
@@ -41,7 +69,6 @@ def inicializar_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS medicos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cedula TEXT UNIQUE NOT NULL,  -- <--- ESTA COLUMNA FALTABA
                 nombres TEXT NOT NULL,
                 apellidos TEXT NOT NULL,
                 especialidad TEXT NOT NULL,
@@ -69,21 +96,7 @@ def inicializar_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero TEXT UNIQUE NOT NULL,
                 tipo TEXT NOT NULL,
-                estado TEXT DEFAULT 'Disponible',
-                ubicacion TEXT,
-                capacidad INTEGER
-            )
-        """)
-
-        # Tabla Camas para gestión detallada
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS camas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                codigo TEXT UNIQUE NOT NULL,
-                habitacion_numero TEXT NOT NULL,
-                estado TEXT DEFAULT 'disponible',
-                higiene_ok INTEGER DEFAULT 1,
-                nombre_clave TEXT
+                estado TEXT DEFAULT 'Disponible'
             )
         """)
 
@@ -228,25 +241,113 @@ def inicializar_db():
             )
         """)
 
-        # Intento de upgrade suave: asegurar columnas nuevas
-        try:
-            cursor.execute("ALTER TABLE pacientes ADD COLUMN fecha_nacimiento TEXT")
-            print("Columna fecha_nacimiento agregada a pacientes.")
-        except Exception:
-            pass # Ya existe o error irrelevante
-
-        try:
-            cursor.execute("ALTER TABLE salas_habitaciones ADD COLUMN ubicacion TEXT")
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE salas_habitaciones ADD COLUMN capacidad INTEGER")
-        except Exception:
-            pass
+        # 14. Tabla de Signos Vitales del Paciente (ACTUALIZADA CON NUEVAS COLUMNAS)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pacienteSignosVitales (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cedula TEXT NOT NULL,
+                peso REAL NOT NULL,
+                talla REAL NOT NULL,
+                presion TEXT NOT NULL,
+                motivo TEXT,
+                -- NUEVAS COLUMNAS PARA CONSULTA MÉDICA
+                codigo_cie10 TEXT,
+                observaciones TEXT,
+                plan_tratamiento TEXT,
+                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fecha_actualizacion_medica TIMESTAMP,
+                FOREIGN KEY (cedula) REFERENCES pacientes (dni)
+            )
+        """)
 
         conn.commit()
+        
+        # Ejecutar migración para agregar columnas nuevas si es necesario
+        migrar_columnas_signos_vitales(conn)
+        
         conn.close()
         print("¡Estructura completa del Hospital creada con éxito!")
+
+# --- Funciones para el CRUD de Signos Vitales ---
+
+def insertar_signos_vitales(cedula, peso, talla, presion, motivo):
+    """Inserta un nuevo registro de signos vitales para un paciente."""
+    conn = crear_conexion()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO pacienteSignosVitales (cedula, peso, talla, presion, motivo)
+                VALUES (?, ?, ?, ?, ?)
+            """, (cedula, peso, talla, presion, motivo))
+            conn.commit()
+            return cursor.lastrowid
+        except Error as e:
+            print(f"Error al insertar signos vitales: {e}")
+            return None
+        finally:
+            conn.close()
+
+def obtener_signos_vitales():
+    """Obtiene todos los registros de signos vitales, unidos con los nombres de los pacientes."""
+    conn = crear_conexion()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    sv.id, 
+                    sv.cedula, 
+                    p.nombres || ' ' || p.apellidos AS nombre_paciente,
+                    sv.peso, 
+                    sv.talla, 
+                    sv.presion, 
+                    sv.motivo, 
+                    sv.fecha_registro,
+                    sv.codigo_cie10,
+                    sv.observaciones,
+                    sv.plan_tratamiento
+                FROM pacienteSignosVitales sv
+                JOIN pacientes p ON sv.cedula = p.dni
+                ORDER BY sv.fecha_registro DESC
+            """)
+            return cursor.fetchall()
+        except Error as e:
+            print(f"Error al obtener signos vitales: {e}")
+            return []
+        finally:
+            conn.close()
+
+def actualizar_datos_medicos(cedula, codigo_cie10, observaciones, plan_tratamiento):
+    """Actualiza los datos médicos en el registro más reciente de signos vitales del paciente."""
+    conn = crear_conexion()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # Buscar el registro más reciente del paciente que no tenga datos médicos
+            cursor.execute("""
+                UPDATE pacienteSignosVitales 
+                SET codigo_cie10 = ?, 
+                    observaciones = ?, 
+                    plan_tratamiento = ?,
+                    fecha_actualizacion_medica = CURRENT_TIMESTAMP
+                WHERE id = (
+                    SELECT id FROM pacienteSignosVitales 
+                    WHERE cedula = ? 
+                    ORDER BY fecha_registro DESC 
+                    LIMIT 1
+                )
+            """, (codigo_cie10, observaciones, plan_tratamiento, cedula))
+            conn.commit()
+            filas_afectadas = cursor.rowcount
+            return filas_afectadas > 0
+        except Error as e:
+            print(f"Error al actualizar datos médicos: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
 
 if __name__ == '__main__':
     inicializar_db()

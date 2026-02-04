@@ -176,8 +176,37 @@ class PacienteController:
         Consulta la historia clínica del paciente.
         """
         try:
+            # 1. Buscar en memoria
             if cc_paciente in self._historias_clinicas:
                 return self._historias_clinicas[cc_paciente]
+
+            # 2. Buscar en Base de Datos (persistimos al menos el número de historia)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    row = cur.execute(
+                        "SELECT historia_clinica FROM pacientes WHERE dni = ?",
+                        (cc_paciente,)
+                    ).fetchone()
+                    conn.close()
+
+                    if row and row[0]:
+                        numero_historia = str(row[0]).strip()
+                        if not numero_historia:
+                            return None
+
+                        historia = {
+                            'numero_historia': numero_historia,
+                            'cc_paciente': cc_paciente,
+                            # En esta versión el estado no se persiste; asumimos activa.
+                            'estado': 'Activa',
+                        }
+                        self._historias_clinicas[cc_paciente] = historia
+                        return historia
+            except Exception as e:
+                print(f"Error consultando HC DB: {e}")
+
             return None
         except Exception as e:
             print(f"Error al consultar historia clínica: {str(e)}")
@@ -511,9 +540,65 @@ class PacienteController:
                             self._anamnesis_memoria[cc_paciente] = datos
                             return datos
                         except json.JSONDecodeError:
-                            # Parche de compatibilidad: Retornar como estaba antes (si no era JSON)
-                            # O construir una estructura básica si era texto plano
-                            return {"motivo_consulta": row[0]}
+                            # Compatibilidad con versiones antiguas donde se guardaba como texto
+                            # (a veces con saltos de línea y a veces todo "pegado" sin separadores).
+                            import re
+
+                            texto = str(row[0])
+                            texto_norm = texto.replace('\r\n', '\n').replace('\r', '\n')
+
+                            # 1) Intento simple: parsear líneas "key: value"
+                            parsed: dict = {'anamnesis': texto}
+                            for linea in texto_norm.split('\n'):
+                                if ':' not in linea:
+                                    continue
+                                k, v = linea.split(':', 1)
+                                k = k.strip().lower()
+                                v = v.strip()
+                                if k:
+                                    parsed[k] = v
+
+                            # 2) Si el texto viene pegado, extraer por claves conocidas
+                            # Ej: "motivo_consulta: ...enfermedad_actual: ..."
+                            known_keys = [
+                                'cc_paciente',
+                                'motivo_consulta',
+                                'enfermedad_actual',
+                                'antecedentes_personales',
+                                'antecedentes_familiares',
+                                'alergias',
+                            ]
+                            pattern = r"(?i)(" + "|".join(map(re.escape, known_keys)) + r")\s*:\s*"
+                            matches = list(re.finditer(pattern, texto))
+                            if matches:
+                                for i, m in enumerate(matches):
+                                    key = m.group(1).strip().lower()
+                                    start = m.end()
+                                    end = matches[i + 1].start() if i + 1 < len(matches) else len(texto)
+                                    value = texto[start:end].strip()
+                                    if key:
+                                        parsed[key] = value
+
+                            # Normalizar llaves esperadas por las UIs
+                            alias = {
+                                'motivo': 'motivo_consulta',
+                                'motivo de consulta': 'motivo_consulta',
+                                'enfermedad': 'enfermedad_actual',
+                                'enfermedad actual': 'enfermedad_actual',
+                                'antecedentes personales': 'antecedentes_personales',
+                                'antecedentes familiares': 'antecedentes_familiares',
+                            }
+                            normalized: dict = {}
+                            for key in ['motivo_consulta', 'enfermedad_actual', 'antecedentes_personales', 'antecedentes_familiares', 'alergias']:
+                                if key in parsed:
+                                    normalized[key] = parsed[key]
+                            for src, dst in alias.items():
+                                if src in parsed and dst not in normalized:
+                                    normalized[dst] = parsed[src]
+
+                            # No retornar cc_paciente como campo clínico
+                            normalized['anamnesis'] = texto
+                            return normalized if normalized else {"motivo_consulta": texto, "anamnesis": texto}
             except Exception as e:
                 print(f"Error consultando anamnesis DB: {e}")
 

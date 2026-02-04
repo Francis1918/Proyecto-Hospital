@@ -292,8 +292,9 @@ class MenuPrincipal(QMainWindow):
         self.view_pacientes = embed(PacienteView(controller=PacienteController()))
         self.stack.addWidget(self.view_pacientes)
 
-        # --- 3. Consulta (Ya es Widget) ---
-        self.view_consulta = ConsultaExternaView(controller=ConsultaExternaController())
+        self.view_consulta = ConsultaExternaView()
+        controller_consulta = ConsultaExternaController(self.view_consulta)
+        self.view_consulta.set_controller(controller_consulta)
         self.stack.addWidget(self.view_consulta)
 
         # --- 4. Farmacia ---
