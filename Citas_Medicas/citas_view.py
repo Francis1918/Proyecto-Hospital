@@ -148,7 +148,6 @@ class TabConsultarCitas(QWidget):
         }
         if estado in colores:
             item.setForeground(colores[estado])
-            item.setFont(get_sheet()) # Mantiene consistencia de fuente
 
     def _get_selected(self):
         row = self.tabla.currentRow()
