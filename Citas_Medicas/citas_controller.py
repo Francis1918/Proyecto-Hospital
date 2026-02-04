@@ -9,6 +9,7 @@ import string
 from core.database import crear_conexion
 from Pacientes import PacienteController
 from .models import CitaMedica, Notificacion
+from .validaciones import ValidacionesCitas
 
 
 class CitasMedicasController:
@@ -69,24 +70,17 @@ class CitasMedicasController:
     @staticmethod
     def validar_formato_cedula(cc: str) -> Tuple[bool, str]:
         """
-        Valida el formato de la cédula antes de procesar cualquier cita o registro.
+        Valida el formato de la cédula usando el algoritmo ecuatoriano.
         Evita errores de búsqueda en SQL por formatos incorrectos.
+        MEJORA: Ahora valida la cédula de acuerdo al estándar ecuatoriano.
         """
-        if cc is None:
-            return False, "La cédula no puede ser nula."
-            
-        cc = cc.strip()
+        # Primero hacer validación de formato básica
+        ok, msg = ValidacionesCitas.validar_cedula_formato(cc)
+        if not ok:
+            return False, msg
         
-        if not cc:
-            return False, "Debe ingresar el número de cédula."
-        
-        if not cc.isdigit():
-            return False, "Formato inválido: La cédula debe contener solo números."
-            
-        if len(cc) != 10:
-            return False, "Longitud inválida: La cédula debe tener exactamente 10 dígitos."
-            
-        return True, "Formato de cédula válido."
+        # Luego validar con el algoritmo ecuatoriano completo
+        return ValidacionesCitas.validar_cedula_ecuador(cc)
 
     @staticmethod
     def _generar_codigo() -> str:
@@ -410,7 +404,6 @@ class CitasMedicasController:
         codigo = self._generar_codigo()
         
         conn = crear_conexion()
-        conn = crear_conexion()
         if not conn: return False, "Error de conexión", None
 
         try:
@@ -438,11 +431,12 @@ class CitasMedicasController:
                 cc_paciente=cc, 
                 nombre_paciente=f"{paciente.nombre} {paciente.apellido}",
                 especialidad=especialidad_str, 
-                medico=nombre_medico_str, # Antes tenías una variable inexistente aquí
+                medico=nombre_medico_str,
                 fecha=fecha, 
                 hora=hora,
                 consultorio=consultorio, 
-                estado="Confirmada"
+                estado="Confirmada",
+                id_medico=id_medico
             )
             
             return True, f"Cita {codigo} agendada con éxito.", cita
@@ -478,20 +472,35 @@ class CitasMedicasController:
             
             if row:
                 # El orden del SELECT garantiza que row[0] siempre sea el código
-                return CitaMedica(
-                    codigo=row[0],
-                    cc_paciente=row[1],
-                    nombre_paciente=row[7], # Viene del JOIN con pacientes
-                    medico=row[6],   # Viene del JOIN con medicos
-                    especialidad=row[8],
-                    id_medico=row[9],
-                    fecha=date.fromisoformat(row[2]),
-                    hora=datetime.strptime(row[3], "%H:%M").time(),
-                    consultorio=row[4],
-                    estado=row[5]
-                )
-                
-                cita.id_medico_db = row[9]
+                try:
+                    # Procesar fecha con validación
+                    fecha_val = row[2]
+                    if isinstance(fecha_val, str):
+                        fecha_val = date.fromisoformat(fecha_val)
+                    
+                    # Procesar hora con validación
+                    hora_val = row[3]
+                    if isinstance(hora_val, str):
+                        try:
+                            hora_val = datetime.strptime(hora_val, "%H:%M:%S").time()
+                        except ValueError:
+                            hora_val = datetime.strptime(hora_val, "%H:%M").time()
+                    
+                    return CitaMedica(
+                        codigo=row[0],
+                        cc_paciente=row[1],
+                        nombre_paciente=row[7],
+                        medico=row[6],
+                        especialidad=row[8],
+                        id_medico=row[9],
+                        fecha=fecha_val,
+                        hora=hora_val,
+                        consultorio=row[4],
+                        estado=row[5]
+                    )
+                except (ValueError, TypeError) as parse_err:
+                    print(f"Error al parsear datos de cita {codigo_limpio}: {parse_err}")
+                    return None
                 
         except Exception as e:
             print(f"Error técnico al consultar cita {codigo_limpio}: {e}")
@@ -516,11 +525,13 @@ class CitasMedicasController:
             cursor = conn.cursor()
             # Mapeo Explícito: Definimos exactamente qué columnas queremos.
             # Traemos nombres actualizados de médicos y pacientes.
+            # CRÍTICO: Agregamos c.id_medico en la posición 9 (faltaba antes)
             sql = """
                 SELECT c.codigo, c.cc_paciente, c.fecha, c.hora, c.consultorio, c.estado,
                        m.nombres || ' ' || m.apellidos AS nombre_medico,
                        m.especialidad,
-                       p.nombres || ' ' || p.apellidos AS nombre_paciente
+                       p.nombres || ' ' || p.apellidos AS nombre_paciente,
+                       c.id_medico
                 FROM citas c
                 JOIN medicos m ON c.id_medico = m.id
                 JOIN pacientes p ON c.cc_paciente = p.dni
@@ -531,17 +542,35 @@ class CitasMedicasController:
             
             for row in cursor.fetchall():
                 # El orden del SELECT garantiza que el mapeo sea siempre el mismo
-                citas.append(CitaMedica(
-                    codigo=row[0],
-                    cc_paciente=row[1],
-                    fecha=date.fromisoformat(row[2]),
-                    hora=datetime.strptime(row[3], "%H:%M").time(),
-                    consultorio=row[4],
-                    estado=row[5],
-                    medico=row[6],   # Datos del JOIN
-                    especialidad=row[7],    # Datos del JOIN
-                    nombre_paciente=row[8]  # Datos del JOIN
-                ))
+                try:
+                    # Procesar fecha con validación
+                    fecha_val = row[2]
+                    if isinstance(fecha_val, str):
+                        fecha_val = date.fromisoformat(fecha_val)
+                    
+                    # Procesar hora con validación (puede venir como string o time)
+                    hora_val = row[3]
+                    if isinstance(hora_val, str):
+                        try:
+                            hora_val = datetime.strptime(hora_val, "%H:%M:%S").time()
+                        except ValueError:
+                            hora_val = datetime.strptime(hora_val, "%H:%M").time()
+                    
+                    citas.append(CitaMedica(
+                        codigo=row[0],
+                        cc_paciente=row[1],
+                        fecha=fecha_val,
+                        hora=hora_val,
+                        consultorio=row[4],
+                        estado=row[5],
+                        medico=row[6],   # Datos del JOIN
+                        especialidad=row[7],    # Datos del JOIN
+                        nombre_paciente=row[8],  # Datos del JOIN
+                        id_medico=row[9]  # CRÍTICO: Ahora se obtiene correctamente de la BD
+                    ))
+                except (IndexError, ValueError, TypeError) as parse_err:
+                    print(f"Advertencia: Error al procesar fila de cita: {parse_err}. Fila: {row}")
+                    continue
         except Exception as e:
             print(f"Error técnico al consultar historial del paciente {cc}: {e}")
         finally:

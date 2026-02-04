@@ -1,4 +1,3 @@
-
 from datetime import date, timedelta, time, datetime
 
 from PyQt6.QtCore import Qt
@@ -10,6 +9,17 @@ from PyQt6.QtWidgets import (
 
 from Pacientes.dialogs import RegistrarPacienteDialog
 from ..citas_controller import CitasMedicasController
+from ..validaciones import ValidacionesCitas
+from ..dialogos_estilizados import (
+    mostrar_error_cedula_invalida,
+    mostrar_error_paciente_no_encontrado,
+    mostrar_error_sin_horarios,
+    mostrar_error_horario_ocupado,
+    mostrar_error_fecha_invalida,
+    mostrar_exito_cita_registrada,
+    mostrar_error_lista_validacion
+)
+from core.theme import get_sheet, AppPalette
 
 
 class SolicitarCitaDialog(QDialog):
@@ -19,6 +29,8 @@ class SolicitarCitaDialog(QDialog):
         self.setWindowTitle("Solicitar / Agendar Cita Médica")
         self.setModal(True)
         self.setMinimumWidth(520)
+        # Aplicar tema consistente
+        self.setStyleSheet(get_sheet())
         self._paciente_validado = False
         
         self._init_ui()
@@ -54,8 +66,8 @@ class SolicitarCitaDialog(QDialog):
 
         self.date_fecha = QDateEdit()
         self.date_fecha.setCalendarPopup(True)
-        self.date_fecha.setDate(date.today() + timedelta(days=1))
-        self.date_fecha.setMinimumDate(date.today() + timedelta(days=1))
+        self.date_fecha.setDate(date.today())
+        self.date_fecha.setMinimumDate(date.today())
         self.date_fecha.dateChanged.connect(self._on_medico_or_fecha_change)
         form.addRow("Fecha:", self.date_fecha)
 
@@ -120,10 +132,6 @@ class SolicitarCitaDialog(QDialog):
 
         # Enviamos el ID (int) al controlador, no el texto
         horas = self.controller.obtener_horarios_disponibles(id_medico, fecha)
-        
-        if fecha == date.today():
-            hora_actual = datetime.now().time()
-            horas = [h for h in horas if h > hora_actual]
 
         for h in horas:
             self.cmb_hora.addItem(h.strftime("%H:%M"), h)
@@ -146,27 +154,24 @@ class SolicitarCitaDialog(QDialog):
         """Valida formato de cédula, existencia en DB y habilita el agendamiento."""
         cc = (self.edt_cc.text() or "").strip()
         
-        # 1. RESTRICCIÓN: Formato de cédula (Lógica del controlador)
+        # 1. RESTRICCIÓN: Validación de cédula ecuatoriana
         ok, msg = self.controller.validar_formato_cedula(cc)
         if not ok:
-            QMessageBox.warning(self, "Cédula inválida", msg)
-            self.lbl_paciente.setText("Cédula incorrecta")
-            self.lbl_paciente.setStyleSheet("color: #c53030;") # Rojo
+            # Mostrar error con estilo UI
+            mostrar_error_cedula_invalida(cc, msg, self)
+            self.lbl_paciente.setText("❌ Cédula incorrecta")
+            self.lbl_paciente.setStyleSheet(f"color: {AppPalette.Danger};")
             self.btn_agendar.setEnabled(False)
             return
 
-        # 2. Búsqueda en SQLite (Módulo Pacientes)
+        # 2. BÚSQUEDA EN SQLite
         paciente = self.controller.pacientes.consultar_paciente(cc)
         
         if not paciente:
-            resp = QMessageBox.question(
-                self,
-                "Paciente no registrado",
-                f"La cédula {cc} no existe en el sistema.\n\n¿Desea registrar al paciente ahora?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
-            )
-            if resp == QMessageBox.StandardButton.Yes:
+            # Usar el nuevo diálogo estilizado
+            resp = mostrar_error_paciente_no_encontrado(cc, self)
+            
+            if resp == QMessageBox.Yes:
                 # Abrimos el diálogo que importaste al inicio
                 dlg = RegistrarPacienteDialog(self.controller.pacientes, self)
                 dlg.exec()
@@ -175,8 +180,8 @@ class SolicitarCitaDialog(QDialog):
 
         # 3. RESTRICCIÓN: Verificación final de carga
         if not paciente:
-            self.lbl_paciente.setText("No se validó el paciente")
-            self.lbl_paciente.setStyleSheet("color: #c53030;")
+            self.lbl_paciente.setText("❌ No se validó el paciente")
+            self.lbl_paciente.setStyleSheet(f"color: {AppPalette.Danger};")
             self.btn_agendar.setEnabled(False)
             return
 
@@ -184,14 +189,21 @@ class SolicitarCitaDialog(QDialog):
         # Ajustado a nombres/apellidos según la estructura estándar
         nombre_completo = f"{paciente.nombre} {paciente.apellido}"
         self.lbl_paciente.setText(f"✅ {nombre_completo}")
-        self.lbl_paciente.setStyleSheet("color: #2f855a; font-weight: bold;")
+        self.lbl_paciente.setStyleSheet(f"color: {AppPalette.Success}; font-weight: bold;")
         self._paciente_validado = True # <--- Marcamos como validado
         
         hora_valida = self.cmb_hora.currentData() is not None
         if hora_valida:
             self.btn_agendar.setEnabled(True)
         else:
-            QMessageBox.warning(self, "Atención", "Paciente validado, pero debe seleccionar un horario disponible.")
+            # Mostrar advertencia con estilo
+            from ..dialogos_estilizados import DialogoAdvertencia
+            dlg = DialogoAdvertencia(
+                "⚠️ Seleccione Horario",
+                "Paciente validado, pero debe seleccionar un horario disponible.",
+                self
+            )
+            dlg.exec()
             self.btn_agendar.setEnabled(False)
             
     def _confirmar(self):
@@ -203,8 +215,21 @@ class SolicitarCitaDialog(QDialog):
         qd = self.date_fecha.date()
         fecha = date(qd.year(), qd.month(), qd.day())
 
-        if id_medico is None or not isinstance(hora_data, time):
-            QMessageBox.warning(self, "Error", "Seleccione médico y hora válida.")
+        # Validaciones de seguridad adicionales
+        if id_medico is None:
+            mostrar_error_lista_validacion(
+                "❌ Error de Validación",
+                ["Debe seleccionar un médico válido."],
+                self
+            )
+            return
+        
+        if not isinstance(hora_data, time):
+            mostrar_error_lista_validacion(
+                "❌ Error de Validación",
+                ["Debe seleccionar una hora válida."],
+                self
+            )
             return
 
         # Ahora pasamos id_medico (el controlador lo espera así)
@@ -217,26 +242,22 @@ class SolicitarCitaDialog(QDialog):
 
         if not ok:
             # Si el controlador detecta un choque de último segundo en la DB
-            QMessageBox.warning(self, "Error al agendar", msg)
+            mostrar_error_lista_validacion(
+                "❌ Error al Agendar",
+                [msg],
+                self
+            )
             return
 
-        # 5. COMPROBANTE: Presentación de datos finales al usuario
-        # Usamos los datos que vienen del objeto 'cita' creado por el controlador
-        comprobante = (
-            "✅ Cita Agendada Exitosamente\n"
-            "----------------------------------\n"
-            f"Paciente: {cita.nombre_paciente}\n"
-            f"Código: {cita.codigo}\n"
-            f"Especialidad: {cita.especialidad}\n"
-            f"Médico: {cita.medico}\n" # Correcto según tu dataclass
-            f"Fecha: {cita.fecha.strftime('%d/%m/%Y')}\n"
-            f"Hora: {cita.hora.strftime('%H:%M')}\n"
-            f"Consultorio: {cita.consultorio}\n"
-            "----------------------------------\n"
-            "Se ha enviado una notificación interna al médico y al paciente."
+        # 5. COMPROBANTE: Usar el nuevo diálogo estilizado
+        mostrar_exito_cita_registrada(
+            codigo=cita.codigo,
+            paciente=cita.nombre_paciente,
+            medico=cita.medico,
+            fecha=cita.fecha.strftime('%d/%m/%Y'),
+            hora=cita.hora.strftime('%H:%M'),
+            parent=self
         )
-        
-        QMessageBox.information(self, "Comprobante de Cita", comprobante)
         
         # Cerramos el diálogo con éxito
         self.accept()

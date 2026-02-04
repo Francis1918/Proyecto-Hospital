@@ -7,6 +7,15 @@ from PyQt6.QtWidgets import (
 )
 
 from ..citas_controller import CitasMedicasController
+from ..validaciones import ValidacionesCitas
+from ..dialogos_estilizados import (
+    mostrar_error_codigo_no_encontrado,
+    mostrar_confirmacion_modificar_cita,
+    mostrar_exito_cita_modificada,
+    mostrar_error_lista_validacion,
+    mostrar_error_fecha_invalida_dialog
+)
+from core.theme import get_sheet, AppPalette
 
 
 class ModificarCitaDialog(QDialog):
@@ -17,6 +26,8 @@ class ModificarCitaDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(520)
         self._cita_codigo = None
+        # Aplicar hoja de estilos global para tema consistente
+        self.setStyleSheet(get_sheet())
         self._init_ui()
 
     def _init_ui(self):
@@ -66,9 +77,17 @@ class ModificarCitaDialog(QDialog):
 
     def _cargar(self):
         codigo = (self.edt_codigo.text() or "").strip()
+        
+        # Validar formato del código
+        ok, msg = ValidacionesCitas.validar_codigo_cita(codigo)
+        if not ok:
+            mostrar_error_lista_validacion("❌ Código Inválido", [msg], self)
+            self.btn_guardar.setEnabled(False)
+            return
+        
         cita = self.controller.consultar_cita_por_codigo(codigo)
         if not cita:
-            QMessageBox.information(self, "Cita", "No se encontró la cita.")
+            mostrar_error_codigo_no_encontrado(codigo, self)
             self.lbl_info.setText("-")
             self.btn_guardar.setEnabled(False)
             self._cita_codigo = None
@@ -114,27 +133,68 @@ class ModificarCitaDialog(QDialog):
 
     def _guardar(self):
         if not self._cita_codigo:
+            mostrar_error_lista_validacion(
+                "❌ Error",
+                ["No hay cita cargada. Use el botón 'Cargar' primero."],
+                self
+            )
             return
 
         qd = self.date_nueva.date()
         nueva_fecha = date(qd.year(), qd.month(), qd.day())
-        if nueva_fecha <= date.today():
-            QMessageBox.warning(
-                self, 
-                "Fecha inválida", 
-                "La fecha de la cita debe ser posterior al día de hoy."
-            )
+        
+        # Validar fecha
+        ok, msg = ValidacionesCitas.validar_fecha_cita(nueva_fecha)
+        if not ok:
+            mostrar_error_fecha_invalida_dialog(msg, self)
             return
 
         hora_data = self.cmb_hora.currentData()
         if not isinstance(hora_data, time):
-            QMessageBox.warning(self, "Horario", "Seleccione un horario válido.")
+            mostrar_error_lista_validacion(
+                "❌ Horario Inválido",
+                ["Seleccione un horario válido."],
+                self
+            )
             return
 
+        # Obtener la cita actual para confirmación
+        cita_actual = self.controller.consultar_cita_por_codigo(self._cita_codigo)
+        if not cita_actual:
+            mostrar_error_lista_validacion(
+                "❌ Error",
+                ["La cita no fue encontrada en la base de datos."],
+                self
+            )
+            return
+
+        # Solicitar confirmación
+        resp = mostrar_confirmacion_modificar_cita(
+            codigo=self._cita_codigo,
+            paciente=cita_actual.nombre_paciente,
+            nueva_fecha=nueva_fecha.strftime('%d/%m/%Y'),
+            nueva_hora=hora_data.strftime('%H:%M'),
+            parent=self
+        )
+        
+        # IMPORTANTE: Usar la comparación correcta de PyQt6
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+
+        # 2. Realizar la modificación en la base de datos
         ok, msg, _ = self.controller.modificar_cita(self._cita_codigo, nueva_fecha, hora_data)
+        
         if not ok:
-            QMessageBox.warning(self, "No se pudo modificar", msg)
+            mostrar_error_lista_validacion("❌ Error al Modificar", [msg], self)
             return
 
-        QMessageBox.information(self, "Cita", msg)
+        # 3. ÉXITO: Mostrar mensaje y CERRAR el diálogo actual
+        mostrar_exito_cita_modificada(
+            codigo=self._cita_codigo,
+            nueva_fecha=nueva_fecha.strftime('%d/%m/%Y'),
+            nueva_hora=hora_data.strftime('%H:%M'),
+            parent=self
+        )
+        
+        # Esta línea es la más importante para evitar que salgan más ventanas
         self.accept()

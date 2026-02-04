@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ..citas_controller import CitasMedicasController
+from core.theme import get_sheet
 
 
 class RegistrarEstadoDialog(QDialog):
@@ -16,6 +17,8 @@ class RegistrarEstadoDialog(QDialog):
         self.setWindowTitle("Registrar Estado de Cita (Recepción)")
         self.setModal(True)
         self.setMinimumWidth(560)
+        # Aplicar hoja de estilos global para tema consistente
+        self.setStyleSheet(get_sheet())
         self._init_ui()
         self.time_llegada.setTime(QTime.currentTime())
         

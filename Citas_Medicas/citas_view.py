@@ -107,13 +107,18 @@ class TabConsultarCitas(QWidget):
         layout.addWidget(actions_frame)
 
     def _buscar(self):
+        """
+        Busca citas por código o cédula de paciente con validación robusta.
+        Agregadas validaciones para evitar crashes en formateo de fechas/horas.
+        """
         codigo = (self.edt_codigo.text() or "").strip()
         cc = (self.edt_cc.text() or "").strip()
         citas = []
 
         if codigo:
             c = self.controller.consultar_cita_por_codigo(codigo)
-            if c: citas = [c]
+            if c: 
+                citas = [c]
         elif cc:
             citas = self.controller.consultar_citas_por_paciente(cc)
         else:
@@ -125,18 +130,64 @@ class TabConsultarCitas(QWidget):
             QMessageBox.information(self, "Info", "No se encontraron citas.")
             return
 
+        # Procesamiento con validación robusta
+        filas_error = 0
         for c in citas:
-            row = self.tabla.rowCount()
-            self.tabla.insertRow(row)
-            vals = [
-                c.codigo, c.nombre_paciente, c.especialidad, 
-                c.medico, c.fecha.strftime("%d/%m/%Y"), 
-                c.hora.strftime("%H:%M"), c.estado
-            ]
-            for col, v in enumerate(vals):
-                item = QTableWidgetItem(str(v))
-                if col == 6: self._color_estado(item, c.estado)
-                self.tabla.setItem(row, col, item)
+            try:
+                row = self.tabla.rowCount()
+                self.tabla.insertRow(row)
+                
+                # Validar y formatear fecha
+                try:
+                    if hasattr(c.fecha, 'strftime'):
+                        fecha_str = c.fecha.strftime("%d/%m/%Y")
+                    else:
+                        fecha_str = str(c.fecha)
+                except (AttributeError, ValueError) as e:
+                    print(f"Advertencia: Error formateando fecha para cita {c.codigo}: {e}")
+                    fecha_str = str(c.fecha) if c.fecha else "N/A"
+                
+                # Validar y formatear hora
+                try:
+                    if hasattr(c.hora, 'strftime'):
+                        hora_str = c.hora.strftime("%H:%M")
+                    else:
+                        hora_str = str(c.hora)
+                except (AttributeError, ValueError) as e:
+                    print(f"Advertencia: Error formateando hora para cita {c.codigo}: {e}")
+                    hora_str = str(c.hora) if c.hora else "N/A"
+                
+                # Construir fila con validación de atributos
+                vals = [
+                    str(c.codigo or ""),
+                    str(c.nombre_paciente or ""),
+                    str(c.especialidad or ""),
+                    str(c.medico or ""),
+                    fecha_str,
+                    hora_str,
+                    str(c.estado or "")
+                ]
+                
+                for col, v in enumerate(vals):
+                    item = QTableWidgetItem(v)
+                    if col == 6:  # Columna Estado
+                        self._color_estado(item, c.estado)
+                    self.tabla.setItem(row, col, item)
+                    
+            except Exception as e:
+                filas_error += 1
+                print(f"Error al procesar cita: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        # Solo mostrar advertencia si realmente hubo errores procesando citas
+        if filas_error > 0 and filas_error < len(citas):
+            QMessageBox.warning(
+                self, "Advertencia",
+                f"Se procesaron {len(citas) - filas_error} de {len(citas)} citas.\n"
+                f"Algunos registros tuvieron errores. Ver consola para detalles."
+            )
 
     def _color_estado(self, item, estado):
         colores = {
@@ -148,6 +199,7 @@ class TabConsultarCitas(QWidget):
         }
         if estado in colores:
             item.setForeground(colores[estado])
+            self.setStyleSheet(get_sheet()) # Mantiene consistencia de fuente
 
     def _get_selected(self):
         row = self.tabla.currentRow()
@@ -423,7 +475,10 @@ class CitasMedicasView(QMainWindow):
     def abrir_solicitar(self):
         dlg = SolicitarCitaDialog(self.controller, self)
         if dlg.exec():
-            self.tab_consultar._buscar() 
+            # Solo actualizar si hay filtros activos, sino dejar tabla limpia
+            if (self.tab_consultar.edt_codigo.text().strip() or 
+                self.tab_consultar.edt_cc.text().strip()):
+                self.tab_consultar._buscar()
             self.tab_agenda._consultar()
 
     def abrir_registrar_agenda(self):

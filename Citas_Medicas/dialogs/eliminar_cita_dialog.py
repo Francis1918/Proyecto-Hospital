@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ..citas_controller import CitasMedicasController
+from core.theme import get_sheet
 
 
 class EliminarCitaDialog(QDialog):
@@ -14,6 +15,8 @@ class EliminarCitaDialog(QDialog):
         self.setWindowTitle("Cancelar Cita Médica")
         self.setModal(True)
         self.setMinimumWidth(520)
+        # Aplicar hoja de estilos global para tema consistente
+        self.setStyleSheet(get_sheet())
         self._init_ui()
 
     def _init_ui(self):
