@@ -1,5 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QFrame, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QFrame, QHBoxLayout, QInputDialog, QMessageBox
 from core.theme import AppPalette as HospitalPalette
+from .repository import repo_evolucion
 
 class EvolucionWidget(QWidget):
     def __init__(self, parent=None):
@@ -53,9 +54,27 @@ class EvolucionWidget(QWidget):
         actions.addStretch()
         actions.addWidget(self.btn_guardar)
 
+        # Conectar guardado a repositorio
+        self.btn_guardar.clicked.connect(self._on_guardar)
+
         card_layout.addWidget(lbl_instruccion)
         card_layout.addWidget(self.txt_evolucion)
         card_layout.addLayout(actions)
         
         layout.addWidget(card)
         layout.addStretch()
+
+    def _on_guardar(self):
+        texto = self.txt_evolucion.toPlainText().strip()
+        if not texto:
+            QMessageBox.warning(self, "Error", "Ingrese observaciones antes de guardar.")
+            return
+        cedula, ok = QInputDialog.getText(self, "Paciente", "Ingrese cédula del paciente:")
+        if not ok or not cedula:
+            return
+        ok_save = repo_evolucion.registrar_evolucion(cedula.strip(), texto)
+        if ok_save:
+            QMessageBox.information(self, "Guardado", "Evolución registrada en la base de datos.")
+            self.txt_evolucion.clear()
+        else:
+            QMessageBox.warning(self, "Error", "No se pudo registrar la evolución en la BD.")

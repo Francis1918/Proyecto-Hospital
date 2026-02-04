@@ -1,5 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLineEdit, QPushButton, QLabel, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLineEdit, QPushButton, QLabel, QFrame, QInputDialog, QMessageBox
 from core.theme import AppPalette as HospitalPalette
+from .repository import repo_evolucion
 
 class CuidadosWidget(QWidget):
     def __init__(self, parent=None):
@@ -42,3 +43,22 @@ class CuidadosWidget(QWidget):
         layout.addWidget(grid_card)
         layout.addWidget(self.btn_registrar)
         layout.addStretch()
+
+        # Conectar registro a repositorio
+        self.btn_registrar.clicked.connect(self._on_registrar)
+
+    def _on_registrar(self):
+        # pedir cédula del paciente
+        cedula, ok = QInputDialog.getText(self, "Paciente", "Ingrese cédula del paciente:")
+        if not ok or not cedula:
+            return
+        datos = {k: v.text().strip() for k, v in self.inputs.items()}
+        # Guardar como texto simple (podría ser JSON)
+        datos_str = "; ".join([f"{k}: {v}" for k, v in datos.items()])
+        ok_save = repo_evolucion.registrar_evolucion(cedula.strip(), f"Signos vitales: {datos_str}")
+        if ok_save:
+            QMessageBox.information(self, "Guardado", "Signos vitales registrados en la base de datos.")
+            for t in self.inputs.values():
+                t.clear()
+        else:
+            QMessageBox.warning(self, "Error", "No se pudo registrar en la BD.")

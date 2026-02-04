@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QInputDialog, QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from .buscar_paciente import buscar_paciente
-from .datos_simulados import pacientes, visitantes, permisos_visita
+from .datos_simulados import pacientes
+from .repository import repo_visitas
 from datetime import datetime
 
 class VisitasView(QDialog):
@@ -93,8 +94,8 @@ class VisitasView(QDialog):
             QMessageBox.warning(self, "Error", "La cédula del paciente y del visitante no pueden ser iguales.")
             return
 
-        # Verificar si el visitante ya existe
-        visitante = next((v for v in visitantes if v["cedula"] == cedula_visitante), None)
+        # Verificar si el visitante ya existe en repositorio
+        visitante = repo_visitas.obtener_visitante(cedula_visitante)
         if visitante:
             if visitante["restriccion"]:
                 QMessageBox.warning(
@@ -117,28 +118,25 @@ class VisitasView(QDialog):
                 QMessageBox.warning(self, "Error", "El nombre y los apellidos solo pueden contener letras.")
                 return
 
-            visitantes.append({"cedula": cedula_visitante, "nombre": nombre, "apellidos": apellidos, "restriccion": False})
+            repo_visitas.registrar_visitante(cedula_visitante, nombre, apellidos, restriccion=False)
 
         # Registrar permiso de visita
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
         hora_actual = datetime.now().strftime("%H:%M:%S")
-        permisos_visita.append({
-            "cedula_paciente": cedula_paciente,
-            "cedula_visitante": cedula_visitante,
-            "fecha": fecha_actual,
-            "hora": hora_actual
-        })
-
-        self.resultado_registro_label.setText("Permiso registrado con éxito.")
+        ok = repo_visitas.registrar_permiso(cedula_paciente, cedula_visitante)
+        if ok:
+            self.resultado_registro_label.setText("Permiso registrado con éxito.")
+        else:
+            QMessageBox.warning(self, "Error", "No se pudo registrar el permiso en la BD.")
 
     def listar_permisos(self):
-        if not permisos_visita:
+        permisos = repo_visitas.listar_permisos()
+        if not permisos:
             QMessageBox.information(self, "Permisos de Visita", "No hay permisos registrados.")
             return
-
         permisos_texto = "\n".join([
             f"Paciente: {p['cedula_paciente']}, Visitante: {p['cedula_visitante']}, Fecha: {p['fecha']}, Hora: {p['hora']}"
-            for p in permisos_visita
+            for p in permisos
         ])
         QMessageBox.information(self, "Permisos de Visita", permisos_texto)
 

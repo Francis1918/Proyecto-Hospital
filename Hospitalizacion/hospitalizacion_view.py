@@ -14,6 +14,8 @@ from Hospitalizacion.camas_y_salas.camas_salas_view import CamasSalasView
 from Hospitalizacion.Visitas.visitas_view import VisitasView
 # Importar la gestión de órdenes que ya existe en tu repo
 from Hospitalizacion.gestion_orden.orden_view import GestionOrdenView
+from Hospitalizacion.Gestion_Admision_Alta.controller import HospitalController as AdmisionController
+from Hospitalizacion.Gestion_Admision_Alta.ui.main_window import MainWindow as AdmisionMainWindow
 
 class HospitalizacionView(QMainWindow):
     def __init__(self, parent=None):
@@ -119,7 +121,16 @@ class HospitalizacionView(QMainWindow):
         self.stack.addWidget(EvolucionCuidadosView(self))           # Index 1
         self.stack.addWidget(GestionOrdenView("Admin"))             # Index 2
         self.stack.addWidget(VisitasView(self))                     # Index 3
-        self.stack.addWidget(self.crear_placeholder("Admisión"))    # Index 4
+        # Index 4: Admisión y Alta - usar la UI existente del submódulo
+        try:
+            adm_ctrl = AdmisionController()
+            adm_window = AdmisionMainWindow(adm_ctrl)
+            adm_window.setWindowFlags(Qt.WindowType.Widget)
+            adm_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+            self.stack.addWidget(adm_window)
+        except Exception:
+            # Fallback al placeholder si ocurre algún error
+            self.stack.addWidget(self.crear_placeholder("Admisión"))    # Index 4
 
         self.cambiar_pestana(0) # Inicia directamente en Camas
 
