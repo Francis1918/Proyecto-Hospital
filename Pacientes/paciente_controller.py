@@ -21,56 +21,9 @@ class PacienteController:
         self._anamnesis_memoria: dict[str, dict] = {}  # cc -> datos_anamnesis
         self._historias_clinicas: dict[str, dict] = {}  # cc -> historia_clinica
 
-        # Cargar datos de ejemplo
-        self._cargar_datos_ejemplo()
 
-    def _cargar_datos_ejemplo(self):
-        """Carga pacientes de ejemplo para pruebas."""
-        pacientes_ejemplo = [
-            Paciente(
-                cc="1234567890",
-                nombre="Juan Carlos",
-                apellido="Pérez García",
-                direccion="Av. Principal #123, Quito",
-                telefono="0991234567",
-                email="juan.perez@email.com",
-                fecha_nacimiento=date(1985, 5, 15),
-                telefono_referencia="0987654321"
-            ),
-            Paciente(
-                cc="0987654321",
-                nombre="María Elena",
-                apellido="González López",
-                direccion="Calle Secundaria #456, Guayaquil",
-                telefono="0998765432",
-                email="maria.gonzalez@email.com",
-                fecha_nacimiento=date(1990, 8, 22),
-                telefono_referencia="0991122334"
-            ),
-            Paciente(
-                cc="1122334455",
-                nombre="Carlos Alberto",
-                apellido="Rodríguez Martínez",
-                direccion="Urbanización Los Pinos, Casa 10, Cuenca",
-                telefono="0976543210",
-                email="carlos.rodriguez@email.com",
-                fecha_nacimiento=date(1978, 12, 3),
-                telefono_referencia="0965432109"
-            ),
-        ]
 
-        # Registrar cada paciente
-        for paciente in pacientes_ejemplo:
-            self._pacientes_memoria[paciente.cc] = paciente
 
-        # Agregar anamnesis de ejemplo para el primer paciente
-        self._anamnesis_memoria["1234567890"] = {
-            'motivo_consulta': 'Dolor de cabeza frecuente',
-            'enfermedad_actual': 'Cefalea tensional de 2 semanas de evolución',
-            'antecedentes_personales': 'Hipertensión arterial controlada',
-            'antecedentes_familiares': 'Padre con diabetes tipo 2',
-            'alergias': 'Penicilina'
-        }
 
     def registrar_paciente(self, paciente: Paciente) -> tuple[bool, str]:
         """
@@ -104,13 +57,14 @@ class PacienteController:
                     cur.execute(
                         """
                         INSERT OR IGNORE INTO pacientes (
-                            dni, nombres, apellidos, direccion, telefono, email, telefono_referencia, historia_clinica, anamnesis
-                        ) VALUES (?,?,?,?,?,?,?,?,?)
+                            dni, nombres, apellidos, fecha_nacimiento, direccion, telefono, email, telefono_referencia, historia_clinica, anamnesis
+                        ) VALUES (?,?,?,?,?,?,?,?,?,?)
                         """,
                         (
                             paciente.cc,
                             paciente.nombre,
                             paciente.apellido,
+                            paciente.fecha_nacimiento, # Insertar fecha
                             paciente.direccion,
                             paciente.telefono,
                             paciente.email,
@@ -135,6 +89,7 @@ class PacienteController:
         Registra la anamnesis del paciente.
         """
         try:
+            import json
             # Verificar que el paciente existe
             paciente = self.consultar_paciente(cc_paciente)
             if not paciente:
@@ -143,10 +98,24 @@ class PacienteController:
             # Guardar en memoria (temporal)
             self._anamnesis_memoria[cc_paciente] = datos_anamnesis
 
-            # Aquí iría la lógica para guardar la anamnesis
-            # if self.db:
-            #     self.db.insert('anamnesis', datos_anamnesis)
-
+            # Persistir en base de datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    # Serializar a JSON string (Crucial para multilínea y caracteres especiales)
+                    json_anamnesis = json.dumps(datos_anamnesis, ensure_ascii=False)
+                    
+                    cur = conn.cursor()
+                    cur.execute(
+                        "UPDATE pacientes SET anamnesis = ? WHERE dni = ?",
+                        (json_anamnesis, cc_paciente)
+                    )
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error DB Anamnesis: {e}")
+                # No retornamos False aquí para mantener consistencia con memoria si DB falla
+            
             return True, "Anamnesis registrada exitosamente"
         except Exception as e:
             return False, f"Error al registrar anamnesis: {str(e)}"
@@ -182,6 +151,21 @@ class PacienteController:
 
             # Guardar en memoria
             self._historias_clinicas[cc_paciente] = historia
+
+            # Persistencia en Base de Datos (Historia Clínica)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        "UPDATE pacientes SET historia_clinica = ? WHERE dni = ?",
+                        (numero_historia, cc_paciente)
+                    )
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error persistiendo HC: {e}")
+                # No fallamos la operación global si falla la DB, para mantener UX, pero se loguea.
 
             return True, f"Historia clínica {numero_historia} creada exitosamente"
         except Exception as e:
@@ -311,47 +295,112 @@ class PacienteController:
 
     def eliminar_paciente(self, cc_paciente: str) -> tuple[bool, str]:
         """
-        Elimina un paciente del sistema.
+        Elimina un paciente del sistema (Memoria y BD).
         """
         try:
-            # Verificar que el paciente existe
-            if cc_paciente not in self._pacientes_memoria:
-                return False, "El paciente no existe"
+            deleted = False
+            
+            # 1. Eliminar de memoria
+            if cc_paciente in self._pacientes_memoria:
+                del self._pacientes_memoria[cc_paciente]
+                deleted = True
 
-            # Eliminar paciente de memoria
-            del self._pacientes_memoria[cc_paciente]
-
-            # Eliminar anamnesis si existe
             if cc_paciente in self._anamnesis_memoria:
                 del self._anamnesis_memoria[cc_paciente]
 
-            # Eliminar historia clínica si existe
             if cc_paciente in self._historias_clinicas:
                 del self._historias_clinicas[cc_paciente]
 
-            # Aquí iría la lógica para eliminar de la base de datos
-            # if self.db:
-            #     self.db.delete('pacientes', {'cc': cc_paciente})
+            # 2. Eliminar de base de datos (Cascada Manual)
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    
+                    # a) Obtener ID numérico (PK) necesario para otras tablas
+                    cur.execute("SELECT id FROM pacientes WHERE dni = ?", (cc_paciente,))
+                    row = cur.fetchone()
+                    
+                    if row:
+                        paciente_id = row[0]
+                        
+                        # b) Borrar Tablas Hijas (nivel 3 - detalles)
+                        # Necesitamos IDs de consultas para borrar recetas/ordenes
+                        cur.execute("SELECT id FROM consultas WHERE paciente_id = ?", (paciente_id,))
+                        consultas_ids = [r[0] for r in cur.fetchall()]
+                        
+                        if consultas_ids:
+                            ids_str = ','.join(map(str, consultas_ids))
+                            cur.execute(f"DELETE FROM recetas WHERE consulta_id IN ({ids_str})")
+                            cur.execute(f"DELETE FROM ordenes_servicio WHERE consulta_id IN ({ids_str})")
 
-            return True, "Paciente eliminado exitosamente"
+                        # c) Borrar Tablas Hijas (nivel 2)
+                        cur.execute("DELETE FROM entregas WHERE paciente_id = ?", (paciente_id,))
+                        cur.execute("DELETE FROM hospitalizaciones WHERE paciente_id = ?", (paciente_id,))
+                        cur.execute("DELETE FROM consultas WHERE paciente_id = ?", (paciente_id,))
+                    
+                    # d) Borrar Citas (referencian al DNI)
+                    cur.execute("DELETE FROM citas WHERE cc_paciente = ?", (cc_paciente,))
+                    
+                    # e) Borrar Paciente (Padre)
+                    cur.execute("DELETE FROM pacientes WHERE dni = ?", (cc_paciente,))
+                    
+                    if cur.rowcount > 0:
+                        deleted = True
+                        
+                    conn.commit()
+                    conn.close()
+            except Exception as db_err:
+                print(f"Error borrando de BD: {db_err}")
+                if not deleted: # Si no se borró de memoria ni de BD
+                     return False, f"Error DB: {str(db_err)}"
+
+            if deleted:
+                return True, "Paciente eliminado exitosamente"
+            else:
+                return False, "El paciente no existe o ya fue eliminado"
+                
         except Exception as e:
             return False, f"Error al eliminar paciente: {str(e)}"
 
     def consultar_paciente(self, cc_paciente: str) -> Optional[Paciente]:
         """
         Caso de uso: consultarPaciente
-        Consulta un paciente por su cédula.
+        Consulta un paciente por su cédula (Memoria -> BD).
         """
         try:
-            # Buscar en memoria primero
+            # 1. Buscar en memoria
             if cc_paciente in self._pacientes_memoria:
                 return self._pacientes_memoria[cc_paciente]
 
-            # Aquí iría la lógica para consultar en la base de datos
-            # if self.db:
-            #     resultado = self.db.query('pacientes', {'cc': cc_paciente})
-            #     if resultado:
-            #         return Paciente.from_dict(resultado)
+            # 2. Buscar en base de datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    # Nota: Asumiendo columnas estándar. Ajustar si fecha_nacimiento falta en DB
+                    row = cur.execute(
+                        "SELECT dni, nombres, apellidos, direccion, telefono, email, telefono_referencia FROM pacientes WHERE dni = ?", 
+                        (cc_paciente,)
+                    ).fetchone()
+                    conn.close()
+                    
+                    if row:
+                        paciente = Paciente(
+                            cc=row[0],
+                            nombre=row[1] or "",
+                            apellido=row[2] or "",
+                            direccion=row[3] or "",
+                            telefono=row[4] or "",
+                            email=row[5] or "",
+                            telefono_referencia=row[6] or None
+                            # Fecha nacimiento no parece estar en la tabla pacientes según registrar_paciente
+                        )
+                        # Cachear en memoria
+                        self._pacientes_memoria[paciente.cc] = paciente
+                        return paciente
+            except Exception as e:
+                print(f"Error consultando DB: {e}")
 
             return None
         except Exception as e:
@@ -442,13 +491,31 @@ class PacienteController:
         Consulta la anamnesis del paciente.
         """
         try:
+            import json
             # Buscar en memoria primero
             if cc_paciente in self._anamnesis_memoria:
                 return self._anamnesis_memoria[cc_paciente]
 
-            # Aquí iría la lógica para consultar la anamnesis
-            # if self.db:
-            #     return self.db.query('anamnesis', {'cc_paciente': cc_paciente})
+            # Buscar en Base de Datos
+            try:
+                conn = crear_conexion()
+                if conn:
+                    cur = conn.cursor()
+                    row = cur.execute("SELECT anamnesis FROM pacientes WHERE dni = ?", (cc_paciente,)).fetchone()
+                    conn.close()
+                    
+                    if row and row[0]: # Si hay datos
+                        try:
+                            # Intentar parsear JSON
+                            datos = json.loads(row[0])
+                            self._anamnesis_memoria[cc_paciente] = datos
+                            return datos
+                        except json.JSONDecodeError:
+                            # Parche de compatibilidad: Retornar como estaba antes (si no era JSON)
+                            # O construir una estructura básica si era texto plano
+                            return {"motivo_consulta": row[0]}
+            except Exception as e:
+                print(f"Error consultando anamnesis DB: {e}")
 
             return None
         except Exception as e:

@@ -26,23 +26,58 @@ class Paciente:
 
     def validar_datos(self) -> tuple[bool, str]:
         """
-        Valida los datos del paciente.
+        Valida los datos del paciente según reglas de negocio estrictas.
         Retorna: (es_valido, mensaje_error)
         """
-        if not self.cc or len(self.cc) < 6:
-            return False, "La cédula debe tener al menos 6 caracteres"
-        '''
-        if not self.num_unic:
-            return False, "El número único es requerido"'''
+        import re
+        from datetime import date
 
-        if not self.nombre or not self.apellido:
-            return False, "Nombre y apellido son requeridos"
+        # 1. Validar Cédula 
+        # (Solo dígitos y longitud entre 6 y 15)
+        if not self.cc or not self.cc.isdigit() or not (6 <= len(self.cc) <= 15):
+             return False, "La cédula debe contener solo números y tener entre 6 y 15 dígitos."
 
-        if not self.telefono or len(self.telefono) < 7:
-            return False, "El teléfono debe tener al menos 7 dígitos"
+        # 2. Validar Nombres y Apellidos
+        # (Solo letras y espacios, incluye tildes y ñ)
+        patron_nombre = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$'
+        
+        if not self.nombre or len(self.nombre) < 2 or not re.match(patron_nombre, self.nombre):
+            return False, "El nombre no es válido (mín. 2 letras, solo letras y espacios)."
+        
+        if not self.apellido or len(self.apellido) < 2 or not re.match(patron_nombre, self.apellido):
+            return False, "El apellido no es válido (mín. 2 letras, solo letras y espacios)."
 
-        if self.email and '@' not in self.email:
-            return False, "El email no es válido"
+        # 3. Validar Dirección (longitud mínima 5)
+        if not self.direccion or len(self.direccion) < 5:
+            return False, "La dirección debe tener al menos 5 caracteres."
+
+        # 4. Validar Teléfonos (longitud 7-15)
+        if not self.telefono or not (7 <= len(self.telefono) <= 15):
+            return False, "El teléfono principal debe tener entre 7 y 15 caracteres."
+
+        if self.telefono_referencia and not (7 <= len(self.telefono_referencia) <= 15):
+            return False, "El teléfono de referencia debe tener entre 7 y 15 caracteres."
+
+        # 5. Validar Email (RFC Standard-ish)
+        if self.email:
+            patron_email = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(patron_email, self.email):
+                 return False, "El formato del correo electrónico no es válido."
+
+        # 6. Validar Fechas (Nacimiento)
+        if self.fecha_nacimiento:
+            hoy = date.today()
+            
+            # No permitir fechas futuras
+            if self.fecha_nacimiento >= hoy:
+                return False, "La fecha de nacimiento no puede ser hoy ni futura."
+            
+            # Calcular edad
+            edad = hoy.year - self.fecha_nacimiento.year - ((hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day))
+            
+            if edad > 150:
+                 return False, f"La edad ({edad} años) no es válida (máximo 150)."
+            # (Opcional) Validar edad mínima si fuera necesario, pero 0 es válido para recién nacidos.
 
         return True, ""
 

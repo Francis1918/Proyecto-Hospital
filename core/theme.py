@@ -110,78 +110,176 @@ def get_sheet() -> str:
        ======================================================= */
     
     /* Widget base: Fuente explícita para evitar errores de cálculo */
+    /* =======================================================
+    /* =======================================================
+       4. CALENDARIO (QCalendarWidget) - FIX DEFINITIVO
+       ======================================================= */
+    
     QCalendarWidget {{
         font-size: 14px;
+        min-width: 300px; /* Asegurar ancho suficiente */
     }}
 
-    /* Fondo general */
-    QCalendarWidget QWidget {{
-        background-color: {c.Bg_Card};
-        alternate-background-color: {c.white_02};
-        color: {c.black_01};
+    /* BARRA DE NAVEGACIÓN (HEADER) */
+    /* Usamos ID específico y color azul sólido directo para evitar errores de variable */
+    QCalendarWidget QWidget#qt_calendar_navigationbar {{ 
+        background-color: #3B82F6; 
+        min-height: 40px;
     }}
-    
-    /* BOTONES DE NAVEGACIÓN (Mes anterior/siguiente)
-       IMPORTANTE: border: 1px solid transparent (reserva espacio)
-    */
+
+    /* FLECHAS (< >) Y MES (Cuando es botón) */
     QCalendarWidget QToolButton {{
-        color: {c.black_01};
+        color: white; 
         background-color: transparent;
-        icon-size: 20px;
-        border: 1px solid transparent; 
+        icon-size: 24px;
+        border: none;
         border-radius: 4px;
         font-weight: bold;
         margin: 2px;
-        font-size: 13px;
-        height: 25px; /* Altura fija ayuda a la estabilidad */
-        width: 25px;
+        /* Asegurar que el mes se lea completo */
+        min-width: 80px; 
+        padding: 4px;
     }}
     
     QCalendarWidget QToolButton:hover {{
-        background-color: {c.hover};
-        border: 1px solid {c.Border};
+        background-color: rgba(255, 255, 255, 0.3);
     }}
     
-    /* SELECTOR DE AÑO (QSpinBox dentro del calendario)
-       IMPORTANTE: Sobrescribimos el padding global para que no rompa el header
-    */
-    QCalendarWidget QSpinBox {{
-        background-color: {c.white_02};
-        color: {c.black_01};
-        border: 1px solid {c.Border};
-        border-radius: 4px;
-        margin: 2px;
-        font-size: 13px;
-        padding-right: 0px; /* <--- CRUCIAL: Quita el padding de los flechas globales */
-        selection-background-color: {c.Focus};
-        selection-color: white;
-        min-width: 60px;
-    }}
-    
-    /* Flechas del SpinBox del año */
-    QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {{
-        subcontrol-origin: border;
-        width: 15px;
-        border: none;
-        background: transparent;
+    /* FLECHAS DE NAVEGACIÓN ESPECÍFICAS (Prev/Next) */
+    /* Qt suele nombrarlas qt_calendar_prevmonth y qt_calendar_nextmonth */
+    QCalendarWidget QToolButton#qt_calendar_prevmonth, 
+    QCalendarWidget QToolButton#qt_calendar_nextmonth {{
+        min-width: 30px; /* Flechas más estrechas que el texto del mes */
+        width: 30px;
     }}
 
-    QCalendarWidget QSpinBox::up-button:hover, QCalendarWidget QSpinBox::down-button:hover {{
-        background-color: {c.hover};
+    /* SELECTOR DE AÑO (QSpinBox) */
+    QCalendarWidget QSpinBox {{
+        background-color: white;
+        color: #1F2937; /* Negro */
+        border: 1px solid #E5E7EB;
+        border-radius: 4px;
+        margin: 2px 5px;
+        font-size: 14px;
+        font-weight: bold;
+        min-width: 70px; /* Evitar corte tipo '2...6' */
+        padding: 4px;
+        selection-background-color: #3B82F6;
+        selection-color: white;
     }}
     
-    /* La grilla de días */
-    QCalendarWidget QAbstractItemView:enabled {{
-        color: {c.black_01};
-        background-color: {c.Bg_Card};
-        selection-background-color: {c.Focus}; 
-        selection-color: white;
+    /* Flechas del year-spinner */
+    QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {{
+        subcontrol-origin: border;
+        width: 18px;
         border: none;
+        background: #F3F4F6;
+    }}
+    
+    QCalendarWidget QSpinBox::up-button:hover, QCalendarWidget QSpinBox::down-button:hover {{
+        background-color: #D1D5DB;
+    }}
+
+    /* CONTENEDOR DE DÍAS (Debajo del header) */
+    QCalendarWidget QWidget {{
+        alternate-background-color: #F9FAFB;
+    }}
+    
+    /* GRILLA DE DÍAS */
+    QCalendarWidget QAbstractItemView:enabled {{
+        color: #111827;  /* Texto negro */
+        background-color: white; /* Fondo blanco */
+        selection-background-color: #3B82F6; /* Azul al seleccionar */
+        selection-color: white;
+        border: 1px solid #E5E7EB;
         outline: 0;
+        gridline-color: transparent;
     }}
     
     QCalendarWidget QAbstractItemView:disabled {{
-        color: {c.black_03};
+        color: #9CA3AF;
+    }}
+
+    /* MENÚ DESPLEGABLE DE MESES (Fix Ghosting) */
+    QCalendarWidget QMenu {{
+        background-color: white;
+        color: #1F2937;
+        border: 1px solid #E5E7EB;
+        border-radius: 4px;
+        padding: 5px;
+    }}
+
+    /* Fondo explícito en los items para evitar letras dobles/transparentes */
+    QCalendarWidget QMenu::item {{
+        background-color: white; 
+        padding: 6px 20px;
+        margin: 1px 0px;
+        border-radius: 3px;
+    }}
+
+    QCalendarWidget QMenu::item:selected {{
+        background-color: #3B82F6;
+        color: white;
+    }}
+
+    /* =======================================================
+       3.1 SPINBOXES (NUEVO CÓDIGO AGREGADO)
+       ======================================================= */
+    QSpinBox, QDoubleSpinBox {{
+        background-color: {c.Bg_Card}; 
+        color: {c.black_01}; 
+        border: 1px solid {c.Border};
+        border-radius: 6px;
+        padding: 6px 10px; 
+        padding-right: 25px; /* Espacio para botones */
+        selection-background-color: {c.Focus};
+        selection-color: white;
+        font-size: 14px;
+    }}
+    
+    QSpinBox:focus, QDoubleSpinBox:focus {{
+        background-color: {c.Bg_Card};
+        border: 1px solid {c.Focus};
+    }}
+
+    /* Botón Arriba */
+    QSpinBox::up-button, QDoubleSpinBox::up-button {{
+        subcontrol-origin: border; 
+        subcontrol-position: top right; 
+        width: 20px; 
+        border: none;
+        border-left: 1px solid {c.Border}; 
+        border-top-right-radius: 6px; 
+        background-color: {c.Bg_Card};
+        margin-top: 1px;
+        margin-right: 1px;
+    }}
+    
+    /* Botón Abajo */
+    QSpinBox::down-button, QDoubleSpinBox::down-button {{
+        subcontrol-origin: border; 
+        subcontrol-position: bottom right; 
+        width: 20px; 
+        border: none;
+        border-left: 1px solid {c.Border}; 
+        border-bottom-right-radius: 6px; 
+        background-color: {c.Bg_Card};
+        margin-bottom: 1px;
+        margin-right: 1px;
+    }}
+
+    /* Hover en los botones */
+    QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+    QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {{
+        background-color: {c.hover};
+    }}
+
+    /* Flechas internas (para asegurar que se vean limpias) */
+    QSpinBox::up-arrow, QDoubleSpinBox::up-arrow,
+    QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+        width: 8px;
+        height: 8px;
+        color: {c.black_02};
     }}
 
     /* =======================================================

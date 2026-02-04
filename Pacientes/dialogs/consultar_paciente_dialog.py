@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from ..paciente_controller import PacienteController
+from .submenu_actualizar_dialog import VentanaOpcionesActualizar
 
 
 class ConsultarPacienteDialog(QDialog):
@@ -213,6 +214,10 @@ class ConsultarPacienteDialog(QDialog):
         btn_ver_detalle.clicked.connect(self.abrir_detalle_paciente)
         botones_tabla_layout.addWidget(btn_ver_detalle)
 
+        btn_modificar = QPushButton("Modificar Datos")
+        btn_modificar.clicked.connect(self.modificar_datos_paciente)
+        botones_tabla_layout.addWidget(btn_modificar)
+
         btn_eliminar = QPushButton("Eliminar Paciente Seleccionado")
         btn_eliminar.setStyleSheet("""
             QPushButton {
@@ -338,6 +343,26 @@ class ConsultarPacienteDialog(QDialog):
         if paciente:
             dialogo = DetallePacienteDialog(self.controller, paciente, self)
             dialogo.exec()
+            # Refrescar la tabla por si hubo cambios
+            self.cargar_pacientes()
+            self.cargar_pacientes()
+            self.filtrar_pacientes()
+
+    def modificar_datos_paciente(self):
+        """Abre la ventana para modificar datos del paciente seleccionado."""
+        row = self.tabla_pacientes.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Advertencia", "Seleccione un paciente de la tabla")
+            return
+
+        cc = self.tabla_pacientes.item(row, 0).text()
+        paciente = self.controller.consultar_paciente(cc)
+
+        if paciente:
+            # Usamos directamente la ventana de opciones, saltando el submenú de búsqueda
+            ventana = VentanaOpcionesActualizar(self.controller, paciente, self)
+            ventana.exec()
+            
             # Refrescar la tabla por si hubo cambios
             self.cargar_pacientes()
             self.filtrar_pacientes()
@@ -758,9 +783,14 @@ ALERGIAS:
 
         if historia:
             self.lbl_num_historia.setText(historia.get('numero_historia', '-'))
+            self.lbl_num_historia.setText(historia.get('numero_historia', '-'))
             fecha_creacion = historia.get('fecha_creacion', None)
-            if fecha_creacion:
+            
+            from datetime import datetime
+            if isinstance(fecha_creacion, datetime):
                 self.lbl_fecha_creacion_hc.setText(fecha_creacion.strftime("%d/%m/%Y %H:%M"))
+            elif isinstance(fecha_creacion, str):
+                self.lbl_fecha_creacion_hc.setText(fecha_creacion)
             else:
                 self.lbl_fecha_creacion_hc.setText("-")
             self.lbl_estado_hc.setText(historia.get('estado', '-'))
