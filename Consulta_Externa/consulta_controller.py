@@ -1,119 +1,192 @@
-from typing import List, Tuple
-from datetime import datetime
+from PyQt6.QtWidgets import QMessageBox
+import sys
+import os
 
+# Añadir el directorio raíz al path para permitir importaciones absolutas
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from core.database import insertar_signos_vitales, obtener_signos_vitales, crear_conexion, actualizar_datos_medicos
+from Pacientes.paciente_controller import PacienteController
 
 class ConsultaExternaController:
-    def __init__(self):
-        # Agenda sincronizada con los datos de ejemplo de PacienteController
-        self._agenda_hoy = [
-            {
-                "id_cita": "CE-2025-001", 
-                "cc": "1234567890", 
-                "paciente": "Juan Carlos Pérez García", 
-                "hora": "08:00", 
-                "estado": "Pendiente"
-            },
-            {
-                "id_cita": "CE-2025-002", 
-                "cc": "0987654321", 
-                "paciente": "María Elena González López", 
-                "hora": "09:30", 
-                "estado": "Pendiente"
-            },
-            {
-                "id_cita": "CE-2025-003", 
-                "cc": "1122334455", 
-                "paciente": "Carlos Alberto Rodríguez Martínez", 
-                "hora": "10:15", 
-                "estado": "Pendiente"
-            }
-        ]
-        self._consultas_realizadas = {}
+    def __init__(self, view):
+        self.view = view
 
-    def consultar_agenda(self) -> List[dict]:
-        """Caso de uso: consultarAgenda"""
-        return self._agenda_hoy
+    def guardar_signos_vitales(self):
+        """
+        Obtiene los datos de la vista, los valida y los guarda en la BD.
+        """
+        datos = self.view.get_valores_signos_vitales()
+        cedula = datos["cedula"]
+        
+        if not cedula:
+            QMessageBox.warning(self.view, "Error de Validación", "El campo 'Cédula' no puede estar vacío.")
+            return
 
-    def registrar_anamnesis(self, id_cita: str, datos: dict) -> tuple[bool, str]:
-        """
-        Caso de uso: registrarAnamnesis con control de datos erróneos.
-        """
-        if not id_cita:
-            return False, "Debe seleccionar una cita activa de la tabla."
+        # Verificar si el paciente existe
+        if not self._verificar_paciente(cedula):
+            # Preguntar si desea registrar al paciente
+            respuesta = QMessageBox.question(
+                self.view,
+                "Paciente no Encontrado",
+                f"No se encontró un paciente con la cédula '{cedula}'.\n\n¿Desea registrarlo ahora?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if respuesta == QMessageBox.StandardButton.Yes:
+                # Aquí puedes abrir un diálogo para registrar el paciente
+                # Por ahora solo mostramos un mensaje
+                QMessageBox.information(
+                    self.view,
+                    "Información",
+                    "Por favor, registre al paciente en el módulo de Pacientes primero."
+                )
+            return
 
         try:
-            # 1. Intento de conversión para detectar letras donde debe haber números
-            peso = float(datos.get('peso', 0))
-            talla = float(datos.get('talla', 0))
-            presion = str(datos.get('presion', '')).strip()
-            motivo = str(datos.get('motivo', '')).strip()
-
-            # 2. Validación de lógica física y clínica
-            if peso <= 0 or peso > 500:
-                return False, f"Peso inválido ({peso} kg). Debe ser un valor positivo real."
+            peso = float(datos["peso"])
+            talla = float(datos["talla"])
             
-            if talla <= 0.3 or talla > 2.50:
-                return False, f"Talla inválida ({talla} m). Ingrese valores entre 0.30 y 2.50."
+            if peso <= 0 or talla <= 0:
+                raise ValueError("Peso y talla deben ser valores positivos.")
 
-            if not presion or "/" not in presion:
-                return False, "Formato de presión arterial incorrecto (ej: 120/80)."
-
-            if len(motivo) < 5:
-                return False, "El motivo de consulta es demasiado breve o está vacío."
-
-            # 3. Guardado si los datos son lógicos
-            if id_cita not in self._consultas_realizadas:
-                self._consultas_realizadas[id_cita] = {}
+        except (ValueError, TypeError):
+            QMessageBox.warning(self.view, "Error de Formato", "Peso y Talla deben ser números válidos.")
+            return
             
-            self._consultas_realizadas[id_cita]['anamnesis'] = {
-                'peso': peso,
-                'talla': talla,
-                'presion': presion,
-                'motivo': motivo,
-                'imc': round(peso / (talla ** 2), 2)
-            }
+        presion = datos["presion"]
+        motivo = datos["motivo"]
 
-            # Actualizar estado en la agenda local
-            for cita in self._agenda_hoy:
-                if cita['id_cita'] == id_cita:
-                    cita['estado'] = 'Triaje Completado'
-            
-            return True, "Anamnesis validada y registrada correctamente."
+        if not presion or not motivo:
+            QMessageBox.warning(self.view, "Error de Validación", "Los campos 'Presión' y 'Motivo' no pueden estar vacíos.")
+            return
+        
+        # Insertar en la base de datos
+        id_registro = insertar_signos_vitales(cedula, peso, talla, presion, motivo)
 
-        except ValueError:
-            return False, "Error de tipo: Peso y Talla deben ser números (use punto para decimales)."
-        except Exception as e:
-            return False, f"Error inesperado: {str(e)}"
+        if id_registro:
+            QMessageBox.information(self.view, "Éxito", f"Signos vitales guardados correctamente con ID: {id_registro}")
+            self.view.limpiar_campos_signos_vitales()
+            self.cargar_signos_vitales_en_vista() # Recargar la tabla
+        else:
+            QMessageBox.critical(self.view, "Error de Base de Datos", "No se pudieron guardar los signos vitales.")
 
-    # --- CASOS DE USO: MÉDICO ---
+    def _verificar_paciente(self, cedula: str) -> bool:
+        """Verifica si un paciente con la cédula dada existe en la tabla de pacientes."""
+        conn = crear_conexion()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1 FROM pacientes WHERE dni = ?", (cedula,))
+                existe = cursor.fetchone()
+                return bool(existe)
+            except Exception as e:
+                print(f"Error al verificar paciente: {e}")
+                return False
+            finally:
+                conn.close()
+        return False
+
+    def cargar_signos_vitales_en_vista(self):
+        """
+        Obtiene los registros de signos vitales de la BD y los carga en el Treeview de la vista.
+        """
+        registros = obtener_signos_vitales()
+        self.view.actualizar_tabla_signos_vitales(registros)
+
     def consultar_historia_clinica(self, cc_paciente: str) -> str:
-        """Caso de uso: consultarHistoriaClínica"""
-        # Aquí normalmente se comunicaría con el PacienteController
-        return f"Resumen HC para {cc_paciente}: Sin alergias conocidas. Antecedentes de asma."
+        """Caso de uso: consultarHistoriaClínica.
 
-    def registrar_diagnostico(self, id_cita: str, cie10: str, notas: str) -> tuple[bool, str]:
-        """Caso de uso: registrarDiagnóstico"""
-        if id_cita not in self._consultas_realizadas or 'anamnesis' not in self._consultas_realizadas[id_cita]:
-            return False, "No se puede diagnosticar sin anamnesis previa."
+        Reutiliza la misma consulta del módulo de Pacientes y devuelve un texto
+        listo para mostrar en la UI (QMessageBox).
+        """
+
+        cc_paciente = (cc_paciente or "").strip()
+        if not cc_paciente:
+            return "Debe ingresar la cédula del paciente."
+
+        paciente_controller = PacienteController()
+
+        # Validar existencia del paciente para dar un mensaje claro.
+        paciente = paciente_controller.consultar_paciente(cc_paciente)
+        if not paciente:
+            return f"No se encontró un paciente con cédula {cc_paciente}."
+
+        historia = paciente_controller.consultar_historia_clinica(cc_paciente)
+        if not historia or not historia.get('historia_clinica'):
+            return f"El paciente con cédula {cc_paciente} no tiene historia clínica registrada."
+
+        return str(historia['historia_clinica'])
+
+    def verificar_paciente_tiene_signos_vitales(self, cedula: str) -> tuple[bool, str]:
+        """
+        Verifica si el paciente existe y tiene signos vitales registrados.
+        Retorna (existe: bool, mensaje: str)
+        """
+        conn = crear_conexion()
+        if not conn:
+            return False, "Error de conexión con la base de datos"
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Verificar si existe el paciente
+            cursor.execute("SELECT 1 FROM pacientes WHERE dni = ?", (cedula,))
+            paciente_existe = cursor.fetchone()
+            
+            if not paciente_existe:
+                return False, f"No existe un paciente con cédula {cedula}"
+            
+            # Verificar si tiene signos vitales
+            cursor.execute("""
+                SELECT id FROM pacienteSignosVitales 
+                WHERE cedula = ? 
+                ORDER BY fecha_registro DESC 
+                LIMIT 1
+            """, (cedula,))
+            
+            tiene_signos = cursor.fetchone()
+            
+            if not tiene_signos:
+                return False, f"El paciente con cédula {cedula} no tiene signos vitales registrados. Debe registrarlos primero en la pestaña 'Signos Vitales'."
+            
+            return True, "OK"
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
+
+    def registrar_diagnostico(self, cedula: str, cie10: str, observaciones: str, plan_tratamiento: str) -> tuple[bool, str]:
+        """
+        Registra el diagnóstico médico actualizando el registro de signos vitales más reciente.
+        """
+        if not cedula:
+            return False, "Debe ingresar la cédula del paciente."
         
         if not cie10:
             return False, "El código CIE-10 es obligatorio para el diagnóstico."
-
-        self._consultas_realizadas[id_cita]['diagnostico'] = {'cie10': cie10, 'notas': notas}
-        return True, "Diagnóstico registrado."
+        
+        # Verificar que el paciente tenga signos vitales
+        existe, mensaje = self.verificar_paciente_tiene_signos_vitales(cedula)
+        if not existe:
+            return False, mensaje
+        
+        # Actualizar los datos médicos
+        exito = actualizar_datos_medicos(cedula, cie10, observaciones, plan_tratamiento)
+        
+        if exito:
+            return True, "Diagnóstico y plan de tratamiento registrados correctamente."
+        else:
+            return False, "Error al registrar el diagnóstico en la base de datos."
 
     def emitir_receta(self, id_cita: str, receta_datos: dict, ordenes_extra: list) -> tuple[bool, str]:
         """Caso de uso: emitirReceta y sus <<extend>>"""
-        if 'diagnostico' not in self._consultas_realizadas.get(id_cita, {}):
+        if not id_cita:
             return False, "Debe registrar un diagnóstico antes de emitir la receta."
 
-        self._consultas_realizadas[id_cita]['receta'] = receta_datos
-        self._consultas_realizadas[id_cita]['ordenes_extendidas'] = ordenes_extra
-
-        # Finalizar cita
-        for cita in self._agenda_hoy:
-            if cita['id_cita'] == id_cita:
-                cita['estado'] = 'Atendido'
+        # Aquí iría la lógica para emitir la receta
+        print(f"Receta emitida para cita {id_cita}: {receta_datos}")
         
         res = "Receta emitida."
         if ordenes_extra:
